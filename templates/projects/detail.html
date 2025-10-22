@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="it"><head>
+<meta charset="utf-8"><title>{{ p.title }}</title>
+</head><body>
+<h1>{{ p.title }}</h1>
+<p><b>Scuola:</b> {{ p.school.name }}</p>
+<p><b>Programma:</b> {{ p.get_program_display }}</p>
+<p><b>Periodo:</b> {{ p.start_date }} → {{ p.end_date }}</p>
+<p><b>Stato:</b> {{ p.get_status_display }}</p>
+<p><b>CUP:</b> {{ p.cup|default:"—" }} | <b>CIG:</b> {{ p.cig|default:"—" }}</p>
+<p><b>Budget:</b> € {{ p.budget }} — <b>Speso:</b> € {{ p.spent }} ({{ p.percent_spent }}%)</p>
+<p><a href="{% url 'projects_by_school' p.school.id %}">← Torna all’elenco</a></p>
+</body></html>

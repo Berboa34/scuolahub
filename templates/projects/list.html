@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="it"><head>
+<meta charset="utf-8"><title>Progetti – {{ school.name }}</title>
+</head><body>
+<h1>Progetti – {{ school.name }}</h1>
+<table border="1" cellpadding="6">
+<thead><tr><th>Titolo</th><th>Programma</th><th>Periodo</th><th>Stato</th><th>Budget</th><th>Speso</th><th>%</th></tr></thead>
+<tbody>
+{% for p in projects %}
+<tr>
+  <td><a href="{% url 'project_detail' p.id %}">{{ p.title }}</a></td>
+  <td>{{ p.get_program_display }}</td>
+  <td>{{ p.start_date }} → {{ p.end_date }}</td>
+  <td>{{ p.get_status_display }}</td>
+  <td>€ {{ p.budget }}</td>
+  <td>€ {{ p.spent }}</td>
+  <td>{{ p.percent_spent }}%</td>
+</tr>
+{% empty %}
+<tr><td colspan="7">Nessun progetto.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+<p><a href="/">← Dashboard</a></p>
+</body></html>
