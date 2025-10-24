@@ -1,24 +1,21 @@
-from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from .models import Project, School
 
-# Create your views here.
-from django.shortcuts import render, get_object_or_404
-from .models import School, Project
-from django.db.models import Sum
-
-def projects_by_school(request, school_id: int):
-    school = get_object_or_404(School, pk=school_id)
-    qs = school.projects.order_by('-start_date')
-    return render(request, 'projects/list.html', {'school': school, 'projects': qs})
-
-def project_detail(request, pk: int):
-    p = get_object_or_404(Project, pk=pk)
-    return render(request, 'projects/detail.html', {'p': p})
-
-
+@login_required
 def dashboard(request):
-    schools = School.objects.all().order_by('name')
-    latest = Project.objects.select_related('school').order_by('-start_date')[:5]
-    totals = Project.objects.aggregate(budget=Sum('budget'), spent=Sum('spent'))
+    # mostra solo i progetti / dati della scuola dell'utente
+    profile = getattr(request.user, "profile", None)
+    if profile and profile.school:
+        school = profile.school
+        schools = [school]
+        latest = Project.objects.filter(school=school).order_by('-start_date')[:6]
+        totals = Project.objects.filter(school=school).aggregate(budget=Sum('budget'), spent=Sum('spent'))
+    else:
+        # fallback: nessuna school assegnata → nessun dato sensibile
+        schools = []
+        latest = Project.objects.none()
+        totals = {"budget": 0, "spent": 0}
     return render(request, "dashboard.html", {
         "schools": schools,
         "latest": latest,

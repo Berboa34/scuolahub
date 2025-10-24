@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="it">
+<head><meta charset="utf-8"><title>Accedi – ScuolaHub</title></head>
+<body>
+  <h1>Accedi a ScuolaHub</h1>
+
+  {% if form.errors %}
+    <p style="color:red">Credenziali non valide.</p>
+  {% endif %}
+
+  <form method="post" action="{% url 'login' %}">
+    {% csrf_token %}
+    <label>Nome utente<br>
+      <input type="text" name="username" autofocus required>
+    </label><br><br>
+    <label>Password<br>
+      <input type="password" name="password" required>
+    </label><br><br>
+    <button type="submit">Entra</button>
+  </form>
+
+  <p style="margin-top:16px;font-size:14px">
+    Torna alla <a href="/">home</a>
+  </p>
+</body>
+</html>
