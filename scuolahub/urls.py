@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from ScuolaHub.projects.views import dashboard, projects_by_school, project_detail
+from projects.views import dashboard, projects_by_school, project_detail
 
 urlpatterns = [
     path('admin/', admin.site.urls),
