@@ -1,34 +1,20 @@
-"""
-URL configuration for scuolahub project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path
-from projects.views import dashboard, projects_by_school, project_detail
 from django.contrib.auth import views as auth_views
+
+from projects.views import dashboard, projects_by_school, project_detail
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # HOME → view protetta da @login_required
+    # HOME = dashboard protetta
     path('', dashboard, name='dashboard'),
 
+    # Progetti
     path('scuole/<int:school_id>/progetti/', projects_by_school, name='projects_by_school'),
     path('progetti/<int:pk>/', project_detail, name='project_detail'),
 
-    # login/logout
+    # Auth (login/logout)
     path('accounts/login/',  auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
 ]
