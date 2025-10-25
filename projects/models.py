@@ -1,7 +1,4 @@
-from django.db import models
-
-# Create your models here.
-
+from django.contrib.auth.models import User
 from django.db import models
 
 class School(models.Model):
@@ -10,6 +7,14 @@ class School(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.codice_meccanografico})"
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    school = models.ForeignKey(School, null=True, blank=True, on_delete=models.SET_NULL)
+    role = models.CharField(max_length=40, default="staff")  # es. dirigente, DSGA, referente
+
+    def __str__(self):
+        return f"{self.user.username} ({self.school})"
 
 class Project(models.Model):
     PROGRAM_CHOICES = [("PNRR","PNRR"), ("FESR","FESR"), ("FSE","FSE"), ("ERASMUS","Erasmus+"), ("ALTRO","Altro")]
