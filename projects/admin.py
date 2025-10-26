@@ -5,8 +5,8 @@ from .models import School, Project
 # --- Admin School
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ("name", "code")
-    search_fields = ("name", "code")
+    list_display = ("name",)
+    search_fields = ("name",)
 
 # --- Admin Project
 @admin.register(Project)
