@@ -64,10 +64,12 @@
 
 {% if user.is_authenticated %}
   <div style="background:#f1f1f1; padding:10px; border-bottom:1px solid #ccc;">
-    <b>Benvenuto/a, {{ user.username }}</b> —
-    <a href="{% url 'logout' %}">Esci</a>
+    <b>Utente:</b> {{ user.username }}
+    {% if user.profile.school %} — <b>Istituto:</b> {{ user.profile.school.name }}{% endif %}
+    — <a href="{% url 'logout' %}">Esci</a>
   </div>
 {% endif %}
+
 
   <header>
     <div class="wrap">

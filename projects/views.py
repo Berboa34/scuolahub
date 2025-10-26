@@ -5,9 +5,22 @@ from .models import Project, School
 
 @login_required
 def dashboard(request):
-    totals = Project.objects.aggregate(budget=Sum('budget'), spent=Sum('spent'))
-    latest = Project.objects.order_by('-start_date')[:6]
-    schools = School.objects.all()[:1]
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
+
+    if school:
+        projects_qs = Project.objects.filter(school=school)
+        schools = [school]
+    else:
+        # Nessuna scuola associata → niente dati sensibili
+        projects_qs = Project.objects.none()
+        schools = []
+
+    totals = projects_qs.aggregate(budget=Sum('budget'), spent=Sum('spent'))
+    latest = projects_qs.order_by('-start_date')[:6]
+
     return render(request, "dashboard.html", {
-        "totals": totals, "latest": latest, "schools": schools
+        "schools": schools,
+        "latest": latest,
+        "totals": totals,
     })
