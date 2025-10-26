@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'projects',
+    'projects.apps.ProjectsConfig',
+
 ]
 
 MIDDLEWARE = [
@@ -141,3 +142,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-unsafe-key")
+CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
+
