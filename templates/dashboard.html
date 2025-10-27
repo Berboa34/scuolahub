@@ -67,470 +67,557 @@
     <b>Benvenuto/a, {{ user.username }}</b> —
     <form method="post" action="{% url 'logout' %}" style="display:inline">
       {% csrf_token %}
-      <button type="submit" style="all:unset; color:#2563eb; cursor:pointer;">
-        Esci
-      </button>
+      <button type="submit" style="all:unset; color:#2563eb; cursor:pointer;">Esci</button>
     </form>
   </div>
 {% endif %}
 
-
-
-
-  <header>
-    <div class="wrap">
-      <div class="brand">
-        <div class="logo">S</div>
-        <div>
-          <strong>ScuolaHub</strong><br>
-          <span class="muted">Mockup statico – gestione progetti PNRR/FESR/FSE/Erasmus+</span>
-        </div>
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <strong>ScuolaHub</strong><br>
+        <span class="muted">Mockup statico – gestione progetti PNRR/FESR/FSE/Erasmus+</span>
       </div>
-      <nav id="mainnav" aria-label="Navigazione principale">
-        <button data-view="dashboard" class="active">Dashboard</button>
-        <button data-view="projects">Progetti</button>
-        <button data-view="project-detail">Dettaglio progetto</button>
-        <button data-view="calendar">Calendario</button>
-        <button data-view="documents">Documenti</button>
-        <button data-view="deleghe">Deleghe</button>
-        <button data-view="settings">Impostazioni</button>
-      </nav>
     </div>
-  </header>
+    <nav id="mainnav" aria-label="Navigazione principale">
+      <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="bandi">Bandi</button><!-- NUOVO -->
+      <button data-view="projects">Progetti</button>
+      <button data-view="project-detail">Dettaglio progetto</button>
+      <button data-view="calendar">Calendario</button>
+      <button data-view="documents">Documenti</button>
+      <button data-view="deleghe">Deleghe</button>
+      <button data-view="settings">Impostazioni</button>
+    </nav>
+  </div>
+</header>
 
-  <main class="wrap">
-    <!-- DASHBOARD -->
-    <section id="view-dashboard" class="view active" role="region" aria-label="Dashboard">
-      <div class="grid cols-3">
-        <div class="card kpi"><div>
-          <div class="muted">Budget allocato</div>
-          <b>€ 1.200.000</b>
-        </div><span class="tag">+2,1% mese</span></div>
-        <div class="card kpi"><div>
-          <div class="muted">Spesa effettuata</div>
-          <b>€ 730.450</b>
-        </div><span class="tag">61% del totale</span></div>
-        <div class="card kpi"><div>
-          <div class="muted">Scadenze entro 30 gg</div>
-          <b>5</b>
-        </div><span class="status active">In corso</span></div>
-      </div>
+<main class="wrap">
+  <!-- DASHBOARD -->
+  <section id="view-dashboard" class="view active" role="region" aria-label="Dashboard">
+    <div class="grid cols-3">
+      <div class="card kpi"><div>
+        <div class="muted">Budget allocato</div>
+        <b>€ 1.200.000</b>
+      </div><span class="tag">+2,1% mese</span></div>
+      <div class="card kpi"><div>
+        <div class="muted">Spesa effettuata</div>
+        <b>€ 730.450</b>
+      </div><span class="tag">61% del totale</span></div>
+      <div class="card kpi"><div>
+        <div class="muted">Scadenze entro 30 gg</div>
+        <b>5</b>
+      </div><span class="status active">In corso</span></div>
+    </div>
 
-      <div class="grid cols-2" style="margin-top:16px">
-        <div class="card">
-          <div class="flex">
-            <h3>Progetti in evidenza</h3>
-            <div class="right toolbar">
-              <input id="search-featured" class="input" placeholder="Cerca progetto…" />
-              <button class="btn">Filtri</button>
-              <button class="btn primary" onclick="go('project-detail')">Nuovo progetto</button>
-            </div>
-          </div>
-          <!--
-          Hook Django (sostituisci il tbody con):
-          <tbody>
-            {% for p in latest %}
-              <tr data-project
-                  data-title="{{ p.title|lower }}"
-                  data-program="{{ p.get_program_display|lower }}"
-                  data-cup="{{ p.cup|default:''|lower }}"
-                  data-cig="{{ p.cig|default:''|lower }}"
-                  onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
-                <td>{{ p.title }}</td>
-                <td>{{ p.get_program_display }}</td>
-                <td>{{ p.start_date }} – {{ p.end_date }}</td>
-                <td><span class="status {% if p.status == 'ACTIVE' %}active{% elif p.status == 'DRAFT' %}draft{% else %}closed{% endif %}">{{ p.get_status_display }}</span></td>
-                <td>€ {{ p.budget }}</td>
-                <td>€ {{ p.spent }}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="6">Nessun progetto.</td></tr>
-            {% endfor %}
-          </tbody>
-          -->
-          <table>
-            <thead>
-              <tr><th>Titolo</th><th>Programma</th><th>Periodo</th><th>Stato</th><th>Budget</th><th>Speso</th></tr>
-            </thead>
-            <tbody id="featured-tbody">
-              <tr data-project data-title="laboratori stem" data-program="pnrr" data-cup="c12h230001" data-cig="" onclick="go('project-detail')" style="cursor:pointer">
-                <td>Laboratori STEM</td>
-                <td>PNRR</td>
-                <td>01/2024 – 12/2025</td>
-                <td><span class="status active">In corso</span></td>
-                <td>€ 320.000</td>
-                <td>€ 210.000</td>
-              </tr>
-              <tr data-project data-title="digitale amministrazione" data-program="fesr" data-cup="c55x240045" data-cig="">
-                <td>Digitale Amministrazione</td>
-                <td>FESR</td>
-                <td>03/2024 – 06/2025</td>
-                <td><span class="status active">In corso</span></td>
-                <td>€ 150.000</td>
-                <td>€ 80.000</td>
-              </tr>
-              <tr data-project data-title="erasmus+ docenti" data-program="erasmus" data-cup="" data-cig="">
-                <td>Erasmus+ Docenti</td>
-                <td>Erasmus+</td>
-                <td>09/2024 – 08/2025</td>
-                <td><span class="status draft">Bozza</span></td>
-                <td>€ 90.000</td>
-                <td>€ 5.000</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="card">
-          <h3>Scadenze prossime</h3>
-          <div class="calendar" aria-label="Calendario sintetico">
-            <div class="day" data-day="15"><b>15</b><div class="event">Rendicontazione PNRR</div></div>
-            <div class="day" data-day="16"><b>16</b><div class="event">Mandato fornitore Lab</div></div>
-            <div class="day" data-day="17"><b>17</b></div>
-            <div class="day" data-day="18"><b>18</b><div class="event">Verbale commissione</div></div>
-            <div class="day" data-day="19"><b>19</b></div>
-            <div class="day" data-day="20"><b>20</b><div class="event">Ordine attrezzature</div></div>
-            <div class="day" data-day="21"><b>21</b></div>
-          </div>
-          <p class="hint">Suggerimento: le scadenze derivano da milestone e cronoprogramma.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- PROGETTI LISTA -->
-    <section id="view-projects" class="view" role="region" aria-label="Progetti">
+    <div class="grid cols-2" style="margin-top:16px">
       <div class="card">
         <div class="flex">
-          <h3>Tutti i progetti</h3>
+          <h3>Progetti in evidenza</h3>
           <div class="right toolbar">
-            <input id="search-projects" class="input" placeholder="Cerca per titolo, CUP, CIG, programma…" />
-            <select id="filter-status" class="input" aria-label="Filtro stato">
-              <option value="">Stato: tutti</option>
-              <option value="draft">Bozza</option>
-              <option value="active">In corso</option>
-              <option value="closed">Chiuso</option>
-            </select>
-            <button class="btn" id="btn-export">Esporta</button>
+            <input id="search-featured" class="input" placeholder="Cerca progetto…" />
+            <button class="btn">Filtri</button>
             <button class="btn primary" onclick="go('project-detail')">Nuovo progetto</button>
           </div>
         </div>
-        <!--
-        Hook Django alternativo: generare righe da DB
-        <tbody id="projects-tbody">
-          {% for p in projects %}
-            <tr data-project
-                data-status="{{ p.status|lower }}"
-                data-title="{{ p.title|lower }}"
-                data-program="{{ p.get_program_display|lower }}"
-                data-cup="{{ p.cup|default:''|lower }}"
-                data-cig="{{ p.cig|default:''|lower }}"
-                onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
-              <td>{{ p.title }}</td>
-              <td>{{ p.get_program_display }}</td>
-              <td>{{ p.cup|default:"—" }}</td>
-              <td>{{ p.start_date }} – {{ p.end_date }}</td>
-              <td><span class="status {% if p.status == 'ACTIVE' %}active{% elif p.status == 'DRAFT' %}draft{% else %}closed{% endif %}">{{ p.get_status_display }}</span></td>
-              <td><div class="progress"><i style="width:{{ p.percent_spent }}%"></i></div></td>
-            </tr>
-          {% endfor %}
-        </tbody>
-        -->
         <table>
           <thead>
-            <tr><th>Titolo</th><th>Programma</th><th>CUP</th><th>Periodo</th><th>Stato</th><th class="right">% Spesa</th></tr>
+            <tr><th>Titolo</th><th>Programma</th><th>Periodo</th><th>Stato</th><th>Budget</th><th>Speso</th></tr>
           </thead>
-          <tbody id="projects-tbody">
-            <tr data-project data-status="active" data-title="laboratori stem" data-program="pnrr" data-cup="c12h230001" data-cig="" onclick="go('project-detail')" style="cursor:pointer">
+          <tbody id="featured-tbody">
+            <tr data-project data-title="laboratori stem" data-program="pnrr" data-cup="c12h230001" data-cig="" onclick="go('project-detail')" style="cursor:pointer">
               <td>Laboratori STEM</td>
               <td>PNRR</td>
-              <td>C12H230001</td>
               <td>01/2024 – 12/2025</td>
               <td><span class="status active">In corso</span></td>
-              <td><div class="progress"><i style="width:66%"></i></div></td>
+              <td>€ 320.000</td>
+              <td>€ 210.000</td>
             </tr>
-            <tr data-project data-status="active" data-title="digitale amministrazione" data-program="fesr" data-cup="c55x240045" data-cig="">
+            <tr data-project data-title="digitale amministrazione" data-program="fesr" data-cup="c55x240045" data-cig="">
               <td>Digitale Amministrazione</td>
               <td>FESR</td>
-              <td>C55X240045</td>
               <td>03/2024 – 06/2025</td>
               <td><span class="status active">In corso</span></td>
-              <td><div class="progress"><i style="width:53%"></i></div></td>
+              <td>€ 150.000</td>
+              <td>€ 80.000</td>
             </tr>
-            <tr data-project data-status="draft" data-title="erasmus+ docenti" data-program="erasmus" data-cup="" data-cig="">
+            <tr data-project data-title="erasmus+ docenti" data-program="erasmus" data-cup="" data-cig="">
               <td>Erasmus+ Docenti</td>
               <td>Erasmus+</td>
-              <td>—</td>
               <td>09/2024 – 08/2025</td>
               <td><span class="status draft">Bozza</span></td>
-              <td><div class="progress"><i style="width:6%"></i></div></td>
+              <td>€ 90.000</td>
+              <td>€ 5.000</td>
             </tr>
           </tbody>
         </table>
-        <p class="hint" style="margin-top:8px">Suggerimento: filtra per “pnrr”, “c12h”, “bozza”, ecc.</p>
       </div>
-    </section>
 
-    <!-- DETTAGLIO PROGETTO -->
-    <section id="view-project-detail" class="view" role="region" aria-label="Dettaglio progetto">
       <div class="card">
-        <div class="flex">
-          <div>
-            <h2>Laboratori STEM <span class="status active">In corso</span></h2>
-            <div class="muted">PNRR · CUP C12H230001 · Periodo 01/2024 – 12/2025</div>
-          </div>
-          <div class="right toolbar">
-            <button class="btn">Condividi</button>
-            <button class="btn">Duplica</button>
-            <button class="btn primary">Aggiungi voce</button>
-          </div>
-        </div>
-        <div class="pillbar" id="tabs-project">
-          <button data-tab="overview" class="active">Panoramica</button>
-          <button data-tab="budget">Budget</button>
-          <button data-tab="spese">Spese</button>
-          <button data-tab="milestone">Milestone</button>
-          <button data-tab="documenti">Documenti</button>
-          <button data-tab="deleghe">Deleghe</button>
-        </div>
-        <div id="tab-overview" class="tab">
-          <div class="two">
-            <div class="card">
-              <h3>Stato avanzamento</h3>
-              <p class="muted">Percentuale di spesa sul budget allocato.</p>
-              <div class="progress"><i style="width:61%"></i></div>
-              <div class="grid cols-2" style="margin-top:12px">
-                <div><div class="muted">Budget</div><b>€ 320.000</b></div>
-                <div><div class="muted">Speso</div><b>€ 195.200</b></div>
-              </div>
-            </div>
-            <div class="card">
-              <h3>Prossime scadenze</h3>
-              <ul>
-                <li>20/10/2025 – Verbale commissione</li>
-                <li>02/11/2025 – Rendicontazione intermedia</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <div id="tab-budget" class="tab" hidden>
-          <h3>Voci di budget</h3>
-          <table>
-            <thead><tr><th>Categoria</th><th>Allocato</th><th>Impegnato</th><th>Pagato</th></tr></thead>
-            <tbody>
-              <tr><td>Attrezzature</td><td>€ 200.000</td><td>€ 150.000</td><td>€ 120.000</td></tr>
-              <tr><td>Formazione</td><td>€ 80.000</td><td>€ 35.000</td><td>€ 20.000</td></tr>
-              <tr><td>Servizi</td><td>€ 40.000</td><td>€ 20.000</td><td>€ 15.200</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div id="tab-spese" class="tab" hidden>
-          <div class="toolbar" style="margin-bottom:8px">
-            <input class="input" placeholder="Cerca fornitore o numero documento…" />
-            <button class="btn">Filtri</button>
-            <button class="btn primary">Nuova spesa</button>
-          </div>
-          <table>
-            <thead><tr><th>Data</th><th>Fornitore</th><th>Importo</th><th>Voce</th><th>Documento</th></tr></thead>
-            <tbody>
-              <tr><td>03/09/2025</td><td>TechnoLab srl</td><td>€ 45.000</td><td>Attrezzature</td><td>Mandato 245</td></tr>
-              <tr><td>11/09/2025</td><td>FormEdu</td><td>€ 5.200</td><td>Formazione</td><td>Fattura FE-091</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div id="tab-milestone" class="tab" hidden>
-          <table>
-            <thead><tr><th>Milestone</th><th>Scadenza</th><th>Stato</th></tr></thead>
-            <tbody>
-              <tr><td>Pubblicazione bando</td><td>15/08/2025</td><td>Completata</td></tr>
-              <tr><td>Aggiudicazione</td><td>28/09/2025</td><td>In corso</td></tr>
-              <tr><td>Collaudo</td><td>10/12/2025</td><td>Da iniziare</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div id="tab-documenti" class="tab" hidden>
-          <div class="toolbar" style="margin-bottom:8px">
-            <input class="input" placeholder="Cerca per tipo o nome file…" />
-            <button class="btn">Carica</button>
-          </div>
-          <table>
-            <thead><tr><th>Tipo</th><th>Nome file</th><th>Versione</th><th>Caricato da</th><th>Data</th></tr></thead>
-            <tbody>
-              <tr><td>Determina</td><td>det_0123.pdf</td><td>v1</td><td>DSGA</td><td>01/09/2025</td></tr>
-              <tr><td>Verbale</td><td>verbale_08-09.pdf</td><td>v2</td><td>Referente</td><td>09/09/2025</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div id="tab-deleghe" class="tab" hidden>
-          <div class="toolbar" style="margin-bottom:8px">
-            <button class="btn primary">Nuova delega</button>
-          </div>
-          <table>
-            <thead><tr><th>Collaboratore</th><th>Ambito</th><th>Permessi</th></tr></thead>
-            <tbody>
-              <tr><td>Rossi M.</td><td>Acquisti</td><td>Modifica</td></tr>
-              <tr><td>Bianchi L.</td><td>Documenti</td><td>Sola lettura</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- CALENDARIO (EDITABILE) -->
-    <section id="view-calendar" class="view" role="region" aria-label="Calendario">
-      <div class="card">
-        <div class="flex">
-          <h3>Calendario</h3>
-          <div class="right toolbar">
-            <select class="input"><option>Mese</option><option>Settimana</option><option>Agenda</option></select>
-            <button class="btn" id="btn-clear-cal">Svuota calendario (demo)</button>
-            <button class="btn primary" id="btn-new-event">Nuovo evento</button>
-          </div>
-        </div>
-        <div class="calendar" id="calendar-grid" style="margin-top:10px">
-          <div class="day" data-day="1"><b>1</b></div>
-          <div class="day" data-day="2"><b>2</b></div>
-          <div class="day" data-day="3"><b>3</b></div>
-          <div class="day" data-day="4"><b>4</b></div>
-          <div class="day" data-day="5"><b>5</b></div>
-          <div class="day" data-day="6"><b>6</b></div>
-          <div class="day" data-day="7"><b>7</b></div>
-          <div class="day" data-day="8"><b>8</b></div>
-          <div class="day" data-day="9"><b>9</b></div>
-          <div class="day" data-day="10"><b>10</b></div>
-          <div class="day" data-day="11"><b>11</b></div>
-          <div class="day" data-day="12"><b>12</b></div>
-          <div class="day" data-day="13"><b>13</b></div>
-          <div class="day" data-day="14"><b>14</b></div>
-          <div class="day" data-day="15"><b>15</b></div>
-          <div class="day" data-day="16"><b>16</b></div>
+        <h3>Scadenze prossime</h3>
+        <div class="calendar" aria-label="Calendario sintetico">
+          <div class="day" data-day="15"><b>15</b><div class="event">Rendicontazione PNRR</div></div>
+          <div class="day" data-day="16"><b>16</b><div class="event">Mandato fornitore Lab</div></div>
           <div class="day" data-day="17"><b>17</b></div>
-          <div class="day" data-day="18"><b>18</b></div>
+          <div class="day" data-day="18"><b>18</b><div class="event">Verbale commissione</div></div>
           <div class="day" data-day="19"><b>19</b></div>
-          <div class="day" data-day="20"><b>20</b></div>
+          <div class="day" data-day="20"><b>20</b><div class="event">Ordine attrezzature</div></div>
           <div class="day" data-day="21"><b>21</b></div>
-          <div class="day" data-day="22"><b>22</b></div>
-          <div class="day" data-day="23"><b>23</b></div>
-          <div class="day" data-day="24"><b>24</b></div>
-          <div class="day" data-day="25"><b>25</b></div>
-          <div class="day" data-day="26"><b>26</b></div>
-          <div class="day" data-day="27"><b>27</b></div>
-          <div class="day" data-day="28"><b>28</b></div>
         </div>
-        <p class="hint">Demo: clicca su un giorno per aggiungere un evento. Clic su un evento per eliminarlo.</p>
-      </div>
-    </section>
-
-    <!-- DOCUMENTI -->
-    <section id="view-documents" class="view" role="region" aria-label="Documenti">
-      <div class="card">
-        <div class="flex">
-          <h3>Repository documentale</h3>
-          <div class="right toolbar">
-            <input class="input" placeholder="Cerca…" />
-            <button class="btn">Carica</button>
-          </div>
-        </div>
-        <table>
-          <thead><tr><th>Progetto</th><th>Tipo</th><th>File</th><th>Versione</th><th>Data</th></tr></thead>
-          <tbody>
-            <tr><td>Laboratori STEM</td><td>Determina</td><td>det_0123.pdf</td><td>v1</td><td>01/09/2025</td></tr>
-            <tr><td>Digitale Amministrazione</td><td>Fattura</td><td>fatt_332.pdf</td><td>v1</td><td>05/09/2025</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- DELEGHE -->
-    <section id="view-deleghe" class="view" role="region" aria-label="Deleghe">
-      <div class="card">
-        <div class="flex">
-          <h3>Deleghe e permessi</h3>
-          <div class="right toolbar">
-            <button class="btn primary">Nuova delega</button>
-          </div>
-        </div>
-        <table>
-          <thead><tr><th>Collaboratore</th><th>Ambito</th><th>Permessi</th><th>Stato</th></tr></thead>
-          <tbody>
-            <tr><td>Rossi M.</td><td>Acquisti</td><td>Modifica</td><td><span class="status active">Attiva</span></td></tr>
-            <tr><td>Bianchi L.</td><td>Documenti</td><td>Lettura</td><td><span class="status draft">In attesa</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- IMPOSTAZIONI -->
-    <section id="view-settings" class="view" role="region" aria-label="Impostazioni">
-      <div class="card">
-        <h3>Impostazioni scuola</h3>
-        <div class="grid cols-2">
-          <div class="card">
-            <h4>Dati istituto</h4>
-            <div class="grid cols-2">
-              <label>Nome istituto<br><input class="input" placeholder="IIS Galileo Galilei" /></label>
-              <label>Codice meccanografico<br><input class="input" placeholder="MIIC8AB00X" /></label>
-            </div>
-          </div>
-          <div class="card">
-            <h4>Notifiche</h4>
-            <label><input type="checkbox" checked> Email scadenze</label><br>
-            <label><input type="checkbox"> Report settimanale</label>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="wrap">
-    <span>© 2025 ScuolaHub – Mockup statico per validazione UX</span>
-  </footer>
-
-  <!-- Modal per nuovo evento (demo) -->
-  <div id="modal">
-    <div class="panel">
-      <h3 id="modal-title">Nuovo evento</h3>
-      <label>Titolo evento<br>
-        <input id="modal-input" class="input" placeholder="Es. Rendicontazione intermedia" style="width:100%">
-      </label>
-      <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end">
-        <button id="modal-cancel" class="btn">Annulla</button>
-        <button id="modal-save" class="btn primary">Salva</button>
+        <p class="hint">Suggerimento: le scadenze derivano da milestone e cronoprogramma.</p>
       </div>
     </div>
+  </section>
+
+  <!-- BANDI -->
+  <section id="view-bandi" class="view" role="region" aria-label="Bandi">
+    <div class="card">
+      <div class="flex">
+        <h3>Bandi disponibili</h3>
+        <div class="right toolbar">
+          <input id="bandi-search" class="input" placeholder="Cerca per titolo, programma, ente…" />
+          <select id="bandi-program" class="input" aria-label="Programma">
+            <option value="">Programma: tutti</option>
+            <option value="PNRR">PNRR</option>
+            <option value="FESR">FESR</option>
+            <option value="FSE+">FSE+</option>
+            <option value="Erasmus+">Erasmus+</option>
+            <option value="PON/Altri">PON/Altri</option>
+          </select>
+          <select id="bandi-stato" class="input" aria-label="Stato">
+            <option value="">Stato: tutti</option>
+            <option value="Aperto">Aperto</option>
+            <option value="In arrivo">In arrivo</option>
+            <option value="Chiuso">Chiuso</option>
+          </select>
+          <select id="bandi-scadenza" class="input" aria-label="Scadenza">
+            <option value="">Scadenza: qualsiasi</option>
+            <option value="7">Entro 7 giorni</option>
+            <option value="30">Entro 30 giorni</option>
+            <option value="90">Entro 90 giorni</option>
+          </select>
+          <button class="btn" id="bandi-reset">Pulisci</button>
+        </div>
+      </div>
+
+      <table style="margin-top:12px">
+        <thead>
+          <tr>
+            <th>Bando</th>
+            <th>Programma</th>
+            <th>Ente</th>
+            <th>Finanziamento</th>
+            <th>Scadenza</th>
+            <th>Stato</th>
+            <th class="right">Link</th>
+          </tr>
+        </thead>
+        <tbody id="bandi-tbody">
+          <tr data-bando
+              data-title="Laboratori per le competenze STEM"
+              data-program="PNRR"
+              data-ente="MIM"
+              data-stato="Aperto"
+              data-scadenza="2025-11-10"
+              data-fondi="€ 200.000 - € 400.000">
+            <td>Laboratori per le competenze STEM</td>
+            <td><span class="tag">PNRR</span></td>
+            <td>MIM</td>
+            <td>€ 200.000 – € 400.000</td>
+            <td>10/11/2025</td>
+            <td><span class="status active">Aperto</span></td>
+            <td class="right"><a href="#" target="_blank" rel="noopener">Vai al bando</a></td>
+          </tr>
+
+          <tr data-bando
+              data-title="Didattica digitale integrata"
+              data-program="FESR"
+              data-ente="Regione"
+              data-stato="In arrivo"
+              data-scadenza="2025-12-15"
+              data-fondi="€ 50.000 - € 150.000">
+            <td>Didattica digitale integrata</td>
+            <td><span class="tag">FESR</span></td>
+            <td>Regione</td>
+            <td>€ 50.000 – € 150.000</td>
+            <td>15/12/2025</td>
+            <td><span class="status draft">In arrivo</span></td>
+            <td class="right"><a href="#" target="_blank" rel="noopener">Vai al bando</a></td>
+          </tr>
+
+          <tr data-bando
+              data-title="Mobilità docenti KA1"
+              data-program="Erasmus+"
+              data-ente="EU"
+              data-stato="Aperto"
+              data-scadenza="2026-02-05"
+              data-fondi="€ variabile">
+            <td>Mobilità docenti KA1</td>
+            <td><span class="tag">Erasmus+</span></td>
+            <td>EU</td>
+            <td>€ variabile</td>
+            <td>05/02/2026</td>
+            <td><span class="status active">Aperto</span></td>
+            <td class="right"><a href="#" target="_blank" rel="noopener">Vai al bando</a></td>
+          </tr>
+
+          <tr data-bando
+              data-title="Inclusione e contrasto alla dispersione"
+              data-program="FSE+"
+              data-ente="MIM"
+              data-stato="Chiuso"
+              data-scadenza="2025-10-02"
+              data-fondi="€ 80.000 - € 120.000">
+            <td>Inclusione e contrasto alla dispersione</td>
+            <td><span class="tag">FSE+</span></td>
+            <td>MIM</td>
+            <td>€ 80.000 – € 120.000</td>
+            <td>02/10/2025</td>
+            <td><span class="status closed">Chiuso</span></td>
+            <td class="right"><a href="#" target="_blank" rel="noopener">Vai al bando</a></td>
+          </tr>
+
+          <tr data-bando
+              data-title="Innovazione amministrativa"
+              data-program="PON/Altri"
+              data-ente="Agenzia"
+              data-stato="Aperto"
+              data-scadenza="2025-11-30"
+              data-fondi="€ 20.000 - € 60.000">
+            <td>Innovazione amministrativa</td>
+            <td><span class="tag">PON/Altri</span></td>
+            <td>Agenzia</td>
+            <td>€ 20.000 – € 60.000</td>
+            <td>30/11/2025</td>
+            <td><span class="status active">Aperto</span></td>
+            <td class="right"><a href="#" target="_blank" rel="noopener">Vai al bando</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="hint" style="margin-top:8px">
+        Nota: elenco dimostrativo. In produzione i bandi arriverebbero via API (fonti ministeriali/UE) e verrebbero aggiornati automaticamente.
+      </p>
+    </div>
+  </section>
+
+  <!-- PROGETTI LISTA -->
+  <section id="view-projects" class="view" role="region" aria-label="Progetti">
+    <div class="card">
+      <div class="flex">
+        <h3>Tutti i progetti</h3>
+        <div class="right toolbar">
+          <input id="search-projects" class="input" placeholder="Cerca per titolo, CUP, CIG, programma…" />
+          <select id="filter-status" class="input" aria-label="Filtro stato">
+            <option value="">Stato: tutti</option>
+            <option value="draft">Bozza</option>
+            <option value="active">In corso</option>
+            <option value="closed">Chiuso</option>
+          </select>
+          <button class="btn" id="btn-export">Esporta</button>
+          <button class="btn primary" onclick="go('project-detail')">Nuovo progetto</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Titolo</th><th>Programma</th><th>CUP</th><th>Periodo</th><th>Stato</th><th class="right">% Spesa</th></tr>
+        </thead>
+        <tbody id="projects-tbody">
+          <tr data-project data-status="active" data-title="laboratori stem" data-program="pnrr" data-cup="c12h230001" data-cig="" onclick="go('project-detail')" style="cursor:pointer">
+            <td>Laboratori STEM</td>
+            <td>PNRR</td>
+            <td>C12H230001</td>
+            <td>01/2024 – 12/2025</td>
+            <td><span class="status active">In corso</span></td>
+            <td><div class="progress"><i style="width:66%"></i></div></td>
+          </tr>
+          <tr data-project data-status="active" data-title="digitale amministrazione" data-program="fesr" data-cup="c55x240045" data-cig="">
+            <td>Digitale Amministrazione</td>
+            <td>FESR</td>
+            <td>C55X240045</td>
+            <td>03/2024 – 06/2025</td>
+            <td><span class="status active">In corso</span></td>
+            <td><div class="progress"><i style="width:53%"></i></div></td>
+          </tr>
+          <tr data-project data-status="draft" data-title="erasmus+ docenti" data-program="erasmus" data-cup="" data-cig="">
+            <td>Erasmus+ Docenti</td>
+            <td>Erasmus+</td>
+            <td>—</td>
+            <td>09/2024 – 08/2025</td>
+            <td><span class="status draft">Bozza</span></td>
+            <td><div class="progress"><i style="width:6%"></i></div></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="hint" style="margin-top:8px">Suggerimento: filtra per “pnrr”, “c12h”, “bozza”, ecc.</p>
+    </div>
+  </section>
+
+  <!-- DETTAGLIO PROGETTO -->
+  <section id="view-project-detail" class="view" role="region" aria-label="Dettaglio progetto">
+    <div class="card">
+      <div class="flex">
+        <div>
+          <h2>Laboratori STEM <span class="status active">In corso</span></h2>
+          <div class="muted">PNRR · CUP C12H230001 · Periodo 01/2024 – 12/2025</div>
+        </div>
+        <div class="right toolbar">
+          <button class="btn">Condividi</button>
+          <button class="btn">Duplica</button>
+          <button class="btn primary">Aggiungi voce</button>
+        </div>
+      </div>
+      <div class="pillbar" id="tabs-project">
+        <button data-tab="overview" class="active">Panoramica</button>
+        <button data-tab="budget">Budget</button>
+        <button data-tab="spese">Spese</button>
+        <button data-tab="milestone">Milestone</button>
+        <button data-tab="documenti">Documenti</button>
+        <button data-tab="deleghe">Deleghe</button>
+      </div>
+      <div id="tab-overview" class="tab">
+        <div class="two">
+          <div class="card">
+            <h3>Stato avanzamento</h3>
+            <p class="muted">Percentuale di spesa sul budget allocato.</p>
+            <div class="progress"><i style="width:61%"></i></div>
+            <div class="grid cols-2" style="margin-top:12px">
+              <div><div class="muted">Budget</div><b>€ 320.000</b></div>
+              <div><div class="muted">Speso</div><b>€ 195.200</b></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Prossime scadenze</h3>
+            <ul>
+              <li>20/10/2025 – Verbale commissione</li>
+              <li>02/11/2025 – Rendicontazione intermedia</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div id="tab-budget" class="tab" hidden>
+        <h3>Voci di budget</h3>
+        <table>
+          <thead><tr><th>Categoria</th><th>Allocato</th><th>Impegnato</th><th>Pagato</th></tr></thead>
+          <tbody>
+            <tr><td>Attrezzature</td><td>€ 200.000</td><td>€ 150.000</td><td>€ 120.000</td></tr>
+            <tr><td>Formazione</td><td>€ 80.000</td><td>€ 35.000</td><td>€ 20.000</td></tr>
+            <tr><td>Servizi</td><td>€ 40.000</td><td>€ 20.000</td><td>€ 15.200</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tab-spese" class="tab" hidden>
+        <div class="toolbar" style="margin-bottom:8px">
+          <input class="input" placeholder="Cerca fornitore o numero documento…" />
+          <button class="btn">Filtri</button>
+          <button class="btn primary">Nuova spesa</button>
+        </div>
+        <table>
+          <thead><tr><th>Data</th><th>Fornitore</th><th>Importo</th><th>Voce</th><th>Documento</th></tr></thead>
+          <tbody>
+            <tr><td>03/09/2025</td><td>TechnoLab srl</td><td>€ 45.000</td><td>Attrezzature</td><td>Mandato 245</td></tr>
+            <tr><td>11/09/2025</td><td>FormEdu</td><td>€ 5.200</td><td>Formazione</td><td>Fattura FE-091</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tab-milestone" class="tab" hidden>
+        <table>
+          <thead><tr><th>Milestone</th><th>Scadenza</th><th>Stato</th></tr></thead>
+          <tbody>
+            <tr><td>Pubblicazione bando</td><td>15/08/2025</td><td>Completata</td></tr>
+            <tr><td>Aggiudicazione</td><td>28/09/2025</td><td>In corso</td></tr>
+            <tr><td>Collaudo</td><td>10/12/2025</td><td>Da iniziare</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tab-documenti" class="tab" hidden>
+        <div class="toolbar" style="margin-bottom:8px">
+          <input class="input" placeholder="Cerca per tipo o nome file…" />
+          <button class="btn">Carica</button>
+        </div>
+        <table>
+          <thead><tr><th>Tipo</th><th>Nome file</th><th>Versione</th><th>Caricato da</th><th>Data</th></tr></thead>
+          <tbody>
+            <tr><td>Determina</td><td>det_0123.pdf</td><td>v1</td><td>DSGA</td><td>01/09/2025</td></tr>
+            <tr><td>Verbale</td><td>verbale_08-09.pdf</td><td>v2</td><td>Referente</td><td>09/09/2025</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tab-deleghe" class="tab" hidden>
+        <div class="toolbar" style="margin-bottom:8px">
+          <button class="btn primary">Nuova delega</button>
+        </div>
+        <table>
+          <thead><tr><th>Collaboratore</th><th>Ambito</th><th>Permessi</th></tr></thead>
+          <tbody>
+            <tr><td>Rossi M.</td><td>Acquisti</td><td>Modifica</td></tr>
+            <tr><td>Bianchi L.</td><td>Documenti</td><td>Sola lettura</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- CALENDARIO -->
+  <section id="view-calendar" class="view" role="region" aria-label="Calendario">
+    <div class="card">
+      <div class="flex">
+        <h3>Calendario</h3>
+        <div class="right toolbar">
+          <select class="input"><option>Mese</option><option>Settimana</option><option>Agenda</option></select>
+          <button class="btn" id="btn-clear-cal">Svuota calendario (demo)</button>
+          <button class="btn primary" id="btn-new-event">Nuovo evento</button>
+        </div>
+      </div>
+      <div class="calendar" id="calendar-grid" style="margin-top:10px">
+        <div class="day" data-day="1"><b>1</b></div>
+        <div class="day" data-day="2"><b>2</b></div>
+        <div class="day" data-day="3"><b>3</b></div>
+        <div class="day" data-day="4"><b>4</b></div>
+        <div class="day" data-day="5"><b>5</b></div>
+        <div class="day" data-day="6"><b>6</b></div>
+        <div class="day" data-day="7"><b>7</b></div>
+        <div class="day" data-day="8"><b>8</b></div>
+        <div class="day" data-day="9"><b>9</b></div>
+        <div class="day" data-day="10"><b>10</b></div>
+        <div class="day" data-day="11"><b>11</b></div>
+        <div class="day" data-day="12"><b>12</b></div>
+        <div class="day" data-day="13"><b>13</b></div>
+        <div class="day" data-day="14"><b>14</b></div>
+        <div class="day" data-day="15"><b>15</b></div>
+        <div class="day" data-day="16"><b>16</b></div>
+        <div class="day" data-day="17"><b>17</b></div>
+        <div class="day" data-day="18"><b>18</b></div>
+        <div class="day" data-day="19"><b>19</b></div>
+        <div class="day" data-day="20"><b>20</b></div>
+        <div class="day" data-day="21"><b>21</b></div>
+        <div class="day" data-day="22"><b>22</b></div>
+        <div class="day" data-day="23"><b>23</b></div>
+        <div class="day" data-day="24"><b>24</b></div>
+        <div class="day" data-day="25"><b>25</b></div>
+        <div class="day" data-day="26"><b>26</b></div>
+        <div class="day" data-day="27"><b>27</b></div>
+        <div class="day" data-day="28"><b>28</b></div>
+      </div>
+      <p class="hint">Demo: clicca su un giorno per aggiungere un evento. Clic su un evento per eliminarlo.</p>
+    </div>
+  </section>
+
+  <!-- DOCUMENTI -->
+  <section id="view-documents" class="view" role="region" aria-label="Documenti">
+    <div class="card">
+      <div class="flex">
+        <h3>Repository documentale</h3>
+        <div class="right toolbar">
+          <input class="input" placeholder="Cerca…" />
+          <button class="btn">Carica</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Progetto</th><th>Tipo</th><th>File</th><th>Versione</th><th>Data</th></tr></thead>
+        <tbody>
+          <tr><td>Laboratori STEM</td><td>Determina</td><td>det_0123.pdf</td><td>v1</td><td>01/09/2025</td></tr>
+          <tr><td>Digitale Amministrazione</td><td>Fattura</td><td>fatt_332.pdf</td><td>v1</td><td>05/09/2025</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- DELEGHE -->
+  <section id="view-deleghe" class="view" role="region" aria-label="Deleghe">
+    <div class="card">
+      <div class="flex">
+        <h3>Deleghe e permessi</h3>
+        <div class="right toolbar">
+          <button class="btn primary">Nuova delega</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Collaboratore</th><th>Ambito</th><th>Permessi</th><th>Stato</th></tr></thead>
+        <tbody>
+          <tr><td>Rossi M.</td><td>Acquisti</td><td>Modifica</td><td><span class="status active">Attiva</span></td></tr>
+          <tr><td>Bianchi L.</td><td>Documenti</td><td>Lettura</td><td><span class="status draft">In attesa</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- IMPOSTAZIONI -->
+  <section id="view-settings" class="view" role="region" aria-label="Impostazioni">
+    <div class="card">
+      <h3>Impostazioni scuola</h3>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4>Dati istituto</h4>
+          <div class="grid cols-2">
+            <label>Nome istituto<br><input class="input" placeholder="IIS Galileo Galilei" /></label>
+            <label>Codice meccanografico<br><input class="input" placeholder="MIIC8AB00X" /></label>
+          </div>
+        </div>
+        <div class="card">
+          <h4>Notifiche</h4>
+          <label><input type="checkbox" checked> Email scadenze</label><br>
+          <label><input type="checkbox"> Report settimanale</label>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>© 2025 ScuolaHub – Mockup statico per validazione UX</span>
+</footer>
+
+<!-- Modal per nuovo evento (demo) -->
+<div id="modal">
+  <div class="panel">
+    <h3 id="modal-title">Nuovo evento</h3>
+    <label>Titolo evento<br>
+      <input id="modal-input" class="input" placeholder="Es. Rendicontazione intermedia" style="width:100%">
+    </label>
+    <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end">
+      <button id="modal-cancel" class="btn">Annulla</button>
+      <button id="modal-save" class="btn primary">Salva</button>
+    </div>
   </div>
+</div>
 
-  <script>
-    // --- Router tra le "view" statiche
-    const nav = document.getElementById('mainnav');
-    const views = {
-      dashboard: document.getElementById('view-dashboard'),
-      projects: document.getElementById('view-projects'),
-      'project-detail': document.getElementById('view-project-detail'),
-      calendar: document.getElementById('view-calendar'),
-      documents: document.getElementById('view-documents'),
-      deleghe: document.getElementById('view-deleghe'),
-      settings: document.getElementById('view-settings'),
-    };
-    function go(v){
-      Object.values(views).forEach(el=>el.classList.remove('active'));
-      views[v].classList.add('active');
-      [...nav.querySelectorAll('button')].forEach(b=>b.classList.toggle('active', b.dataset.view===v));
-      if(v==='project-detail'){location.hash = '#/project/1'} else {location.hash = '#/'+v}
-    }
-    nav.addEventListener('click', (e)=>{
-      const b = e.target.closest('button'); if(!b) return; go(b.dataset.view);
-    });
-    function routeFromHash(){
-      const h = location.hash.replace('#/','');
-      if(views[h]) return go(h);
-      if(h.startsWith('project')) return go('project-detail');
-      go('dashboard');
-    }
-    window.addEventListener('hashchange', routeFromHash);
-    window.addEventListener('load', routeFromHash);
+<script>
+  // --- Router tra le "view" statiche
+  const nav = document.getElementById('mainnav');
+  const views = {
+    dashboard: document.getElementById('view-dashboard'),
+    bandi: document.getElementById('view-bandi'),                // <-- aggiunto
+    projects: document.getElementById('view-projects'),
+    'project-detail': document.getElementById('view-project-detail'),
+    calendar: document.getElementById('view-calendar'),
+    documents: document.getElementById('view-documents'),
+    deleghe: document.getElementById('view-deleghe'),
+    settings: document.getElementById('view-settings'),
+  };
+  function go(v){
+    Object.values(views).forEach(el=>el.classList.remove('active'));
+    views[v].classList.add('active');
+    [...nav.querySelectorAll('button')].forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+    if(v==='project-detail'){location.hash = '#/project/1'} else {location.hash = '#/'+v}
+  }
+  nav.addEventListener('click', (e)=>{
+    const b = e.target.closest('button'); if(!b) return; go(b.dataset.view);
+  });
+  function routeFromHash(){
+    const h = location.hash.replace('#/','');
+    if(views[h]) return go(h);
+    if(h.startsWith('project')) return go('project-detail');
+    go('dashboard');
+  }
+  window.addEventListener('hashchange', routeFromHash);
+  window.addEventListener('load', routeFromHash);
 
-    // --- Tab nel dettaglio progetto
-    const tabs = document.getElementById('tabs-project');
+  // --- Tab nel dettaglio progetto
+  const tabs = document.getElementById('tabs-project');
+  if(tabs){
     const tabEls = {
       overview: document.getElementById('tab-overview'),
       budget: document.getElementById('tab-budget'),
@@ -546,135 +633,198 @@
       Object.values(tabEls).forEach(x=>x.hidden=true);
       tabEls[k].hidden=false;
     });
+  }
 
-    // === Ricerca live (dashboard: "Progetti in evidenza")
-    const featuredSearch = document.getElementById('search-featured');
-    const featuredBody = document.getElementById('featured-tbody');
-    featuredSearch?.addEventListener('input', () => {
-      const q = featuredSearch.value.toLowerCase().trim();
-      [...featuredBody.querySelectorAll('tr[data-project]')].forEach(tr=>{
-        const txt = [tr.dataset.title, tr.dataset.program, tr.dataset.cup, tr.dataset.cig].join(' ');
-        tr.style.display = txt.includes(q) ? '' : 'none';
-      });
+  // === Ricerca live (dashboard: "Progetti in evidenza")
+  const featuredSearch = document.getElementById('search-featured');
+  const featuredBody = document.getElementById('featured-tbody');
+  featuredSearch?.addEventListener('input', () => {
+    const q = featuredSearch.value.toLowerCase().trim();
+    [...featuredBody.querySelectorAll('tr[data-project]')].forEach(tr=>{
+      const txt = [tr.dataset.title, tr.dataset.program, tr.dataset.cup, tr.dataset.cig].join(' ');
+      tr.style.display = txt.includes(q) ? '' : 'none';
     });
+  });
 
-    // === Ricerca + filtro stato (lista Progetti)
-    const projectsSearch = document.getElementById('search-projects');
-    const statusFilter = document.getElementById('filter-status');
-    const projectsBody = document.getElementById('projects-tbody');
-    function applyProjectsFilters(){
-      const q = (projectsSearch?.value || '').toLowerCase().trim();
-      const st = (statusFilter?.value || '').toLowerCase().trim();
-      [...projectsBody.querySelectorAll('tr[data-project]')].forEach(tr=>{
-        const hay = [tr.dataset.title, tr.dataset.program, tr.dataset.cup, tr.dataset.cig].join(' ');
-        const matchesText = !q || hay.includes(q);
-        const matchesStatus = !st || (tr.dataset.status === st);
-        tr.style.display = (matchesText && matchesStatus) ? '' : 'none';
-      });
+  // === Ricerca + filtro stato (lista Progetti)
+  const projectsSearch = document.getElementById('search-projects');
+  const statusFilter = document.getElementById('filter-status');
+  const projectsBody = document.getElementById('projects-tbody');
+  function applyProjectsFilters(){
+    const q = (projectsSearch?.value || '').toLowerCase().trim();
+    const st = (statusFilter?.value || '').toLowerCase().trim();
+    [...projectsBody.querySelectorAll('tr[data-project]')].forEach(tr=>{
+      const hay = [tr.dataset.title, tr.dataset.program, tr.dataset.cup, tr.dataset.cig].join(' ');
+      const matchesText = !q || hay.includes(q);
+      const matchesStatus = !st || (tr.dataset.status === st);
+      tr.style.display = (matchesText && matchesStatus) ? '' : 'none';
+    });
+  }
+  projectsSearch?.addEventListener('input', applyProjectsFilters);
+  statusFilter?.addEventListener('change', applyProjectsFilters);
+
+  // === Calendario: eventi in localStorage (DEMO)
+  const CAL_KEY = "scuolahub_calendar_events";
+  function loadEvents(){ try { return JSON.parse(localStorage.getItem(CAL_KEY)) || {}; } catch(e){ return {}; } }
+  function saveEvents(map){ localStorage.setItem(CAL_KEY, JSON.stringify(map)); }
+  function ensureDays(){
+    const grid = document.getElementById('calendar-grid');
+    const max = Math.max(...[...grid.querySelectorAll('.day')].map(d=>+d.dataset.day||1));
+    for(let d = max+1; d <= 31; d++){
+      const el = document.createElement('div');
+      el.className = 'day'; el.dataset.day = String(d);
+      el.innerHTML = `<b>${d}</b>`;
+      grid.appendChild(el);
     }
-    projectsSearch?.addEventListener('input', applyProjectsFilters);
-    statusFilter?.addEventListener('change', applyProjectsFilters);
-
-    // === Calendario: eventi in localStorage (DEMO)
-    const CAL_KEY = "scuolahub_calendar_events";
-    function loadEvents(){ try { return JSON.parse(localStorage.getItem(CAL_KEY)) || {}; } catch(e){ return {}; } }
-    function saveEvents(map){ localStorage.setItem(CAL_KEY, JSON.stringify(map)); }
-    function ensureDays(){
-      const grid = document.getElementById('calendar-grid');
-      const max = Math.max(...[...grid.querySelectorAll('.day')].map(d=>+d.dataset.day||1));
-      for(let d = max+1; d <= 31; d++){
-        const el = document.createElement('div');
-        el.className = 'day'; el.dataset.day = String(d);
-        el.innerHTML = `<b>${d}</b>`;
-        grid.appendChild(el);
-      }
-    }
-    function renderCalendar(){
-      const map = loadEvents();
-      document.querySelectorAll('#view-calendar .day').forEach(dayEl => {
-        [...dayEl.querySelectorAll('.event')].forEach(x => x.remove());
-        const day = dayEl.dataset.day;
-        (map[day] || []).forEach((title, idx) => {
-          const ev = document.createElement('div');
-          ev.className = 'event';
-          ev.textContent = title;
-          ev.title = 'Click per eliminare';
-          ev.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const arr = map[day] || [];
-            arr.splice(idx, 1);
-            if(arr.length) map[day] = arr; else delete map[day];
-            saveEvents(map);
-            renderCalendar();
-          });
-          dayEl.appendChild(ev);
-        });
-      });
-    }
-    (function attachCalendarUX(){
-      ensureDays();
-      const modal = document.getElementById('modal');
-      const input = document.getElementById('modal-input');
-      const btnCancel = document.getElementById('modal-cancel');
-      const btnSave = document.getElementById('modal-save');
-      const btnNew = document.getElementById('btn-new-event');
-      const btnClear = document.getElementById('btn-clear-cal');
-      let currentDay = null;
-
-      function openModal(day){
-        currentDay = day;
-        document.getElementById('modal-title').textContent = `Nuovo evento – Giorno ${day}`;
-        input.value = ''; modal.style.display = 'block'; input.focus();
-      }
-      function closeModal(){ modal.style.display = 'none'; currentDay = null; }
-
-      document.querySelectorAll('#view-calendar .day').forEach(dayEl => {
-        dayEl.style.cursor = 'pointer';
-        dayEl.addEventListener('click', () => openModal(dayEl.dataset.day));
-      });
-      btnNew?.addEventListener('click', ()=>{
-        const day = prompt("Inserisci il giorno (1-31):");
-        const d = parseInt(day||"", 10);
-        if(!isNaN(d) && d>=1 && d<=31) openModal(String(d));
-      });
-      btnSave.addEventListener('click', () => {
-        const title = input.value.trim();
-        if(!title || !currentDay) return closeModal();
-        const map = loadEvents();
-        map[currentDay] = map[currentDay] || [];
-        map[currentDay].push(title);
-        saveEvents(map);
-        renderCalendar();
-        closeModal();
-      });
-      btnCancel.addEventListener('click', closeModal);
-      modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
-      btnClear?.addEventListener('click', ()=>{
-        if(confirm("Sicuro di voler cancellare tutti gli eventi salvati (demo)?")){
-          localStorage.removeItem(CAL_KEY);
+  }
+  function renderCalendar(){
+    const map = loadEvents();
+    document.querySelectorAll('#view-calendar .day').forEach(dayEl => {
+      [...dayEl.querySelectorAll('.event')].forEach(x => x.remove());
+      const day = dayEl.dataset.day;
+      (map[day] || []).forEach((title, idx) => {
+        const ev = document.createElement('div');
+        ev.className = 'event';
+        ev.textContent = title;
+        ev.title = 'Click per eliminare';
+        ev.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const arr = map[day] || [];
+          arr.splice(idx, 1);
+          if(arr.length) map[day] = arr; else delete map[day];
+          saveEvents(map);
           renderCalendar();
-        }
+        });
+        dayEl.appendChild(ev);
       });
-      renderCalendar();
-    })();
-
-    // --- Export CSV (demo: esporta tabella "Progetti")
-    document.getElementById('btn-export')?.addEventListener('click', ()=>{
-      const rows = [...document.querySelectorAll('#projects-tbody tr[data-project]')].filter(r=>r.style.display!=='none');
-      const header = ['Titolo','Programma','CUP','Periodo','Stato','Percent'];
-      const data = rows.map(r=>{
-        const tds = r.querySelectorAll('td');
-        const percent = (tds[5]?.querySelector('i')?.style.width || '').replace('%','');
-        return [tds[0]?.innerText, tds[1]?.innerText, tds[2]?.innerText, tds[3]?.innerText, tds[4]?.innerText, percent];
-      });
-      const csv = [header, ...data].map(a=>a.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'progetti.csv';
-      a.click();
-      URL.revokeObjectURL(a.href);
     });
-  </script>
+  }
+  (function attachCalendarUX(){
+    ensureDays();
+    const modal = document.getElementById('modal');
+    const input = document.getElementById('modal-input');
+    const btnCancel = document.getElementById('modal-cancel');
+    const btnSave = document.getElementById('modal-save');
+    const btnNew = document.getElementById('btn-new-event');
+    const btnClear = document.getElementById('btn-clear-cal');
+    let currentDay = null;
+
+    function openModal(day){
+      currentDay = day;
+      document.getElementById('modal-title').textContent = `Nuovo evento – Giorno ${day}`;
+      input.value = ''; modal.style.display = 'block'; input.focus();
+    }
+    function closeModal(){ modal.style.display = 'none'; currentDay = null; }
+
+    document.querySelectorAll('#view-calendar .day').forEach(dayEl => {
+      dayEl.style.cursor = 'pointer';
+      dayEl.addEventListener('click', () => openModal(dayEl.dataset.day));
+    });
+    btnNew?.addEventListener('click', ()=>{
+      const day = prompt("Inserisci il giorno (1-31):");
+      const d = parseInt(day||"", 10);
+      if(!isNaN(d) && d>=1 && d<=31) openModal(String(d));
+    });
+    btnSave.addEventListener('click', () => {
+      const title = input.value.trim();
+      if(!title || !currentDay) return closeModal();
+      const map = loadEvents();
+      map[currentDay] = map[currentDay] || [];
+      map[currentDay].push(title);
+      saveEvents(map);
+      renderCalendar();
+      closeModal();
+    });
+    btnCancel.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+    btnClear?.addEventListener('click', ()=>{
+      if(confirm("Sicuro di voler cancellare tutti gli eventi salvati (demo)?")){
+        localStorage.removeItem(CAL_KEY);
+        renderCalendar();
+      }
+    });
+    renderCalendar();
+  })();
+
+  // --- Export CSV (demo: esporta tabella "Progetti")
+  document.getElementById('btn-export')?.addEventListener('click', ()=>{
+    const rows = [...document.querySelectorAll('#projects-tbody tr[data-project]')].filter(r=>r.style.display!=='none');
+    const header = ['Titolo','Programma','CUP','Periodo','Stato','Percent'];
+    const data = rows.map(r=>{
+      const tds = r.querySelectorAll('td');
+      const percent = (tds[5]?.querySelector('i')?.style.width || '').replace('%','');
+      return [tds[0]?.innerText, tds[1]?.innerText, tds[2]?.innerText, tds[3]?.innerText, tds[4]?.innerText, percent];
+    });
+    const csv = [header, ...data].map(a=>a.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'progetti.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  // === FILTRI "Bandi"
+  (function bandiFilters(){
+    const $tbody = document.getElementById('bandi-tbody');
+    if(!$tbody) return;
+
+    const $q = document.getElementById('bandi-search');
+    const $program = document.getElementById('bandi-program');
+    const $stato = document.getElementById('bandi-stato');
+    const $scad = document.getElementById('bandi-scadenza');
+    const $reset = document.getElementById('bandi-reset');
+
+    function daysUntil(dateStr){
+      const today = new Date(); today.setHours(0,0,0,0);
+      const d = new Date(dateStr+"T00:00:00");
+      return Math.ceil((d - today)/(1000*60*60*24));
+    }
+
+    function apply(){
+      const q = ($q?.value || '').toLowerCase().trim();
+      const prog = ($program?.value || '').trim();
+      const stato = ($stato?.value || '').trim();
+      const entro = parseInt(($scad?.value || '').trim(), 10);
+
+      [...$tbody.querySelectorAll('tr[data-bando]')].forEach(tr=>{
+        const title = tr.dataset.title?.toLowerCase() || '';
+        const program = tr.dataset.program || '';
+        const ente = tr.dataset.ente?.toLowerCase() || '';
+        const statoRow = tr.dataset.stato || '';
+        const scadStr = tr.dataset.scadenza || '';
+        const fondi = tr.dataset.fondi?.toLowerCase() || '';
+
+        const textHay = [title, ente, program.toLowerCase(), statoRow.toLowerCase(), fondi].join(' ');
+
+        const matchText = !q || textHay.includes(q);
+        const matchProg = !prog || program === prog;
+        const matchStato = !stato || statoRow === stato;
+
+        let matchScad = true;
+        if(!isNaN(entro) && scadStr){
+          const diff = daysUntil(scadStr);
+          matchScad = diff >= 0 && diff <= entro; // entro N giorni
+        }
+
+        tr.style.display = (matchText && matchProg && matchStato && matchScad) ? '' : 'none';
+      });
+    }
+
+    $q?.addEventListener('input', apply);
+    $program?.addEventListener('change', apply);
+    $stato?.addEventListener('change', apply);
+    $scad?.addEventListener('change', apply);
+    $reset?.addEventListener('click', ()=>{
+      if($q) $q.value = '';
+      if($program) $program.value = '';
+      if($stato) $stato.value = '';
+      if($scad) $scad.value = '';
+      apply();
+    });
+
+    apply();
+  })();
+</script>
 </body>
 </html>
