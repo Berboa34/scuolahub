@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Uscita – ScuolaHub</title>
+  <meta http-equiv="refresh" content="2; url={% url 'login' %}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{
+      --bg:#f7f7fb;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;
+    }
+    body{margin:0;display:grid;place-items:center;min-height:100vh;
+         font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;
+         background:linear-gradient(180deg,#eef2ff,#f7f7fb);color:var(--ink);}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;
+          box-shadow:0 10px 25px rgba(0,0,0,.05);max-width:400px;text-align:center}
+    .logo{width:42px;height:42px;margin:0 auto 12px;border-radius:10px;
+          display:grid;place-items:center;font-weight:700;color:#fff;
+          background:linear-gradient(135deg,var(--primary),#7c3aed)}
+    h1{font-size:1.4rem;margin-bottom:8px}
+    p{color:var(--muted);margin-bottom:10px}
+    a{color:var(--primary);text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">S</div>
+    <h1>Disconnessione effettuata</h1>
+    <p>Verrai reindirizzato alla pagina di accesso tra pochi secondi…</p>
+    <p><a href="{% url 'login' %}">Torna subito al login</a></p>
+  </div>
+</body>
+</html>

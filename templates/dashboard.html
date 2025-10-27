@@ -66,7 +66,7 @@
   <div style="background:#f1f1f1; padding:10px; border-bottom:1px solid #e5e7eb; font-size:.95rem">
     <b>Utente:</b> {{ user.username }}
     {% if user.profile.school %} — <b>Istituto:</b> {{ user.profile.school.name }}{% endif %}
-    — <a href="{% url 'logout' %}?next={% url 'login' %}">Esci</a>
+    — <a href="{% url 'logout' %}">Esci</a>
   </div>
 {% endif %}
 
