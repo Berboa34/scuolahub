@@ -10,55 +10,46 @@
       --ink:#111827;--muted:#6b7280;--primary:#2563eb;
     }
     *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#eef2ff, #f7f7fb);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;color:var(--ink)}
-    .wrap{min-height:100dvh;display:grid;place-items:center;padding:24px}
-    .card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.05)}
-    .brand{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-    .logo{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:700;background:linear-gradient(135deg,var(--primary),#7c3aed)}
-    h1{font-size:1.25rem;margin:0}
-    p.muted{color:var(--muted);margin:.25rem 0 1rem}
-    label{display:block;margin:10px 0}
-    .input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff}
-    .btn{display:inline-block;width:100%;padding:12px 16px;margin-top:10px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;cursor:pointer}
-    .error{background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;padding:10px;border-radius:10px;margin:10px 0}
-    .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:.9rem;color:var(--muted)}
-    a{color:var(--primary);text-decoration:none}
-    a:hover{text-decoration:underline}
+    body{margin:0;background:linear-gradient(180deg,#eef2ff,#f7f7fb);
+         display:grid;place-items:center;min-height:100vh;
+         font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;color:var(--ink)}
+    .card{background:var(--panel);border:1px solid var(--line);
+          border-radius:16px;padding:32px;width:100%;max-width:400px;
+          box-shadow:0 10px 25px rgba(0,0,0,.05)}
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+    .logo{width:42px;height:42px;border-radius:10px;
+          display:grid;place-items:center;font-weight:700;color:#fff;
+          background:linear-gradient(135deg,var(--primary),#7c3aed)}
+    h1{font-size:1.3rem;margin:0}
+    p.muted{color:var(--muted);margin:4px 0 20px}
+    label{display:block;margin:12px 0;font-size:.9rem}
+    .input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px}
+    .btn{width:100%;margin-top:14px;padding:12px;border:none;border-radius:10px;
+         background:var(--primary);color:#fff;font-weight:600;cursor:pointer}
+    .error{background:#fee2e2;color:#991b1b;padding:10px;border-radius:10px;margin-bottom:12px}
+    .foot{margin-top:14px;font-size:.9rem;color:var(--muted);text-align:center}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card" role="dialog" aria-labelledby="title">
-      <div class="brand">
-        <div class="logo">S</div>
-        <div>
-          <h1 id="title">Accedi a ScuolaHub</h1>
-          <p class="muted">Area riservata a Dirigenti e Personale</p>
-        </div>
-      </div>
-
-      {% if form.errors %}
-        <div class="error">Credenziali non valide. Riprova.</div>
-      {% endif %}
-
-      <form method="post" action="{% url 'login' %}">
-        {% csrf_token %}
-        <label>
-          Nome utente
-          <input class="input" type="text" name="username" autocomplete="username" autofocus required>
-        </label>
-        <label>
-          Password
-          <input class="input" type="password" name="password" autocomplete="current-password" required>
-        </label>
-        <button class="btn" type="submit">Entra</button>
-      </form>
-
-      <div class="foot">
-        <span>Hai dimenticato la password?</span>
-        <a href="{% url 'login' %}">Contatta l’amministratore</a>
+  <form class="card" method="post" action="{% url 'login' %}">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <h1>Accedi a ScuolaHub</h1>
+        <p class="muted">Area riservata a Dirigenti e Personale</p>
       </div>
     </div>
-  </div>
+
+    {% csrf_token %}
+    {% if form.errors %}
+      <div class="error">Credenziali non valide. Riprova.</div>
+    {% endif %}
+
+    <label>Nome utente<br><input class="input" type="text" name="username" required></label>
+    <label>Password<br><input class="input" type="password" name="password" required></label>
+    <button class="btn" type="submit">Entra</button>
+
+    <div class="foot">Hai dimenticato la password? Contatta l’amministratore.</div>
+  </form>
 </body>
 </html>
