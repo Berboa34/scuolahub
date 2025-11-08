@@ -24,3 +24,16 @@ def dashboard(request):
         "latest": latest,
         "totals": totals,
     })
+
+from django.http import HttpResponse
+from .models import Project, School
+
+def db_check(request):
+    qs = Project.objects.select_related('school').order_by('-start_date')
+    # Prime 20 righe per prova
+    rows = [
+        f"{p.id} • {p.title} • {p.school.name if p.school_id else '-'}"
+        for p in qs[:20]
+    ]
+    html = "OK DB — Projects: %d<br>%s" % (qs.count(), "<br>".join(rows) or "— nessun progetto —")
+    return HttpResponse(html)
