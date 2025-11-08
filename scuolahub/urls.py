@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.urls import path
 
+from django.http import HttpResponse
+def ping(request): return HttpResponse("pong")
+
 # importa tutte le view dal tuo app "projects"
 from projects import views as pviews
 
@@ -16,4 +19,6 @@ urlpatterns = [
 
     # --- DEBUG DB ---
     path('debug/db/', pviews.db_check, name='db_check'),
+    path('ping/', ping, name='ping'),
+
 ]
