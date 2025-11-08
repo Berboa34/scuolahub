@@ -1,21 +1,19 @@
 from django.contrib import admin
 from django.urls import path
-from django.contrib.auth import views as auth_views
-from django.urls import path, reverse_lazy   # <— aggiungi reverse_lazy
 
-
-from projects.views import dashboard  # <— importiamo SOLO ciò che esiste
-
-
-
-from projects.views import dashboard, project_detail, projects_by_school, db_check
+# importa tutte le view dal tuo app "projects"
+from projects import views as pviews
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', dashboard, name='dashboard'),
-    path('scuole/<int:school_id>/progetti/', projects_by_school, name='projects_by_school'),
-    path('progetti/<int:pk>/', project_detail, name='project_detail'),
 
-    # --- Debug DB ---
-    path('debug/db/', db_check, name='db_check'),
+    # HOME
+    path('', pviews.dashboard, name='dashboard'),
+
+    # Progetti
+    path('scuole/<int:school_id>/progetti/', pviews.projects_by_school, name='projects_by_school'),
+    path('progetti/<int:pk>/', pviews.project_detail, name='project_detail'),
+
+    # --- DEBUG DB ---
+    path('debug/db/', pviews.db_check, name='db_check'),
 ]
