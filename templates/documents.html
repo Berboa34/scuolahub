@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documenti – ScuolaHub</title>
+  <style>
+    :root{--bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb;}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+    a{color:var(--primary);text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Documenti</h1>
+    <div class="card">
+      <p>In questa sezione sarà possibile caricare e consultare documenti relativi ai progetti: determine, verbali, rendicontazioni, contratti, ecc.</p>
+      <ul>
+        <li>Caricamento e versionamento dei file</li>
+        <li>Filtri per tipo di documento e progetto</li>
+        <li>Collegamento ai progetti presenti nel database</li>
+      </ul>
+    </div>
+    <p><a href="{% url 'dashboard' %}">← Torna alla dashboard</a></p>
+  </div>
+</body>
+</html>
