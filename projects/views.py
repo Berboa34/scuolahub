@@ -6,33 +6,18 @@ from .models import Project, School
 
 @login_required
 def dashboard(request):
-    """
-    Dashboard dinamica:
-    - Se l'utente ha un profilo con scuola collegata, filtra per quella scuola.
-    - Calcola KPI (budget totale, spesa totale).
-    - Elenca ultimi progetti e tutti i progetti con percentuale di spesa.
-    """
-    # Prova a recuperare la scuola dal profilo utente, se esiste
-    school = None
-    try:
-        # se hai un OneToOne Profile con campo 'school'
-        school = request.user.profile.school
-    except Exception:
-        school = None
+    # opzionale: filtra per scuola dal profilo
+    school = getattr(getattr(request.user, 'profile', None), 'school', None)
 
     base_qs = Project.objects.all()
     if school:
         base_qs = base_qs.filter(school=school)
 
-    # KPI aggregati
     totals = base_qs.aggregate(budget=Sum('budget'), spent=Sum('spent'))
     totals['budget'] = totals['budget'] or 0
-    totals['spent'] = totals['spent'] or 0
+    totals['spent']  = totals['spent'] or 0
 
-    # Lista ultimi progetti
     latest = base_qs.order_by('-start_date')[:6]
-
-    # Tutti i progetti con percentuale di spesa calcolata lato DB
     projects = base_qs.annotate(
         percent_spent=Case(
             When(budget__gt=0, then=(100.0 * F('spent') / F('budget'))),
@@ -41,13 +26,19 @@ def dashboard(request):
         )
     ).order_by('title', 'id')
 
-    context = {
+    return render(request, "dashboard.html", {
         "school": school,
         "totals": totals,
         "latest": latest,
         "projects": projects,
-    }
-    return render(request, "dashboard.html", context)
+    })
+
+def db_check(request):
+    qs = Project.objects.select_related('school').order_by('-start_date')
+    rows = [f"{p.id} • {p.title} • {p.school.name if p.school_id else '-'}" for p in qs[:20]]
+    return HttpResponse(
+        "OK DB — Projects: %d<br>%s" % (qs.count(), "<br>".join(rows) or "— nessun progetto —")
+    )
 
 
 # --- Viste minime di appoggio per non rompere gli URL esistenti ---
