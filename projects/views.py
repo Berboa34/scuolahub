@@ -26,14 +26,18 @@ def dashboard(request):
     })
 
 from django.http import HttpResponse
-from .models import Project, School
 
-def db_check(request):
-    qs = Project.objects.select_related('school').order_by('-start_date')
-    # Prime 20 righe per prova
-    rows = [
-        f"{p.id} • {p.title} • {p.school.name if p.school_id else '-'}"
-        for p in qs[:20]
-    ]
-    html = "OK DB — Projects: %d<br>%s" % (qs.count(), "<br>".join(rows) or "— nessun progetto —")
-    return HttpResponse(html)
+def projects_by_school(request, school_id):
+    # Vista minimale giusto per evitare errori e provare il DB
+    from .models import Project, School
+    name = School.objects.filter(id=school_id).values_list('name', flat=True).first() or "Sconosciuta"
+    cnt  = Project.objects.filter(school_id=school_id).count()
+    return HttpResponse(f"School {school_id} ({name}) — {cnt} progetti")
+
+def project_detail(request, pk):
+    # Se hai già una project_detail reale, lascia la tua.
+    from .models import Project
+    p = Project.objects.filter(id=pk).first()
+    if not p:
+        return HttpResponse("Progetto non trovato", status=404)
+    return HttpResponse(f"Dettaglio Progetto: {p.title} — Budget €{p.budget}")

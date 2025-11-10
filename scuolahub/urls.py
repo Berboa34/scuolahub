@@ -22,3 +22,6 @@ urlpatterns = [
     path('ping/', ping, name='ping'),
 
 ]
+
+from django.http import HttpResponse
+def ping(request): return HttpResponse("pong")
