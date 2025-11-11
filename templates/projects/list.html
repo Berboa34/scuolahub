@@ -1,25 +1,82 @@
+{% load humanize %}
 <!doctype html>
-<html lang="it"><head>
-<meta charset="utf-8"><title>Progetti – {{ school.name }}</title>
-</head><body>
-<h1>Progetti – {{ school.name }}</h1>
-<table border="1" cellpadding="6">
-<thead><tr><th>Titolo</th><th>Programma</th><th>Periodo</th><th>Stato</th><th>Budget</th><th>Speso</th><th>%</th></tr></thead>
-<tbody>
-{% for p in projects %}
-<tr>
-  <td><a href="{% url 'project_detail' p.id %}">{{ p.title }}</a></td>
-  <td>{{ p.get_program_display }}</td>
-  <td>{{ p.start_date }} → {{ p.end_date }}</td>
-  <td>{{ p.get_status_display }}</td>
-  <td>€ {{ p.budget }}</td>
-  <td>€ {{ p.spent }}</td>
-  <td>{{ p.percent_spent }}%</td>
-</tr>
-{% empty %}
-<tr><td colspan="7">Nessun progetto.</td></tr>
-{% endfor %}
-</tbody>
-</table>
-<p><a href="/">← Dashboard</a></p>
-</body></html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Progetti – ScuolaHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{--bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+    th{font-size:.9rem;color:var(--muted)}
+    .status{font-size:.8rem;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid var(--line)}
+    .status.active{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .input{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff}
+    .right{margin-left:auto}
+    a{color:var(--primary);text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Progetti{% if school %} — <span class="muted">{{ school.name }}</span>{% endif %}</h1>
+
+    <div class="card" style="display:flex;gap:12px;align-items:center">
+      <div><b>Budget totale:</b> € {{ totals.budget|floatformat:0|intcomma }}</div>
+      <div><b>Spesa totale:</b> € {{ totals.spent|floatformat:0|intcomma }}</div>
+      <div class="right">
+        <a href="{% url 'dashboard' %}">← Torna alla Dashboard</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar" style="margin-bottom:12px">
+        <input id="q" class="input" placeholder="Cerca per titolo, CUP, CIG, programma…">
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Titolo</th><th>Programma</th><th>Periodo</th><th>Stato</th><th>Budget</th><th>Speso</th><th>%</th></tr>
+        </thead>
+        <tbody id="tbody">
+          {% for p in projects %}
+            <tr data-haystack="{{ p.title }} {{ p.get_program_display|default:p.program }} {{ p.cup|default:'' }} {{ p.cig|default:'' }}"
+                onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
+              <td>{{ p.title }}</td>
+              <td>{{ p.get_program_display|default:p.program }}</td>
+              <td>{{ p.start_date }} – {{ p.end_date }}</td>
+              <td>
+                <span class="status {% if p.status == 'ACTIVE' %}active{% endif %}">
+                  {{ p.get_status_display|default:p.status }}
+                </span>
+              </td>
+              <td>€ {{ p.budget|default:0|floatformat:0|intcomma }}</td>
+              <td>€ {{ p.spent|default:0|floatformat:0|intcomma }}</td>
+              <td>{{ p.percent_spent|floatformat:0 }}%</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7">Nessun progetto presente.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const q = document.getElementById('q');
+    const rows = [...document.querySelectorAll('#tbody tr')];
+    q?.addEventListener('input', ()=>{
+      const s = (q.value||'').toLowerCase().trim();
+      rows.forEach(r=>{
+        const hay = (r.dataset.haystack||'').toLowerCase();
+        r.style.display = !s || hay.includes(s) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>
