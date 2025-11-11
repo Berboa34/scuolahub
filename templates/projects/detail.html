@@ -1,99 +1,143 @@
-{% load humanize %}
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <title>Dettaglio progetto – ScuolaHub</title>
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ project.title }} – Dettaglio progetto</title>
   <style>
     :root{--bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb;}
-    *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:1200px;margin:0 auto;padding:16px}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
-    .muted{color:var(--muted)}
-    .grid{display:grid;gap:16px}
-    .grid.cols-2{grid-template-columns:1.2fr .8fr}
-    @media (max-width:1000px){.grid.cols-2{grid-template-columns:1fr}}
-    .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
-    .progress>i{display:block;height:100%;background:var(--primary)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .input{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff}
+    .btn{border:1px solid var(--line);padding:10px 14px;border-radius:10px;background:#fff;cursor:pointer}
+    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
     table{width:100%;border-collapse:collapse}
     th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
-    th{font-size:.9rem;color:var(--muted)}
-    .input{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff;width:100%}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-    button{border:1px solid var(--line);background:#fff;padding:10px 14px;border-radius:12px;cursor:pointer}
-    .primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-    a{color:var(--primary);text-decoration:none}
+    .muted{color:var(--muted)}
+    .status{font-size:.8rem;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid var(--line)}
+    .status.active{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+    .status.closed{background:#fef2f2;color:#7f1d1d;border-color:#fecaca}
+    .grid2{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+    @media (max-width:1000px){.grid2{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <p><a href="{% url 'projects_list' %}">← Torna a Progetti</a></p>
-
     <div class="card">
-      <h2 style="margin:0">{{ project.title }}</h2>
-      <div class="muted">{{ project.program }} · CUP {{ project.cup|default:"—" }} · Periodo {{ project.start_date }} – {{ project.end_date }}</div>
-      <div class="grid cols-2" style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div class="muted">Stato avanzamento (speso/budget)</div>
-          <div class="progress" title="{{ percent }}%"><i style="width:{{ percent }}%"></i></div>
-          <div style="display:flex;gap:24px;margin-top:8px">
-            <div><div class="muted">Budget</div><b>€ {{ project.budget|floatformat:0|intcomma }}</b></div>
-            <div><div class="muted">Speso</div><b>€ {{ project.spent|floatformat:0|intcomma }}</b></div>
+          <h2 style="margin:0">{{ project.title }}
+            <span class="status {% if project.status == 'ACTIVE' %}active{% elif project.status == 'CLOSED' %}closed{% endif %}">
+              {{ project.get_status_display }}
+            </span>
+          </h2>
+          <div class="muted">
+            {{ project.get_program_display }}{% if project.cup %} · CUP {{ project.cup }}{% endif %}{% if project.cig %} · CIG {{ project.cig }}{% endif %}
+            {% if project.start_date %} · {{ project.start_date }} – {{ project.end_date|default:"—" }}{% endif %}
           </div>
         </div>
         <div>
-          <div class="muted">Totale spese registrate</div>
-          <h3 style="margin:6px 0">€ {{ total_expenses|floatformat:0|intcomma }}</h3>
+          <a class="btn" href="{% url 'projects_list' %}">← Torna ai progetti</a>
         </div>
       </div>
     </div>
 
-    <div class="grid cols-2">
-      <!-- Elenco spese -->
-      <div class="card">
-        <h3 style="margin-top:0">Spese</h3>
-        <table>
-          <thead>
-            <tr><th>Data</th><th>Fornitore</th><th>Categoria</th><th>Importo</th><th>Documento</th></tr>
-          </thead>
-          <tbody>
-            {% for e in expenses %}
-              <tr>
-                <td>{{ e.date }}</td>
-                <td>{{ e.vendor }}</td>
-                <td>{{ e.get_category_display }}</td>
-                <td>€ {{ e.amount|floatformat:2|intcomma }}</td>
-                <td>{{ e.doc_no|default:"—" }}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="5">Nessuna spesa registrata.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <h3 style="margin-top:0">Spese</h3>
+
+          <form method="get" class="toolbar" style="margin-bottom:10px">
+            <select name="cat" class="input">
+              <option value="">Categoria: tutte</option>
+              <option value="MATERIALI" {% if cat == 'MATERIALI' %}selected{% endif %}>Materiali</option>
+              <option value="SERVIZI" {% if cat == 'SERVIZI' %}selected{% endif %}>Servizi</option>
+              <option value="FORMAZIONE" {% if cat == 'FORMAZIONE' %}selected{% endif %}>Formazione</option>
+              <option value="ALTRO" {% if cat == 'ALTRO' %}selected{% endif %}>Altro</option>
+            </select>
+            <input name="vendor" value="{{ vendor }}" class="input" placeholder="Fornitore…">
+            <button class="btn">Filtra</button>
+            <a class="btn" href="{% url 'project_detail' project.id %}">Pulisci</a>
+          </form>
+
+          <table>
+            <thead>
+              <tr><th>Data</th><th>Fornitore</th><th>Categoria</th><th>Importo</th><th>Doc</th></tr>
+            </thead>
+            <tbody>
+              {% for e in expenses %}
+                <tr>
+                  <td>{{ e.date }}</td>
+                  <td>{{ e.vendor|default:"—" }}</td>
+                  <td>{{ e.get_category_display|default:"—" }}</td>
+                  <td>€ {{ e.amount }}</td>
+                  <td>{{ e.document_no|default:"—" }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5">Nessuna spesa trovata.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <p class="muted" style="margin-top:6px">Totale (filtrato): € {{ total_expenses }}</p>
+
+          <h4 style="margin-top:18px">Aggiungi spesa</h4>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_expense">
+            {{ form.as_p }}
+            <button class="btn primary" type="submit">Salva spesa</button>
+          </form>
+        </div>
       </div>
 
-      <!-- Form nuova spesa -->
-      <div class="card">
-        <h3 style="margin-top:0">Aggiungi spesa</h3>
-        <form method="post">
-          {% csrf_token %}
-          <div class="row3">
-            <label>Data<br>{{ form.date }}</label>
-            <label>Fornitore<br>{{ form.vendor }}</label>
-            <label>Categoria<br>{{ form.category }}</label>
-          </div>
-          <div class="row3" style="margin-top:8px">
-            <label>Importo (€)<br>{{ form.amount }}</label>
-            <label>Documento<br>{{ form.doc_no }}</label>
-            <label>&nbsp;<br><button class="primary" type="submit">Salva</button></label>
-          </div>
-          <label style="display:block;margin-top:8px">Note<br>{{ form.notes }}</label>
-        </form>
+      <div>
+        <div class="card">
+          <h3 style="margin-top:0">Pannello progetto</h3>
+          <div class="muted">Budget: <b>€ {{ project.budget }}</b> · Speso: <b>€ {{ project.spent }}</b></div>
+          <div class="muted">Avanzamento spesa: <b>{{ percent }}%</b></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top:0">Limiti di spesa</h3>
+          <table>
+            <thead>
+              <tr><th>Regola</th><th>Tetto (€)</th><th>Speso (€)</th><th>Residuo (€)</th><th>Stato</th></tr>
+            </thead>
+            <tbody>
+              {% for row in limits %}
+                <tr>
+                  <td>{{ row.obj.get_category_display }} ≤ {{ row.obj.percent }}% del {{ row.base_label }}</td>
+                  <td>€ {{ row.cap }}</td>
+                  <td>€ {{ row.spent }}</td>
+                  <td>€ {{ row.remaining }}</td>
+                  <td>
+                    {% if row.over %}
+                      <span class="status closed">Sforato</span>
+                    {% else %}
+                      <span class="status active">OK</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5">Nessun limite impostato.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <h4 style="margin-top:18px">Nuovo limite</h4>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_limit">
+            {{ limit_form.as_p }}
+            <button class="btn" type="submit">Aggiungi limite</button>
+          </form>
+        </div>
       </div>
     </div>
+
   </div>
 </body>
 </html>

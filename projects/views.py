@@ -1,11 +1,10 @@
-# projects/views.py
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, Http404
 from django.db.models import Sum, F, FloatField, Value, Case, When, Q
+from django.http import HttpResponse, Http404
 
-from .models import Project, School, Expense   # <-- aggiunto Expense
-from .forms import ExpenseForm                 # <-- aggiunto form spese
+from .models import Project, School, Expense
+from .forms import ExpenseForm, SpendingLimitForm
 
 
 @login_required
@@ -32,7 +31,6 @@ def dashboard(request):
 
 @login_required
 def projects_list(request):
-    """Lista progetti con filtri server-side e KPI totali."""
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
 
@@ -40,10 +38,17 @@ def projects_list(request):
     if school:
         qs = qs.filter(school=school)
 
-    # --- filtri ---
+    # Querystring
     q = request.GET.get('q', '').strip()
     program = request.GET.get('program', '').strip()
     status = request.GET.get('status', '').strip()
+
+    # Scelte (preferibilmente da field.choices)
+    pf = Project._meta.get_field('program')
+    program_choices = list(getattr(pf, "choices", [])) or [(v, v) for v in Project.objects.values_list('program', flat=True).distinct() if v]
+
+    sf = Project._meta.get_field('status')
+    status_choices = list(getattr(sf, "choices", [])) or [(v, v) for v in Project.objects.values_list('status', flat=True).distinct() if v]
 
     if q:
         qs = qs.filter(
@@ -53,9 +58,9 @@ def projects_list(request):
             Q(program__icontains=q)
         )
     if program:
-        qs = qs.filter(program__iexact=program)
+        qs = qs.filter(program=program)
     if status:
-        qs = qs.filter(status__iexact=status)
+        qs = qs.filter(status=status)
 
     projects = qs.annotate(
         percent_spent=Case(
@@ -69,31 +74,36 @@ def projects_list(request):
     totals["budget"] = totals["budget"] or 0
     totals["spent"] = totals["spent"] or 0
 
-    # per popolare le tendine
-    programs = Project.objects.values_list('program', flat=True).distinct().order_by('program')
-    statuses = Project.objects.values_list('status', flat=True).distinct().order_by('status')
-
     return render(request, "projects/list.html", {
         "projects": projects,
         "totals": totals,
         "school": school,
         "q": q, "program": program, "status": status,
-        "programs": [p for p in programs if p],
-        "statuses": [s for s in statuses if s],
+        "program_choices": program_choices,
+        "status_choices": status_choices,
     })
 
 
 @login_required
 def project_detail(request, pk: int):
-    """Dettaglio progetto con elenco spese e form per aggiungerne una."""
     project = get_object_or_404(Project, pk=pk)
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
     if school and project.school_id and project.school_id != school.id:
         raise Http404("Progetto non trovato")
 
-    expenses = Expense.objects.filter(project=project)
-    totals = expenses.aggregate(total=Sum('amount'))
+    # ---- FILTRI spese ----
+    cat = request.GET.get('cat', '').strip()
+    vendor = request.GET.get('vendor', '').strip()
+
+    expenses_qs = Expense.objects.filter(project=project)
+    if cat:
+        expenses_qs = expenses_qs.filter(category=cat)
+    if vendor:
+        expenses_qs = expenses_qs.filter(vendor__icontains=vendor)
+
+    expenses = expenses_qs.order_by('-date', '-id')
+    totals = expenses_qs.aggregate(total=Sum('amount'))
     total_expenses = totals['total'] or 0
 
     # percentuale spesa su budget
@@ -101,19 +111,53 @@ def project_detail(request, pk: int):
     if project.budget and project.budget > 0:
         percent = round((project.spent or 0) * 100 / project.budget, 2)
 
-    if request.method == "POST":
+    # ---- FORM NUOVA SPESA ----
+    if request.method == "POST" and request.POST.get("action") == "add_expense":
         form = ExpenseForm(request.POST)
         if form.is_valid():
             exp = form.save(commit=False)
             exp.project = project
             exp.created_by = request.user
             exp.save()
-            # aggiorna campo 'spent' del progetto in base alle spese
+            # allinea spent del progetto
             project.spent = Expense.objects.filter(project=project).aggregate(s=Sum('amount'))['s'] or 0
             project.save(update_fields=['spent'])
-            return redirect('project_detail', pk=project.pk)
+            return redirect(f"{request.path}?cat={cat}&vendor={vendor}")
     else:
         form = ExpenseForm()
+
+    # ---- LIMITE DI SPESA (calcoli) ----
+    limits = project.limits.all()
+    basis_amount = {
+        'SPENT': Expense.objects.filter(project=project).aggregate(s=Sum('amount'))['s'] or 0,
+        'BUDGET': project.budget or 0,
+    }
+    limits_view = []
+    for lim in limits:
+        base = basis_amount.get(lim.basis, 0)
+        cap_amount = round((float(lim.percent or 0)) * base / 100.0, 2)
+        cat_spent = Expense.objects.filter(project=project, category=lim.category)\
+                                   .aggregate(s=Sum('amount'))['s'] or 0
+        remaining = round(cap_amount - float(cat_spent), 2)
+        limits_view.append({
+            "obj": lim,
+            "cap": cap_amount,
+            "spent": round(float(cat_spent), 2),
+            "remaining": remaining,
+            "over": remaining < 0,
+            "base_label": "totale speso" if lim.basis == "SPENT" else "budget",
+        })
+
+    # form per nuovo limite
+    if request.method == "POST" and request.POST.get("action") == "add_limit":
+        lform = SpendingLimitForm(request.POST)
+        if lform.is_valid():
+            lim = lform.save(commit=False)
+            lim.project = project
+            lim.save()
+            return redirect(request.path)
+    else:
+        lform = SpendingLimitForm()
 
     return render(request, "projects/detail.html", {
         "project": project,
@@ -122,6 +166,10 @@ def project_detail(request, pk: int):
         "form": form,
         "percent": percent,
         "school": school,
+        "cat": cat,
+        "vendor": vendor,
+        "limits": limits_view,
+        "limit_form": lform,
     })
 
 
@@ -129,7 +177,6 @@ def project_detail(request, pk: int):
 def projects_by_school(request, school_id: int):
     school = get_object_or_404(School, pk=school_id)
     qs = Project.objects.filter(school=school)
-
     totals = qs.aggregate(budget=Sum("budget"), spent=Sum("spent"))
     totals["budget"] = totals["budget"] or 0
     totals["spent"] = totals["spent"] or 0
@@ -142,11 +189,8 @@ def projects_by_school(request, school_id: int):
         )
     ).order_by("title", "id")
 
-    return render(request, "projects/projects_by_school.html", {
-        "school": school,
-        "projects": projects,
-        "totals": totals
-    })
+    return render(request, "projects/projects_by_school.html",
+                  {"school": school, "projects": projects, "totals": totals})
 
 
 @login_required

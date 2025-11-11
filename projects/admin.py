@@ -1,30 +1,28 @@
-# projects/admin.py
 from django.contrib import admin
-from .models import School, Project
+from .models import School, Project, Expense, SpendingLimit
 
-# --- Admin School
+
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ("name",)
-    search_fields = ("name",)
+    list_display = ("name", "code")
+    search_fields = ("name", "code")
 
-# --- Admin Project
+
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("title", "school", "status", "budget", "spent", "start_date", "end_date")
-    list_filter = ("school", "status")
+    list_display = ("title", "program", "status", "budget", "spent", "school")
+    list_filter = ("program", "status", "school")
     search_fields = ("title", "cup", "cig")
 
-# --- Admin Profile (se esiste)
-try:
-    from .models import Profile
 
-    @admin.register(Profile)
-    class ProfileAdmin(admin.ModelAdmin):
-        list_display = ("user", "school", "role")
-        list_filter = ("school", "role")
-        search_fields = ("user__username", "user__email")
+@admin.register(Expense)
+class ExpenseAdmin(admin.ModelAdmin):
+    list_display = ("project", "date", "vendor", "category", "amount", "document_no", "created_by")
+    list_filter = ("project", "category", "date")
+    search_fields = ("vendor", "document_no")
 
-except Exception:
-    # Nessun Profile nel modello: nessuna registrazione e nessun errore
-    pass
+
+@admin.register(SpendingLimit)
+class SpendingLimitAdmin(admin.ModelAdmin):
+    list_display = ("project", "category", "percent", "basis")
+    list_filter = ("basis", "category", "project")
