@@ -13,16 +13,20 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = ("title", "program", "status", "budget", "spent", "school")
     list_filter = ("program", "status", "school")
     search_fields = ("title", "cup", "cig")
+    ordering = ("title",)
 
 
 @admin.register(Expense)
 class ExpenseAdmin(admin.ModelAdmin):
-    list_display = ("project", "date", "vendor", "category", "amount", "document_no", "created_by")
-    list_filter = ("project", "category", "date")
-    search_fields = ("vendor", "document_no")
+    list_display = ("project", "date", "category", "vendor", "amount", "note")
+    list_filter = ("category", "project")
+    search_fields = ("vendor", "note")
+    ordering = ("-date",)
 
 
 @admin.register(SpendingLimit)
 class SpendingLimitAdmin(admin.ModelAdmin):
-    list_display = ("project", "category", "percent", "basis")
-    list_filter = ("basis", "category", "project")
+    list_display = ("project", "category", "base", "percentage", "created_at")
+    list_filter = ("category", "base", "project")
+    search_fields = ("project__title",)
+    ordering = ("project", "category")
