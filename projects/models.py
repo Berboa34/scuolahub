@@ -36,3 +36,25 @@ class Project(models.Model):
 
     def __str__(self):
         return self.title
+
+class Expense(models.Model):
+    CATEGORY_CHOICES = [
+        ('ATTREZZATURE', 'Attrezzature'),
+        ('SERVIZI', 'Servizi'),
+        ('FORMAZIONE', 'Formazione'),
+        ('ALTRO', 'Altro'),
+    ]
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='expenses')
+    date = models.DateField()
+    vendor = models.CharField(max_length=200)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='ALTRO')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    doc_no = models.CharField("Documento (n°/ID)", max_length=100, blank=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+
+    def __str__(self):
+        return f"{self.project} - {self.vendor} - {self.amount}€"

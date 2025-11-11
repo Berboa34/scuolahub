@@ -29,24 +29,35 @@
     <div class="card" style="display:flex;gap:12px;align-items:center">
       <div><b>Budget totale:</b> € {{ totals.budget|floatformat:0|intcomma }}</div>
       <div><b>Spesa totale:</b> € {{ totals.spent|floatformat:0|intcomma }}</div>
-      <div class="right">
-        <a href="{% url 'dashboard' %}">← Torna alla Dashboard</a>
-      </div>
+      <div class="right"><a href="{% url 'dashboard' %}">← Torna alla Dashboard</a></div>
     </div>
 
     <div class="card">
-      <div class="toolbar" style="margin-bottom:12px">
-        <input id="q" class="input" placeholder="Cerca per titolo, CUP, CIG, programma…">
-      </div>
+      <form class="toolbar" method="get" style="margin-bottom:12px">
+        <input name="q" value="{{ q }}" class="input" placeholder="Cerca per titolo, CUP, CIG, programma…">
+        <select name="program" class="input">
+          <option value="">Programma: tutti</option>
+          {% for p in programs %}
+            <option value="{{ p }}" {% if p == program %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+        <select name="status" class="input">
+          <option value="">Stato: tutti</option>
+          {% for s in statuses %}
+            <option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <button class="input" style="cursor:pointer">Filtra</button>
+        <a class="input" href="{% url 'projects_list' %}">Pulisci</a>
+      </form>
 
       <table>
         <thead>
           <tr><th>Titolo</th><th>Programma</th><th>Periodo</th><th>Stato</th><th>Budget</th><th>Speso</th><th>%</th></tr>
         </thead>
-        <tbody id="tbody">
+        <tbody>
           {% for p in projects %}
-            <tr data-haystack="{{ p.title }} {{ p.get_program_display|default:p.program }} {{ p.cup|default:'' }} {{ p.cig|default:'' }}"
-                onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
+            <tr onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
               <td>{{ p.title }}</td>
               <td>{{ p.get_program_display|default:p.program }}</td>
               <td>{{ p.start_date }} – {{ p.end_date }}</td>
@@ -66,17 +77,5 @@
       </table>
     </div>
   </div>
-
-  <script>
-    const q = document.getElementById('q');
-    const rows = [...document.querySelectorAll('#tbody tr')];
-    q?.addEventListener('input', ()=>{
-      const s = (q.value||'').toLowerCase().trim();
-      rows.forEach(r=>{
-        const hay = (r.dataset.haystack||'').toLowerCase();
-        r.style.display = !s || hay.includes(s) ? '' : 'none';
-      });
-    });
-  </script>
 </body>
 </html>

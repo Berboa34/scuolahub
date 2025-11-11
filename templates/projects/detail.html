@@ -1,13 +1,99 @@
+{% load humanize %}
 <!doctype html>
-<html lang="it"><head>
-<meta charset="utf-8"><title>{{ p.title }}</title>
-</head><body>
-<h1>{{ p.title }}</h1>
-<p><b>Scuola:</b> {{ p.school.name }}</p>
-<p><b>Programma:</b> {{ p.get_program_display }}</p>
-<p><b>Periodo:</b> {{ p.start_date }} → {{ p.end_date }}</p>
-<p><b>Stato:</b> {{ p.get_status_display }}</p>
-<p><b>CUP:</b> {{ p.cup|default:"—" }} | <b>CIG:</b> {{ p.cig|default:"—" }}</p>
-<p><b>Budget:</b> € {{ p.budget }} — <b>Speso:</b> € {{ p.spent }} ({{ p.percent_spent }}%)</p>
-<p><a href="{% url 'projects_by_school' p.school.id %}">← Torna all’elenco</a></p>
-</body></html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Dettaglio progetto – ScuolaHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{--bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+    .muted{color:var(--muted)}
+    .grid{display:grid;gap:16px}
+    .grid.cols-2{grid-template-columns:1.2fr .8fr}
+    @media (max-width:1000px){.grid.cols-2{grid-template-columns:1fr}}
+    .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
+    .progress>i{display:block;height:100%;background:var(--primary)}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+    th{font-size:.9rem;color:var(--muted)}
+    .input{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff;width:100%}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    button{border:1px solid var(--line);background:#fff;padding:10px 14px;border-radius:12px;cursor:pointer}
+    .primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+    a{color:var(--primary);text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p><a href="{% url 'projects_list' %}">← Torna a Progetti</a></p>
+
+    <div class="card">
+      <h2 style="margin:0">{{ project.title }}</h2>
+      <div class="muted">{{ project.program }} · CUP {{ project.cup|default:"—" }} · Periodo {{ project.start_date }} – {{ project.end_date }}</div>
+      <div class="grid cols-2" style="margin-top:12px">
+        <div>
+          <div class="muted">Stato avanzamento (speso/budget)</div>
+          <div class="progress" title="{{ percent }}%"><i style="width:{{ percent }}%"></i></div>
+          <div style="display:flex;gap:24px;margin-top:8px">
+            <div><div class="muted">Budget</div><b>€ {{ project.budget|floatformat:0|intcomma }}</b></div>
+            <div><div class="muted">Speso</div><b>€ {{ project.spent|floatformat:0|intcomma }}</b></div>
+          </div>
+        </div>
+        <div>
+          <div class="muted">Totale spese registrate</div>
+          <h3 style="margin:6px 0">€ {{ total_expenses|floatformat:0|intcomma }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid cols-2">
+      <!-- Elenco spese -->
+      <div class="card">
+        <h3 style="margin-top:0">Spese</h3>
+        <table>
+          <thead>
+            <tr><th>Data</th><th>Fornitore</th><th>Categoria</th><th>Importo</th><th>Documento</th></tr>
+          </thead>
+          <tbody>
+            {% for e in expenses %}
+              <tr>
+                <td>{{ e.date }}</td>
+                <td>{{ e.vendor }}</td>
+                <td>{{ e.get_category_display }}</td>
+                <td>€ {{ e.amount|floatformat:2|intcomma }}</td>
+                <td>{{ e.doc_no|default:"—" }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5">Nessuna spesa registrata.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Form nuova spesa -->
+      <div class="card">
+        <h3 style="margin-top:0">Aggiungi spesa</h3>
+        <form method="post">
+          {% csrf_token %}
+          <div class="row3">
+            <label>Data<br>{{ form.date }}</label>
+            <label>Fornitore<br>{{ form.vendor }}</label>
+            <label>Categoria<br>{{ form.category }}</label>
+          </div>
+          <div class="row3" style="margin-top:8px">
+            <label>Importo (€)<br>{{ form.amount }}</label>
+            <label>Documento<br>{{ form.doc_no }}</label>
+            <label>&nbsp;<br><button class="primary" type="submit">Salva</button></label>
+          </div>
+          <label style="display:block;margin-top:8px">Note<br>{{ form.notes }}</label>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
