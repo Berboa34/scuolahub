@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.db import models
 from django.utils import timezone
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 # --- Scelte comuni ------------------------------------------------------------
@@ -93,26 +94,34 @@ class Expense(models.Model):
 
 
 class SpendingLimit(models.Model):
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="limits")
-    category = models.CharField(max_length=32, choices=CATEGORY_CHOICES)
+    # stessa logica delle categorie usate su Expense
+    CAT_MATERIALI = "MATERIALI"
+    CAT_FORMAZIONE = "FORMAZIONE"
+    CAT_SERVIZI = "SERVIZI"
+    CATEGORY_CHOICES = [
+        (CAT_MATERIALI, "Materiali"),
+        (CAT_FORMAZIONE, "Formazione"),
+        (CAT_SERVIZI, "Servizi"),
+    ]
 
-    # Base del calcolo del limite (NUOVO CAMPO richiesto dalle views)
-    base = models.CharField(
-        max_length=16,
-        choices=LIMIT_BASE_CHOICES,
-        default="BUDGET",
-        help_text="Valore di riferimento per il calcolo: Budget, Speso o Residuo.",
+    BASE_BUDGET = "BUDGET"   # percentuale calcolata sul budget allocato
+    BASE_SPENT  = "SPENT"    # percentuale calcolata sulla spesa attuale
+    BASE_CHOICES = [
+        (BASE_BUDGET, "Budget allocato"),
+        (BASE_SPENT, "Spesa attuale"),
+    ]
+
+    project   = models.ForeignKey("Project", on_delete=models.CASCADE, related_name="limits")
+    category  = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    base      = models.CharField(max_length=12, choices=BASE_CHOICES, default=BASE_BUDGET)
+    percentage = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
-
-    # percentuale come Decimal (es. 20.00)
-    percentage = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"))
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Limite di spesa"
-        verbose_name_plural = "Limiti di spesa"
-        unique_together = [("project", "category", "base")]
+        unique_together = ("project", "category", "base")
 
     def __str__(self):
-        return f"{self.project_id} · {self.get_category_display()} · {self.get_base_display()} · {self.percentage}%"
+        return f"{self.project} • {self.category} • {self.base} • {self.percentage}%"
