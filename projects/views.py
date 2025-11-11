@@ -1,11 +1,17 @@
+from decimal import Decimal, ROUND_HALF_UP
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, F, FloatField, Value, Case, When
+from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Sum, F, FloatField, Value, Case, When, Q
-from django.http import HttpResponse, Http404
+from django.urls import reverse
+from .models import Project, School, Expense, SpendingLimit
 
-from .models import Project, School, Expense
-from .forms import ExpenseForm, SpendingLimitForm
-
+CATEGORIES = [
+    ("MATERIALS", "Materiali"),
+    ("SERVICES", "Servizi"),
+    ("TRAINING", "Formazione"),
+    ("OTHER", "Altro"),
+]
 
 @login_required
 def dashboard(request):
@@ -38,25 +44,13 @@ def projects_list(request):
     if school:
         qs = qs.filter(school=school)
 
-    # Querystring
-    q = request.GET.get('q', '').strip()
-    program = request.GET.get('program', '').strip()
-    status = request.GET.get('status', '').strip()
-
-    # Scelte (preferibilmente da field.choices)
-    pf = Project._meta.get_field('program')
-    program_choices = list(getattr(pf, "choices", [])) or [(v, v) for v in Project.objects.values_list('program', flat=True).distinct() if v]
-
-    sf = Project._meta.get_field('status')
-    status_choices = list(getattr(sf, "choices", [])) or [(v, v) for v in Project.objects.values_list('status', flat=True).distinct() if v]
+    # filtri GET
+    q = (request.GET.get("q") or "").strip().lower()
+    program = (request.GET.get("program") or "").strip().upper()
+    status = (request.GET.get("status") or "").strip().upper()
 
     if q:
-        qs = qs.filter(
-            Q(title__icontains=q) |
-            Q(cup__icontains=q) |
-            Q(cig__icontains=q) |
-            Q(program__icontains=q)
-        )
+        qs = qs.filter(title__icontains=q) | qs.filter(cup__icontains=q) | qs.filter(cig__icontains=q)
     if program:
         qs = qs.filter(program=program)
     if status:
@@ -78,9 +72,6 @@ def projects_list(request):
         "projects": projects,
         "totals": totals,
         "school": school,
-        "q": q, "program": program, "status": status,
-        "program_choices": program_choices,
-        "status_choices": status_choices,
     })
 
 
@@ -92,84 +83,111 @@ def project_detail(request, pk: int):
     if school and project.school_id and project.school_id != school.id:
         raise Http404("Progetto non trovato")
 
-    # ---- FILTRI spese ----
-    cat = request.GET.get('cat', '').strip()
-    vendor = request.GET.get('vendor', '').strip()
+    # ---- POST handling
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "add_expense":
+            # campi input
+            date = request.POST.get("date")
+            category = request.POST.get("category")
+            vendor = request.POST.get("vendor") or ""
+            amount_str = (request.POST.get("amount") or "0").strip().replace(",", ".")
+            note = request.POST.get("note") or ""
 
-    expenses_qs = Expense.objects.filter(project=project)
+            # usa Decimal ovunque
+            try:
+                amount = Decimal(amount_str)
+            except Exception:
+                amount = Decimal("0")
+
+            Expense.objects.create(
+                project=project,
+                date=date,
+                category=category,
+                vendor=vendor,
+                amount=amount,
+                note=note,
+            )
+
+            # aggiorna speso del progetto (opzionale, se “spent” è mantenuto manualmente)
+            total_spent = Expense.objects.filter(project=project).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+            project.spent = total_spent
+            project.save(update_fields=["spent"])
+
+            return redirect("project_detail", pk=project.pk)
+
+        if action == "add_limit":
+            limit_category = request.POST.get("limit_category")
+            base = request.POST.get("base")  # BUDGET / SPENT / REMAINING
+            perc_str = (request.POST.get("percentage") or "0").strip().replace(",", ".")
+            try:
+                percentage = Decimal(perc_str)
+            except Exception:
+                percentage = Decimal("0")
+
+            SpendingLimit.objects.create(
+                project=project,
+                category=limit_category,
+                base=base,
+                percentage=percentage
+            )
+            return redirect("project_detail", pk=project.pk)
+
+    # ---- GET: filtri spese
+    cat = (request.GET.get("cat") or "").strip()
+    vendor = (request.GET.get("vendor") or "").strip()
+
+    exp_qs = Expense.objects.filter(project=project)
     if cat:
-        expenses_qs = expenses_qs.filter(category=cat)
+        exp_qs = exp_qs.filter(category=cat)
     if vendor:
-        expenses_qs = expenses_qs.filter(vendor__icontains=vendor)
+        exp_qs = exp_qs.filter(vendor__icontains=vendor)
 
-    expenses = expenses_qs.order_by('-date', '-id')
-    totals = expenses_qs.aggregate(total=Sum('amount'))
-    total_expenses = totals['total'] or 0
+    expenses = exp_qs.order_by("-date", "-created_at")
 
-    # percentuale spesa su budget
-    percent = 0
-    if project.budget and project.budget > 0:
-        percent = round((project.spent or 0) * 100 / project.budget, 2)
+    # ---- Limiti (tutta aritmetica in Decimal)
+    budget = project.budget if project.budget is not None else Decimal("0")
+    spent = project.spent if project.spent is not None else Decimal("0")
+    remaining = budget - spent
+    if remaining < Decimal("0"):
+        remaining = Decimal("0")
 
-    # ---- FORM NUOVA SPESA ----
-    if request.method == "POST" and request.POST.get("action") == "add_expense":
-        form = ExpenseForm(request.POST)
-        if form.is_valid():
-            exp = form.save(commit=False)
-            exp.project = project
-            exp.created_by = request.user
-            exp.save()
-            # allinea spent del progetto
-            project.spent = Expense.objects.filter(project=project).aggregate(s=Sum('amount'))['s'] or 0
-            project.save(update_fields=['spent'])
-            return redirect(f"{request.path}?cat={cat}&vendor={vendor}")
-    else:
-        form = ExpenseForm()
-
-    # ---- LIMITE DI SPESA (calcoli) ----
-    limits = project.limits.all()
-    basis_amount = {
-        'SPENT': Expense.objects.filter(project=project).aggregate(s=Sum('amount'))['s'] or 0,
-        'BUDGET': project.budget or 0,
-    }
-    limits_view = []
+    limits = SpendingLimit.objects.filter(project=project).order_by("category", "id")
+    limits_table = []
     for lim in limits:
-        base = basis_amount.get(lim.basis, 0)
-        cap_amount = round((float(lim.percent or 0)) * base / 100.0, 2)
-        cat_spent = Expense.objects.filter(project=project, category=lim.category)\
-                                   .aggregate(s=Sum('amount'))['s'] or 0
-        remaining = round(cap_amount - float(cat_spent), 2)
-        limits_view.append({
-            "obj": lim,
-            "cap": cap_amount,
-            "spent": round(float(cat_spent), 2),
-            "remaining": remaining,
-            "over": remaining < 0,
-            "base_label": "totale speso" if lim.basis == "SPENT" else "budget",
-        })
+        # base
+        if lim.base == "BUDGET":
+            base_val = Decimal(budget)
+            base_label = "Budget"
+        elif lim.base == "SPENT":
+            base_val = Decimal(spent)
+            base_label = "Speso attuale"
+        else:
+            base_val = Decimal(remaining)
+            base_label = "Residuo"
 
-    # form per nuovo limite
-    if request.method == "POST" and request.POST.get("action") == "add_limit":
-        lform = SpendingLimitForm(request.POST)
-        if lform.is_valid():
-            lim = lform.save(commit=False)
-            lim.project = project
-            lim.save()
-            return redirect(request.path)
-    else:
-        lform = SpendingLimitForm()
+        # percentuale (Decimal) e calcoli
+        perc = lim.percentage or Decimal("0")
+        allowed = (base_val * (perc / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        used = Expense.objects.filter(project=project, category=lim.category).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+        used = Decimal(used).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        remaining_limit = (allowed - used).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        limits_table.append({
+            "limit": lim,
+            "base_label": base_label,
+            "allowed": allowed,
+            "used": used,
+            "remaining": remaining_limit,
+        })
 
     return render(request, "projects/detail.html", {
         "project": project,
         "expenses": expenses,
-        "total_expenses": total_expenses,
-        "form": form,
-        "percent": percent,
-        "school": school,
-        "cat": cat,
-        "vendor": vendor,
-        "limits": limits_view,
-        "limit_form": lform,
+        "categories": CATEGORIES,
+        "limits_table": limits_table,
     })
 
 

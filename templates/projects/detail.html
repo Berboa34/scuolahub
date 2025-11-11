@@ -1,143 +1,165 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ project.title }} – Dettaglio progetto</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ScuolaHub – Dettaglio progetto</title>
   <style>
-    :root{--bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb;}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+    :root{--bg:#f7f7fb;--panel:#fff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    header{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:1px solid var(--line)}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:inline-grid;place-items:center;color:#fff;font-weight:700}
+    nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    nav a{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;color:inherit}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+    .grid{display:grid;gap:16px}
+    .grid.cols-2{grid-template-columns:1.2fr .8fr}
+    @media (max-width:1000px){.grid.cols-2{grid-template-columns:1fr}}
     .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .input{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff}
-    .btn{border:1px solid var(--line);padding:10px 14px;border-radius:10px;background:#fff;cursor:pointer}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;text-decoration:none;color:inherit}
     .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+    .input,select{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff}
+    table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
     .muted{color:var(--muted)}
-    .status{font-size:.8rem;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid var(--line)}
-    .status.active{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
-    .status.closed{background:#fef2f2;color:#7f1d1d;border-color:#fecaca}
-    .grid2{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
-    @media (max-width:1000px){.grid2{grid-template-columns:1fr}}
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .kpi .box{border:1px solid var(--line);border-radius:12px;padding:12px}
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <header>
+    <div class="wrap">
+      <div class="brand">
+        <div class="logo">S</div>
+        <div>
+          <strong>ScuolaHub</strong><br>
+          <span class="muted">Dettaglio progetto</span>
+        </div>
+        <a class="btn" href="/">← Dashboard</a>
+        <a class="btn" href="/progetti/">← Torna ai Progetti</a>
+      </div>
+      <nav aria-label="Navigazione">
+        <a href="/">Dashboard</a>
+        <a href="/progetti/">Progetti</a>
+        <a href="/calendario/">Calendario</a>
+        <a href="/documenti/">Documenti</a>
+        <a href="/deleghe/">Deleghe</a>
+        <a href="/impostazioni/">Impostazioni</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="toolbar">
         <div>
-          <h2 style="margin:0">{{ project.title }}
-            <span class="status {% if project.status == 'ACTIVE' %}active{% elif project.status == 'CLOSED' %}closed{% endif %}">
-              {{ project.get_status_display }}
-            </span>
-          </h2>
-          <div class="muted">
-            {{ project.get_program_display }}{% if project.cup %} · CUP {{ project.cup }}{% endif %}{% if project.cig %} · CIG {{ project.cig }}{% endif %}
-            {% if project.start_date %} · {{ project.start_date }} – {{ project.end_date|default:"—" }}{% endif %}
-          </div>
+          <h2 style="margin:0">{{ project.title }}</h2>
+          <div class="muted">{{ project.get_program_display }} · CUP {{ project.cup|default:"—" }} · {{ project.start_date }} – {{ project.end_date }}</div>
         </div>
-        <div>
-          <a class="btn" href="{% url 'projects_list' %}">← Torna ai progetti</a>
-        </div>
+      </div>
+
+      <div class="kpi" style="margin-top:12px">
+        <div class="box"><div class="muted">Budget</div><div><b>€ {{ project.budget|floatformat:0 }}</b></div></div>
+        <div class="box"><div class="muted">Speso</div><div><b>€ {{ project.spent|floatformat:0 }}</b></div></div>
+        <div class="box"><div class="muted">% Spesa</div><div><b>
+          {% if project.budget %}{{ project.spent|divisibleby:0 }}{% endif %}
+          {{ project.spent|floatformat:0 }} / {{ project.budget|floatformat:0 }}
+        </b></div></div>
       </div>
     </div>
 
-    <div class="grid2">
-      <div>
-        <div class="card">
-          <h3 style="margin-top:0">Spese</h3>
-
-          <form method="get" class="toolbar" style="margin-bottom:10px">
+    <div class="grid cols-2" style="margin-top:16px">
+      <div class="card">
+        <div class="toolbar">
+          <h3 style="margin:0">Spese</h3>
+          <form method="get" class="toolbar" style="margin-left:auto">
             <select name="cat" class="input">
               <option value="">Categoria: tutte</option>
-              <option value="MATERIALI" {% if cat == 'MATERIALI' %}selected{% endif %}>Materiali</option>
-              <option value="SERVIZI" {% if cat == 'SERVIZI' %}selected{% endif %}>Servizi</option>
-              <option value="FORMAZIONE" {% if cat == 'FORMAZIONE' %}selected{% endif %}>Formazione</option>
-              <option value="ALTRO" {% if cat == 'ALTRO' %}selected{% endif %}>Altro</option>
-            </select>
-            <input name="vendor" value="{{ vendor }}" class="input" placeholder="Fornitore…">
-            <button class="btn">Filtra</button>
-            <a class="btn" href="{% url 'project_detail' project.id %}">Pulisci</a>
-          </form>
-
-          <table>
-            <thead>
-              <tr><th>Data</th><th>Fornitore</th><th>Categoria</th><th>Importo</th><th>Doc</th></tr>
-            </thead>
-            <tbody>
-              {% for e in expenses %}
-                <tr>
-                  <td>{{ e.date }}</td>
-                  <td>{{ e.vendor|default:"—" }}</td>
-                  <td>{{ e.get_category_display|default:"—" }}</td>
-                  <td>€ {{ e.amount }}</td>
-                  <td>{{ e.document_no|default:"—" }}</td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="5">Nessuna spesa trovata.</td></tr>
+              {% for key,label in categories %}
+                <option value="{{ key }}" {% if request.GET.cat == key %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
-            </tbody>
-          </table>
-
-          <p class="muted" style="margin-top:6px">Totale (filtrato): € {{ total_expenses }}</p>
-
-          <h4 style="margin-top:18px">Aggiungi spesa</h4>
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="add_expense">
-            {{ form.as_p }}
-            <button class="btn primary" type="submit">Salva spesa</button>
+            </select>
+            <input class="input" type="search" name="vendor" value="{{ request.GET.vendor|default:'' }}" placeholder="Fornitore…">
+            <button class="btn" type="submit">Filtra</button>
+            <a class="btn" href="?">Pulisci</a>
           </form>
         </div>
+
+        <table style="margin-top:8px">
+          <thead><tr><th>Data</th><th>Categoria</th><th>Fornitore</th><th>Importo</th><th>Nota</th></tr></thead>
+          <tbody>
+            {% for e in expenses %}
+            <tr>
+              <td>{{ e.date }}</td>
+              <td>{{ e.get_category_display }}</td>
+              <td>{{ e.vendor|default:"—" }}</td>
+              <td>€ {{ e.amount|floatformat:0 }}</td>
+              <td>{{ e.note|default:"" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">Nessuna spesa.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <form method="post" class="toolbar" style="margin-top:12px">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_expense">
+          <input class="input" type="date" name="date" required>
+          <select name="category" class="input" required>
+            {% for key,label in categories %}
+              <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <input class="input" type="text" name="vendor" placeholder="Fornitore">
+          <input class="input" type="number" step="0.01" name="amount" placeholder="Importo" required>
+          <input class="input" type="text" name="note" placeholder="Nota">
+          <button class="btn primary" type="submit">Aggiungi spesa</button>
+        </form>
       </div>
 
-      <div>
-        <div class="card">
-          <h3 style="margin-top:0">Pannello progetto</h3>
-          <div class="muted">Budget: <b>€ {{ project.budget }}</b> · Speso: <b>€ {{ project.spent }}</b></div>
-          <div class="muted">Avanzamento spesa: <b>{{ percent }}%</b></div>
+      <div class="card">
+        <div class="toolbar">
+          <h3 style="margin:0">Limiti di spesa (per categoria)</h3>
         </div>
 
-        <div class="card">
-          <h3 style="margin-top:0">Limiti di spesa</h3>
-          <table>
-            <thead>
-              <tr><th>Regola</th><th>Tetto (€)</th><th>Speso (€)</th><th>Residuo (€)</th><th>Stato</th></tr>
-            </thead>
-            <tbody>
-              {% for row in limits %}
-                <tr>
-                  <td>{{ row.obj.get_category_display }} ≤ {{ row.obj.percent }}% del {{ row.base_label }}</td>
-                  <td>€ {{ row.cap }}</td>
-                  <td>€ {{ row.spent }}</td>
-                  <td>€ {{ row.remaining }}</td>
-                  <td>
-                    {% if row.over %}
-                      <span class="status closed">Sforato</span>
-                    {% else %}
-                      <span class="status active">OK</span>
-                    {% endif %}
-                  </td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="5">Nessun limite impostato.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <table style="margin-top:8px">
+          <thead><tr><th>Categoria</th><th>Base calcolo</th><th>Percentuale</th><th>Consentito</th><th>Usato</th><th>Residuo</th></tr></thead>
+          <tbody>
+            {% for row in limits_table %}
+            <tr>
+              <td>{{ row.limit.get_category_display }}</td>
+              <td>{{ row.base_label }}</td>
+              <td>{{ row.limit.percentage }}%</td>
+              <td>€ {{ row.allowed|floatformat:0 }}</td>
+              <td>€ {{ row.used|floatformat:0 }}</td>
+              <td>€ {{ row.remaining|floatformat:0 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">Nessun limite configurato.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
 
-          <h4 style="margin-top:18px">Nuovo limite</h4>
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="add_limit">
-            {{ limit_form.as_p }}
-            <button class="btn" type="submit">Aggiungi limite</button>
-          </form>
-        </div>
+        <form method="post" class="toolbar" style="margin-top:12px">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_limit">
+          <select name="limit_category" class="input" required>
+            {% for key,label in categories %}
+              <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <select name="base" class="input" required>
+            <option value="BUDGET">Base: Budget</option>
+            <option value="SPENT">Base: Speso attuale</option>
+            <option value="REMAINING">Base: Residuo</option>
+          </select>
+          <input class="input" type="number" step="0.01" name="percentage" placeholder="% (es. 20)" required>
+          <button class="btn primary" type="submit">Aggiungi limite</button>
+        </form>
       </div>
     </div>
-
-  </div>
+  </main>
 </body>
 </html>
