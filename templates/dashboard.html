@@ -1,3 +1,4 @@
+{% load humanize %}
 <!doctype html>
 <html lang="it">
 <head>
@@ -6,17 +7,30 @@
   <title>ScuolaHub – Dashboard</title>
   <style>
     :root{
-      --bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--primary-ink:#fff;--line:#e5e7eb;--chip:#eef2ff;
+      --bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;
+      --primary:#2563eb;--primary-ink:#fff;--ok:#16a34a;--warn:#ca8a04;--bad:#dc2626;
+      --line:#e5e7eb;--chip:#eef2ff;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    header{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:1px solid var(--line)}
+    a{color:var(--primary);text-decoration:none}
     .wrap{max-width:1200px;margin:0 auto;padding:16px}
+
+    /* Topbar user */
+    .topbar{background:#f1f1f1;padding:10px;border-bottom:1px solid #ccc;display:flex;gap:12px;align-items:center}
+    .topbar .right{margin-left:auto}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer}
+    .btn.primary{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
+
+    /* Header + nav */
+    header{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:1px solid var(--line)}
     .brand{display:flex;gap:10px;align-items:center}
     .brand .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:inline-grid;place-items:center;color:#fff;font-weight:700}
     nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    nav a, nav button{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;text-decoration:none;color:inherit}
-    nav .active{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
+    nav a{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:10px}
+    nav a.active{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
+
+    /* Layout */
     main{padding:20px 0}
     .grid{display:grid;gap:16px}
     .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -29,29 +43,24 @@
     .tag{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--chip);color:#3730a3;font-size:.8rem}
     .status{font-size:.8rem;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid var(--line)}
     .status.active{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
-    .status.draft{background:#f1f5f9;color:#334155}
-    .status.closed{background:#fef2f2;color:#7f1d1d;border-color:#fecaca}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
-    th{font-size:.9rem;color:var(--muted)}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer}
-    .btn.primary{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .input{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff}
-    .hint{font-size:.9rem;color:var(--muted)}
-    .flex{display:flex;gap:16px;align-items:center}
-    .right{margin-left:auto}
     .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
     .progress>i{display:block;height:100%;background:var(--primary)}
-    footer{padding:24px 0;color:var(--muted)}
-    .view{display:block}
+
+    /* Calendar demo */
+    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+    .calendar .day{background:#fff;border:1px solid var(--line);border-radius:10px;min-height:90px;padding:8px}
+    .calendar .event{font-size:.78rem;background:#eff6ff;border-left:3px solid var(--primary);margin:6px 0;padding:4px 6px;border-radius:6px}
+    .hint{font-size:.9rem;color:var(--muted)}
+
+    /* Modal */
+    #modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25)}
+    #modal .panel{max-width:420px;margin:10% auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
   </style>
 </head>
 <body>
-{% load humanize %}
 
 {% if user.is_authenticated %}
-  <div style="background:#f1f1f1; padding:10px; border-bottom:1px solid #ccc; display:flex; gap:12px; align-items:center">
+  <div class="topbar">
     <div><b>Benvenuto/a, {{ user.username }}</b>{% if school %} — <span class="muted">{{ school.name }}</span>{% endif %}</div>
     <div class="right">
       <form method="post" action="{% url 'logout' %}">
@@ -68,84 +77,73 @@
       <div class="logo">S</div>
       <div>
         <strong>ScuolaHub</strong><br>
-        <span class="muted">Dashboard collegata al database</span>
+        <span class="muted">Dashboard</span>
       </div>
     </div>
+
+    <!-- NAV con URL Django -->
     <nav aria-label="Navigazione principale">
-      <a href="#" class="active">Dashboard</a>
-      <a href="#/projects">Progetti</a>
-      <a href="#/calendar">Calendario</a>
-      <a href="#/documents">Documenti</a>
-      <a href="#/deleghe">Deleghe</a>
-      <a href="#/settings">Impostazioni</a>
+      <a href="{% url 'dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
+      <a href="{% url 'projects_list' %}" class="{% if request.path|slice:':9' == '/progetti' %}active{% endif %}">Progetti</a>
+      <a href="{% url 'calendar' %}" class="{% if request.path == '/calendario/' %}active{% endif %}">Calendario</a>
+      <a href="{% url 'documents' %}" class="{% if request.path == '/documenti/' %}active{% endif %}">Documenti</a>
+      <a href="{% url 'deleghe' %}" class="{% if request.path == '/deleghe/' %}active{% endif %}">Deleghe</a>
+      <a href="{% url 'settings' %}" class="{% if request.path == '/impostazioni/' %}active{% endif %}">Impostazioni</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
-  <!-- Badge di verifica DB -->
-  <div class="card" style="margin-bottom:12px">
-    <b>Dati reali dal database:</b>
-    {% if projects and projects|length %} {{ projects|length }} progetti. Primo: <i>{{ projects.0.title }}</i>
-    {% else %} nessun progetto trovato. {% endif %}
-  </div>
-
   <!-- KPI -->
-  <section class="view" aria-label="KPI">
-    <div class="grid cols-3">
-      <div class="card kpi">
-        <div>
-          <div class="muted">Budget allocato</div>
-          <b>€ {{ totals.budget|floatformat:0|intcomma }}</b>
-        </div>
-        <span class="tag">{% if totals.budget %}+ aggiornato{% else %}—{% endif %}</span>
+  <section class="grid cols-3">
+    <div class="card kpi">
+      <div>
+        <div class="muted">Budget allocato</div>
+        <b>€ {{ totals.budget|default:0|floatformat:0|intcomma }}</b>
       </div>
-      <div class="card kpi">
-        <div>
-          <div class="muted">Spesa effettuata</div>
-          <b>€ {{ totals.spent|floatformat:0|intcomma }}</b>
-        </div>
-        <span class="tag">
-          {% if totals.budget %}
-            {% widthratio totals.spent totals.budget 100 %}% del totale
-          {% else %}
-            —
-          {% endif %}
-        </span>
+      <span class="tag">{% if totals.budget %}+ aggiornato{% else %}—{% endif %}</span>
+    </div>
+
+    <div class="card kpi">
+      <div>
+        <div class="muted">Spesa effettuata</div>
+        <b>€ {{ totals.spent|default:0|floatformat:0|intcomma }}</b>
       </div>
-      <div class="card kpi">
-        <div>
-          <div class="muted">Scadenze entro 30 gg</div>
-          <b>—</b>
-        </div>
-        <span class="status active">In corso</span>
+      <span class="tag">
+        {% if totals.budget and totals.budget > 0 %}
+          {% widthratio totals.spent totals.budget 100 as perc_spent %}
+          {{ perc_spent|floatformat:0 }}% del totale
+        {% else %}—{% endif %}
+      </span>
+    </div>
+
+    <div class="card kpi">
+      <div>
+        <div class="muted">Progetti recenti</div>
+        <b>{{ latest|length }}</b>
       </div>
+      <span class="status active">In corso</span>
     </div>
   </section>
 
-  <!-- Progetti in evidenza -->
-  <section class="view" aria-label="Progetti in evidenza" style="margin-top:16px">
+  <!-- Progetti in evidenza (solo ultimi N dal DB, niente lista completa) -->
+  <section class="grid cols-2" style="margin-top:16px">
     <div class="card">
-      <div class="flex">
-        <h3>Progetti in evidenza</h3>
-        <div class="right toolbar">
-          <input id="search-featured" class="input" placeholder="Cerca progetto…" />
-          <button class="btn">Filtri</button>
-          <button class="btn primary" onclick="alert('Coming soon')">Nuovo progetto</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <h3 style="margin:0">Progetti in evidenza</h3>
+        <span class="muted">ultimi inseriti</span>
+        <div style="margin-left:auto">
+          <a class="btn" href="{% url 'projects_list' %}">Vai a tutti i progetti →</a>
         </div>
       </div>
-      <table>
+
+      <table style="margin-top:12px">
         <thead>
           <tr><th>Titolo</th><th>Programma</th><th>Periodo</th><th>Stato</th><th>Budget</th><th>Speso</th></tr>
         </thead>
-        <tbody id="featured-tbody">
+        <tbody>
           {% for p in latest %}
-            <tr data-project
-                data-title="{{ p.title|lower }}"
-                data-program="{{ p.get_program_display|default:p.program|lower }}"
-                data-cup="{{ p.cup|default:''|lower }}"
-                data-cig="{{ p.cig|default:''|lower }}"
-                onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
+            <tr onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
               <td>{{ p.title }}</td>
               <td>{{ p.get_program_display|default:p.program }}</td>
               <td>{{ p.start_date }} – {{ p.end_date }}</td>
@@ -157,128 +155,56 @@
                   {{ p.get_status_display|default:p.status }}
                 </span>
               </td>
-              <td>€ {{ p.budget|floatformat:0|intcomma }}</td>
-              <td>€ {{ p.spent|floatformat:0|intcomma }}</td>
+              <td>€ {{ p.budget|default:0|floatformat:0|intcomma }}</td>
+              <td>€ {{ p.spent|default:0|floatformat:0|intcomma }}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="6">Nessun progetto.</td></tr>
+            <tr><td colspan="6" class="muted">Nessun progetto disponibile.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-  </section>
 
-  <!-- Tutti i progetti -->
-  <section class="view" aria-label="Tutti i progetti" style="margin-top:16px">
+    <!-- Calendario sintetico demo -->
     <div class="card">
-      <div class="flex">
-        <h3>Tutti i progetti</h3>
-        <div class="right toolbar">
-          <input id="search-projects" class="input" placeholder="Cerca per titolo, CUP, CIG, programma…" />
-          <select id="filter-status" class="input" aria-label="Filtro stato">
-            <option value="">Stato: tutti</option>
-            <option value="draft">Bozza</option>
-            <option value="active">In corso</option>
-            <option value="closed">Chiuso</option>
-          </select>
-          <button class="btn" id="btn-export">Esporta</button>
-          <button class="btn primary" onclick="alert('Coming soon')">Nuovo progetto</button>
-        </div>
+      <h3>Scadenze prossime</h3>
+      <div class="calendar" aria-label="Calendario sintetico">
+        <!-- puoi popolare via DB in futuro (Event); ora è demo -->
+        <div class="day" data-day="15"><b>15</b><div class="event">Rendicontazione PNRR</div></div>
+        <div class="day" data-day="16"><b>16</b><div class="event">Mandato fornitore</div></div>
+        <div class="day" data-day="17"><b>17</b></div>
+        <div class="day" data-day="18"><b>18</b><div class="event">Verbale commissione</div></div>
+        <div class="day" data-day="19"><b>19</b></div>
+        <div class="day" data-day="20"><b>20</b><div class="event">Ordine attrezzature</div></div>
+        <div class="day" data-day="21"><b>21</b></div>
       </div>
-      <table>
-        <thead>
-          <tr><th>Titolo</th><th>Programma</th><th>CUP</th><th>Periodo</th><th>Stato</th><th class="right">% Spesa</th></tr>
-        </thead>
-        <tbody id="projects-tbody">
-          {% for p in projects %}
-            <tr data-project
-                data-status="{{ p.status|lower }}"
-                data-title="{{ p.title|lower }}"
-                data-program="{{ p.get_program_display|default:p.program|lower }}"
-                data-cup="{{ p.cup|default:''|lower }}"
-                data-cig="{{ p.cig|default:''|lower }}"
-                onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
-              <td>{{ p.title }}</td>
-              <td>{{ p.get_program_display|default:p.program }}</td>
-              <td>{{ p.cup|default:"—" }}</td>
-              <td>{{ p.start_date }} – {{ p.end_date }}</td>
-              <td>
-                <span class="status
-                  {% if p.status == 'ACTIVE' %}active
-                  {% elif p.status == 'DRAFT' %}draft
-                  {% else %}closed{% endif %}">
-                  {{ p.get_status_display|default:p.status }}
-                </span>
-              </td>
-              <td>
-                <div class="progress">
-                  <i style="width:
-                    {% if p.budget and p.budget|floatformat != '0' %}
-                      {% widthratio p.spent p.budget 100 %}
-                    {% else %}0{% endif %}%"></i>
-                </div>
-              </td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="6">Nessun progetto trovato.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <p class="hint" style="margin-top:8px">Suggerimento: filtra per “pnrr”, “c12h”, “bozza”, ecc.</p>
+      <p class="hint">Suggerimento: le scadenze deriveranno da milestone e cronoprogramma progetti.</p>
     </div>
   </section>
 </main>
 
-<footer class="wrap">
-  <span>© 2025 ScuolaHub – Dashboard collegata a database</span>
+<footer class="wrap" style="color:var(--muted);padding:24px 0">
+  <span>© 2025 ScuolaHub</span>
 </footer>
 
+<!-- Modal per calendario demo (facoltativo, già disabilitato di default)
+<div id="modal">
+  <div class="panel">
+    <h3 id="modal-title">Nuovo evento</h3>
+    <label>Titolo evento<br>
+      <input id="modal-input" class="input" placeholder="Es. Rendicontazione intermedia" style="width:100%">
+    </label>
+    <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end">
+      <button id="modal-cancel" class="btn">Annulla</button>
+      <button id="modal-save" class="btn primary">Salva</button>
+    </div>
+  </div>
+</div>
+-->
+
 <script>
-  // === Ricerca live (dashboard: "Progetti in evidenza")
-  const featuredSearch = document.getElementById('search-featured');
-  const featuredBody = document.getElementById('featured-tbody');
-  featuredSearch?.addEventListener('input', () => {
-    const q = featuredSearch.value.toLowerCase().trim();
-    [...featuredBody.querySelectorAll('tr[data-project]')].forEach(tr=>{
-      const txt = [tr.dataset.title, tr.dataset.program, tr.dataset.cup, tr.dataset.cig].join(' ');
-      tr.style.display = txt.includes(q) ? '' : 'none';
-    });
-  });
-
-  // === Ricerca + filtro stato (lista Progetti)
-  const projectsSearch = document.getElementById('search-projects');
-  const statusFilter = document.getElementById('filter-status');
-  const projectsBody = document.getElementById('projects-tbody');
-  function applyProjectsFilters(){
-    const q = (projectsSearch?.value || '').toLowerCase().trim();
-    const st = (statusFilter?.value || '').toLowerCase().trim();
-    [...projectsBody.querySelectorAll('tr[data-project]')].forEach(tr=>{
-      const hay = [tr.dataset.title, tr.dataset.program, tr.dataset.cup, tr.dataset.cig].join(' ');
-      const matchesText = !q || hay.includes(q);
-      const matchesStatus = !st || (tr.dataset.status === st);
-      tr.style.display = (matchesText && matchesStatus) ? '' : 'none';
-    });
-  }
-  projectsSearch?.addEventListener('input', applyProjectsFilters);
-  statusFilter?.addEventListener('change', applyProjectsFilters);
-
-  // === Export CSV (demo)
-  document.getElementById('btn-export')?.addEventListener('click', ()=>{
-    const rows = [...document.querySelectorAll('#projects-tbody tr[data-project]')].filter(r=>r.style.display!=='none');
-    const header = ['Titolo','Programma','CUP','Periodo','Stato','Percent'];
-    const data = rows.map(r=>{
-      const tds = r.querySelectorAll('td');
-      const percent = (tds[5]?.querySelector('i')?.style.width || '').replace('%','');
-      return [tds[0]?.innerText, tds[1]?.innerText, tds[2]?.innerText, tds[3]?.innerText, tds[4]?.innerText, percent];
-    });
-    const csv = [header, ...data].map(a=>a.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'progetti.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
+  // Qui puoi aggiungere JS leggero in futuro (es. interazioni demo).
+  // Nessun router a hash. La nav usa link Django reali.
 </script>
 </body>
 </html>
