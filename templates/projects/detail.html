@@ -3,163 +3,252 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ScuolaHub – Dettaglio progetto</title>
+  <title>{{ project.title }} – ScuolaHub</title>
   <style>
-    :root{--bg:#f7f7fb;--panel:#fff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb}
-    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    header{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:1px solid var(--line)}
-    .wrap{max-width:1200px;margin:0 auto;padding:16px}
-    .brand{display:flex;gap:10px;align-items:center}
-    .brand .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:inline-grid;place-items:center;color:#fff;font-weight:700}
-    nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    nav a{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;color:inherit}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
-    .grid{display:grid;gap:16px}
-    .grid.cols-2{grid-template-columns:1.2fr .8fr}
-    @media (max-width:1000px){.grid.cols-2{grid-template-columns:1fr}}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;text-decoration:none;color:inherit}
-    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-    .input,select{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff}
-    table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+    :root{--bg:#f7f7fb;--panel:#fff;--ink:#1b1f24;--muted:#6b7280;--line:#e5e7eb;--primary:#2563eb;--chip:#eef2ff;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
     .muted{color:var(--muted)}
-    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-    .kpi .box{border:1px solid var(--line);border-radius:12px;padding:12px}
+    .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;color:inherit;cursor:pointer}
+    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .input, select, textarea{border:1px solid var(--line);padding:8px 10px;border-radius:10px;background:#fff;width:100%}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .grid{display:grid;gap:12px}
+    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    @media (max-width:900px){.grid.cols-3,.grid.cols-2{grid-template-columns:1fr}}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    th{font-size:.9rem;color:var(--muted)}
+    .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
+    .progress>i{display:block;height:100%;background:var(--primary)}
+    header{background:var(--panel);border-bottom:1px solid var(--line)}
+    header .brand{display:flex;gap:10px;align-items:center}
+    header .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:grid;place-items:center;color:#fff;font-weight:700}
+    .chip{display:inline-block;background:var(--chip);border-radius:999px;padding:2px 8px;font-size:.85rem}
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <div class="brand">
-        <div class="logo">S</div>
-        <div>
-          <strong>ScuolaHub</strong><br>
-          <span class="muted">Dettaglio progetto</span>
-        </div>
-        <a class="btn" href="/">← Dashboard</a>
-        <a class="btn" href="/progetti/">← Torna ai Progetti</a>
-      </div>
-      <nav aria-label="Navigazione">
-        <a href="/">Dashboard</a>
-        <a href="/progetti/">Progetti</a>
-        <a href="/calendario/">Calendario</a>
-        <a href="/documenti/">Documenti</a>
-        <a href="/deleghe/">Deleghe</a>
-        <a href="/impostazioni/">Impostazioni</a>
-      </nav>
-    </div>
-  </header>
+{% load humanize %}
 
-  <main class="wrap">
-    <div class="card">
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <strong>ScuolaHub</strong><br>
+        <span class="muted">Dettaglio progetto</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="toolbar" style="justify-content:space-between;margin:12px 0">
+    <div class="toolbar">
+      <a href="{% url 'projects_list' %}" class="btn">← Progetti</a>
+      <a href="{% url 'dashboard' %}" class="btn">🏠 Dashboard</a>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="toolbar" style="justify-content:space-between">
+      <div>
+        <h2 style="margin:0">{{ project.title }}</h2>
+        <div class="muted">
+          {{ project.program }} ·
+          {% if project.cup %}CUP {{ project.cup }} · {% endif %}
+          {% if project.cig %}CIG {{ project.cig }} · {% endif %}
+          Periodo:
+          {% if project.start_date %}{{ project.start_date }}{% else %}—{% endif %} –
+          {% if project.end_date %}{{ project.end_date }}{% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="chip">{{ project.get_status_display }}</div>
+    </div>
+
+    <div class="grid cols-3" style="margin-top:12px">
+      <div class="card">
+        <div class="muted">Budget</div>
+        <div style="font-size:1.4rem">€ {{ totals.budget|floatformat:0|intcomma }}</div>
+      </div>
+      <div class="card">
+        <div class="muted">Speso</div>
+        <div style="font-size:1.4rem">€ {{ totals.spent|floatformat:0|intcomma }}</div>
+      </div>
+      <div class="card">
+        <div class="muted">% Spesa su budget</div>
+        {% if totals.budget %}
+          {% with pct=totals.spent|divisibleby:0 %}{% endwith %}
+          {% with perc=totals.spent|floatformat:2 %}
+          {% endwith %}
+        {% endif %}
+        <div class="progress" style="margin-top:10px">
+          {% if totals.budget %}
+            {% with p=totals.spent|floatformat:2 %}
+            {% endwith %}
+            {% with perc=totals.spent|mul:100 %}
+            {% endwith %}
+            <i style="width:{{ totals.spent|floatformat:2|floatformat:0 }}%"></i>
+          {% else %}
+            <i style="width:0%"></i>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Limiti di spesa -->
+  <div class="card" style="margin-bottom:12px">
+    <h3 style="margin-top:0">Limiti di spesa</h3>
+
+    <form method="post" class="card" style="margin-bottom:12px">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_limit">
+      <div class="grid cols-3">
+        <label>Categoria<br>
+          <select name="category" class="input">
+            <option value="MATERIALI">Materiali</option>
+            <option value="SERVIZI">Servizi</option>
+            <option value="FORMAZIONE">Formazione</option>
+            <option value="ALTRO">Altro</option>
+          </select>
+        </label>
+        <label>Base di calcolo<br>
+          <select name="basis" class="input">
+            <option value="TOTAL_SPENT">Percentuale sul totale speso</option>
+            <option value="TOTAL_BUDGET">Percentuale sul budget totale</option>
+          </select>
+        </label>
+        <label>Percentuale<br>
+          <input name="percentage" class="input" placeholder="es. 20">
+        </label>
+      </div>
+      <label style="display:block;margin-top:8px">Note<br>
+        <input name="note" class="input" placeholder="Opzionale">
+      </label>
+      <div style="margin-top:10px">
+        <button class="btn primary" type="submit">Aggiungi/aggiorna limite</button>
+      </div>
+    </form>
+
+    <table>
+      <thead>
+      <tr>
+        <th>Categoria</th>
+        <th>Base</th>
+        <th>Percentuale</th>
+        <th>Consentito</th>
+        <th>Usato</th>
+        <th>Residuo</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for row in limits %}
+        <tr>
+          <td>{{ row.obj.get_category_display }}</td>
+          <td>{% if row.obj.basis == 'TOTAL_SPENT' %}Totale speso{% else %}Budget totale{% endif %}</td>
+          <td>{{ row.obj.percentage }}%</td>
+          <td>€ {{ row.allowed|floatformat:0|intcomma }}</td>
+          <td>€ {{ row.used|floatformat:0|intcomma }}</td>
+          <td>€ {{ row.remaining|floatformat:0|intcomma }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">Nessun limite impostato.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Spese -->
+  <div class="card">
+    <div class="toolbar" style="justify-content:space-between;align-items:center">
+      <h3 style="margin:0">Spese</h3>
       <div class="toolbar">
-        <div>
-          <h2 style="margin:0">{{ project.title }}</h2>
-          <div class="muted">{{ project.get_program_display }} · CUP {{ project.cup|default:"—" }} · {{ project.start_date }} – {{ project.end_date }}</div>
-        </div>
-      </div>
-
-      <div class="kpi" style="margin-top:12px">
-        <div class="box"><div class="muted">Budget</div><div><b>€ {{ project.budget|floatformat:0 }}</b></div></div>
-        <div class="box"><div class="muted">Speso</div><div><b>€ {{ project.spent|floatformat:0 }}</b></div></div>
-        <div class="box"><div class="muted">% Spesa</div><div><b>
-          {% if project.budget %}{{ project.spent|divisibleby:0 }}{% endif %}
-          {{ project.spent|floatformat:0 }} / {{ project.budget|floatformat:0 }}
-        </b></div></div>
+        <select id="filter-category" class="input">
+          <option value="">Categoria: tutte</option>
+          <option value="MATERIALI">Materiali</option>
+          <option value="SERVIZI">Servizi</option>
+          <option value="FORMAZIONE">Formazione</option>
+          <option value="ALTRO">Altro</option>
+        </select>
+        <input id="filter-vendor" class="input" placeholder="Filtra fornitore…"/>
       </div>
     </div>
 
-    <div class="grid cols-2" style="margin-top:16px">
-      <div class="card">
-        <div class="toolbar">
-          <h3 style="margin:0">Spese</h3>
-          <form method="get" class="toolbar" style="margin-left:auto">
-            <select name="cat" class="input">
-              <option value="">Categoria: tutte</option>
-              {% for key,label in categories %}
-                <option value="{{ key }}" {% if request.GET.cat == key %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-            <input class="input" type="search" name="vendor" value="{{ request.GET.vendor|default:'' }}" placeholder="Fornitore…">
-            <button class="btn" type="submit">Filtra</button>
-            <a class="btn" href="?">Pulisci</a>
-          </form>
-        </div>
-
-        <table style="margin-top:8px">
-          <thead><tr><th>Data</th><th>Categoria</th><th>Fornitore</th><th>Importo</th><th>Nota</th></tr></thead>
-          <tbody>
-            {% for e in expenses %}
-            <tr>
-              <td>{{ e.date }}</td>
-              <td>{{ e.get_category_display }}</td>
-              <td>{{ e.vendor|default:"—" }}</td>
-              <td>€ {{ e.amount|floatformat:0 }}</td>
-              <td>{{ e.note|default:"" }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5">Nessuna spesa.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-
-        <form method="post" class="toolbar" style="margin-top:12px">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add_expense">
-          <input class="input" type="date" name="date" required>
-          <select name="category" class="input" required>
-            {% for key,label in categories %}
-              <option value="{{ key }}">{{ label }}</option>
-            {% endfor %}
+    <form method="post" style="margin:12px 0">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_expense">
+      <div class="grid cols-3">
+        <label>Data<br><input type="date" name="date" class="input"></label>
+        <label>Fornitore<br><input name="vendor" class="input" placeholder="Es. TechnoLab srl"></label>
+        <label>Categoria<br>
+          <select name="category" class="input">
+            <option value="MATERIALI">Materiali</option>
+            <option value="SERVIZI">Servizi</option>
+            <option value="FORMAZIONE">Formazione</option>
+            <option value="ALTRO">Altro</option>
           </select>
-          <input class="input" type="text" name="vendor" placeholder="Fornitore">
-          <input class="input" type="number" step="0.01" name="amount" placeholder="Importo" required>
-          <input class="input" type="text" name="note" placeholder="Nota">
-          <button class="btn primary" type="submit">Aggiungi spesa</button>
-        </form>
+        </label>
       </div>
-
-      <div class="card">
-        <div class="toolbar">
-          <h3 style="margin:0">Limiti di spesa (per categoria)</h3>
-        </div>
-
-        <table style="margin-top:8px">
-          <thead><tr><th>Categoria</th><th>Base calcolo</th><th>Percentuale</th><th>Consentito</th><th>Usato</th><th>Residuo</th></tr></thead>
-          <tbody>
-            {% for row in limits_table %}
-            <tr>
-              <td>{{ row.limit.get_category_display }}</td>
-              <td>{{ row.base_label }}</td>
-              <td>{{ row.limit.percentage }}%</td>
-              <td>€ {{ row.allowed|floatformat:0 }}</td>
-              <td>€ {{ row.used|floatformat:0 }}</td>
-              <td>€ {{ row.remaining|floatformat:0 }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="6">Nessun limite configurato.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-
-        <form method="post" class="toolbar" style="margin-top:12px">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add_limit">
-          <select name="limit_category" class="input" required>
-            {% for key,label in categories %}
-              <option value="{{ key }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-          <select name="base" class="input" required>
-            <option value="BUDGET">Base: Budget</option>
-            <option value="SPENT">Base: Speso attuale</option>
-            <option value="REMAINING">Base: Residuo</option>
-          </select>
-          <input class="input" type="number" step="0.01" name="percentage" placeholder="% (es. 20)" required>
-          <button class="btn primary" type="submit">Aggiungi limite</button>
-        </form>
+      <div class="grid cols-3" style="margin-top:8px">
+        <label>Importo (€)<br><input name="amount" class="input" placeholder="0,00"></label>
+        <label>Documento<br><input name="document" class="input" placeholder="es. Mandato 245"></label>
+        <label>Note<br><input name="note" class="input" placeholder="Opzionale"></label>
       </div>
-    </div>
-  </main>
+      <div style="margin-top:10px">
+        <button class="btn primary" type="submit">Aggiungi spesa</button>
+      </div>
+    </form>
+
+    <table id="expenses-table">
+      <thead>
+      <tr>
+        <th>Data</th>
+        <th>Fornitore</th>
+        <th>Categoria</th>
+        <th class="right">Importo</th>
+        <th>Documento</th>
+        <th>Note</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for e in expenses %}
+        <tr data-row data-cat="{{ e.category }}" data-vendor="{{ e.vendor|default:''|lower }}">
+          <td>{% if e.date %}{{ e.date }}{% else %}—{% endif %}</td>
+          <td>{{ e.vendor|default:"—" }}</td>
+          <td>{{ e.get_category_display }}</td>
+          <td class="right">€ {{ e.amount|floatformat:2|intcomma }}</td>
+          <td>{{ e.document|default:"—" }}</td>
+          <td>{{ e.note|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">Nessuna spesa registrata.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  // Filtri client-side spese (categoria + fornitore)
+  const cat = document.getElementById('filter-category');
+  const vend = document.getElementById('filter-vendor');
+  const tbody = document.querySelector('#expenses-table tbody');
+  function applyFilters(){
+    const c = (cat.value||'').trim();
+    const v = (vend.value||'').toLowerCase().trim();
+    [...tbody.querySelectorAll('tr[data-row]')].forEach(tr=>{
+      const okCat = !c || tr.dataset.cat === c;
+      const okVen = !v || (tr.dataset.vendor||'').includes(v);
+      tr.style.display = (okCat && okVen) ? '' : 'none';
+    });
+  }
+  cat?.addEventListener('change', applyFilters);
+  vend?.addEventListener('input', applyFilters);
+</script>
+
 </body>
 </html>

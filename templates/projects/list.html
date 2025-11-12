@@ -3,103 +3,114 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ScuolaHub – Progetti</title>
+  <title>Progetti – ScuolaHub</title>
   <style>
-    :root{--bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb}
-    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    header{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:1px solid var(--line)}
-    .wrap{max-width:1200px;margin:0 auto;padding:16px}
-    .brand{display:flex;gap:10px;align-items:center}
-    .brand .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:inline-grid;place-items:center;color:#fff;font-weight:700}
-    nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    nav a{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;color:inherit}
-    nav a.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+    :root{--bg:#f7f7fb;--panel:#fff;--ink:#1b1f24;--muted:#6b7280;--line:#e5e7eb;--primary:#2563eb;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+    .muted{color:var(--muted)}
+    .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;color:inherit;cursor:pointer}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .input, select{border:1px solid var(--line);padding:8px 10px;border-radius:10px;background:#fff}
     .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;text-decoration:none;color:inherit}
-    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-    .input,select{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff}
-    table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
-    .status{font-size:.8rem;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid var(--line)}
-    .status.active{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
-    .status.draft{background:#f1f5f9;color:#334155}
-    .right{margin-left:auto}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+    th{font-size:.9rem;color:var(--muted)}
+    .right{text-align:right}
+    .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
+    .progress>i{display:block;height:100%;background:var(--primary)}
+    header{background:var(--panel);border-bottom:1px solid var(--line)}
+    header .brand{display:flex;gap:10px;align-items:center}
+    header .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:grid;place-items:center;color:#fff;font-weight:700}
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <div class="brand">
-        <div class="logo">S</div>
-        <div>
-          <strong>ScuolaHub</strong><br>
-          <span class="muted">Progetti</span>
+{% load humanize %}
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <strong>ScuolaHub</strong><br>
+        <span class="muted">Elenco progetti</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="toolbar" style="justify-content:space-between;margin:12px 0">
+    <a href="{% url 'dashboard' %}" class="btn">← Dashboard</a>
+    <form method="get" class="toolbar">
+      <select name="program" class="input" onchange="this.form.submit()">
+        <option value="">Programma: tutti</option>
+        <option value="PNRR" {% if program == 'PNRR' %}selected{% endif %}>PNRR</option>
+        <option value="FESR" {% if program == 'FESR' %}selected{% endif %}>FESR</option>
+        <option value="FSE" {% if program == 'FSE' %}selected{% endif %}>FSE</option>
+        <option value="ERASMUS" {% if program == 'ERASMUS' %}selected{% endif %}>Erasmus+</option>
+        <option value="ALTRO" {% if program == 'ALTRO' %}selected{% endif %}>Altro</option>
+      </select>
+      <noscript><button class="btn">Filtra</button></noscript>
+    </form>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="toolbar" style="justify-content:space-between">
+      <div>
+        <h2 style="margin:0 0 4px 0">Progetti</h2>
+        <div class="muted">
+          Totale budget: € {{ totals.budget|floatformat:0|intcomma }} · Speso: € {{ totals.spent|floatformat:0|intcomma }}
         </div>
-        <a class="btn" href="/">← Torna alla Dashboard</a>
       </div>
-      <nav aria-label="Navigazione">
-        <a href="/"             >Dashboard</a>
-        <a href="/progetti/" class="active">Progetti</a>
-        <a href="/calendario/">Calendario</a>
-        <a href="/documenti/">Documenti</a>
-        <a href="/deleghe/">Deleghe</a>
-        <a href="/impostazioni/">Impostazioni</a>
-      </nav>
+      <input id="search" class="input" placeholder="Cerca per titolo, CUP, CIG…"/>
     </div>
-  </header>
 
-  <main class="wrap">
-    <div class="card">
-      <div class="toolbar">
-        <h2 style="margin:0">Tutti i progetti</h2>
-        <div class="right"></div>
-        <form method="get" class="toolbar" style="margin-left:auto">
-          <input class="input" type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Cerca per titolo, CUP, CIG…">
-          <select name="program" class="input" aria-label="Programma">
-            <option value="">Programma: tutti</option>
-            <option value="PNRR"    {% if request.GET.program == 'PNRR' %}selected{% endif %}>PNRR</option>
-            <option value="FESR"    {% if request.GET.program == 'FESR' %}selected{% endif %}>FESR</option>
-            <option value="FSE"     {% if request.GET.program == 'FSE' %}selected{% endif %}>FSE</option>
-            <option value="ERASMUS" {% if request.GET.program == 'ERASMUS' %}selected{% endif %}>Erasmus+</option>
-          </select>
-          <select name="status" class="input" aria-label="Stato">
-            <option value="">Stato: tutti</option>
-            <option value="DRAFT"  {% if request.GET.status == 'DRAFT' %}selected{% endif %}>Bozza</option>
-            <option value="ACTIVE" {% if request.GET.status == 'ACTIVE' %}selected{% endif %}>In corso</option>
-            <option value="CLOSED" {% if request.GET.status == 'CLOSED' %}selected{% endif %}>Chiuso</option>
-          </select>
-          <button class="btn primary" type="submit">Filtra</button>
-          <a class="btn" href="/progetti/">Pulisci</a>
-        </form>
-      </div>
+    <table id="projects-table" style="margin-top:10px">
+      <thead>
+      <tr>
+        <th>Titolo</th>
+        <th>Programma</th>
+        <th>Periodo</th>
+        <th>Stato</th>
+        <th class="right" style="width:160px">% Spesa</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for p in projects %}
+        <tr data-row data-title="{{ p.title|lower }}" data-cup="{{ p.cup|default:''|lower }}" data-cig="{{ p.cig|default:''|lower }}">
+          <td><a class="btn" href="{% url 'project_detail' p.pk %}">{{ p.title }}</a></td>
+          <td>{{ p.program }}</td>
+          <td>
+            {% if p.start_date %}{{ p.start_date }}{% else %}—{% endif %}
+            –
+            {% if p.end_date %}{{ p.end_date }}{% else %}—{% endif %}
+          </td>
+          <td>{{ p.get_status_display }}</td>
+          <td class="right">
+            <div class="progress"><i style="width:{{ p.percent_spent|floatformat:0 }}%"></i></div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Nessun progetto trovato.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
 
-      <table style="margin-top:8px">
-        <thead>
-          <tr>
-            <th>Titolo</th><th>Programma</th><th>CUP</th><th>Periodo</th><th>Stato</th><th>Budget</th><th>Speso</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in projects %}
-          <tr onclick="location.href='/progetti/{{p.id}}/'" style="cursor:pointer">
-            <td>{{ p.title }}</td>
-            <td>{{ p.get_program_display }}</td>
-            <td>{{ p.cup|default:"—" }}</td>
-            <td>{{ p.start_date }} – {{ p.end_date }}</td>
-            <td>
-              <span class="status {% if p.status == 'ACTIVE' %}active{% elif p.status == 'DRAFT' %}draft{% endif %}">
-                {{ p.get_status_display }}
-              </span>
-            </td>
-            <td>€ {{ p.budget|floatformat:0 }}</td>
-            <td>€ {{ p.spent|floatformat:0 }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="7">Nessun progetto trovato.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </main>
+<script>
+  const q = document.getElementById('search');
+  const body = document.querySelector('#projects-table tbody');
+  q?.addEventListener('input', () => {
+    const s = (q.value || '').toLowerCase().trim();
+    [...body.querySelectorAll('tr[data-row]')].forEach(tr => {
+      const hay = [tr.dataset.title, tr.dataset.cup, tr.dataset.cig].join(' ');
+      tr.style.display = !s || hay.includes(s) ? '' : 'none';
+    });
+  });
+</script>
 </body>
 </html>
