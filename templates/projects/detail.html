@@ -190,7 +190,7 @@
               {% if L.remaining >= 0 %}
                 <span class="ok">€ {{ L.remaining|floatformat:2|intcomma }}</span>
               {% else %}
-                <span class="bad">–€ {{ L.remaining|abs|floatformat:2|intcomma }}</span>
+                <span class="bad">–€ {{ L.remaining_abs|floatformat:2|intcomma }}</span>
               {% endif %}
             </td>
             <td>

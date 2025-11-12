@@ -113,32 +113,30 @@ def project_detail(request, pk: int):
 
     # --- C) Limiti di spesa per categoria ---
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
-    sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
+    sums_by_cat = {row["category"]: (row["total"] or Decimal("0")) for row in by_cat}
 
     limits_ctx = []
     for lim in project.limits.all().order_by("category", "base", "id"):
-        # Determina base di calcolo
         if lim.base == "TOTAL_SPENT":
             base_total = total_spent
             base_label = "Percentuale sul totale speso"
-        else:  # TOTAL_BUDGET
+        else:  # "TOTAL_BUDGET"
             base_total = project.budget or Decimal("0")
             base_label = "Percentuale sul budget totale"
 
-        # Calcolo importi
+        # calcoli in Decimal
         allowed_total = (lim.percentage / Decimal("100")) * base_total
         spent_in_cat = sums_by_cat.get(lim.category, Decimal("0"))
         remaining = allowed_total - spent_in_cat
-        remaining_abs = abs(remaining)
 
-        # Percentuale utilizzata
-        pct_used = Decimal("0")
+        # percentuale usata
         if allowed_total > 0:
             pct_used = (spent_in_cat * Decimal("100")) / allowed_total
             if pct_used > 100:
                 pct_used = Decimal("100")
+        else:
+            pct_used = Decimal("0")
 
-        # Costruzione contesto
         limits_ctx.append({
             "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
@@ -148,7 +146,7 @@ def project_detail(request, pk: int):
             "allowed_total": allowed_total,
             "spent_in_category": spent_in_cat,
             "remaining": remaining,
-            "remaining_abs": remaining_abs,  # usato nel template al posto di |abs
+            "remaining_abs": (remaining.copy_abs() if hasattr(remaining, "copy_abs") else (remaining * -1)),
             "pct_used": pct_used,
         })
 
