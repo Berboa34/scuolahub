@@ -62,83 +62,107 @@ def projects_list(request):
 @login_required
 def project_detail(request, pk: int):
     project = get_object_or_404(Project, pk=pk)
-    profile = getattr(request.user, "profile", None)
-    school = getattr(profile, "school", None)
-    if school and project.school_id and project.school_id != school.id:
-        raise Http404("Progetto non trovato")
 
-    # Gestione form aggiunta spesa
+    # --- A) Gestione POST (crea spesa o limite)
     if request.method == "POST":
-        action = request.POST.get("action", "")
-        if action == "add_expense":
-            try:
-                amount = Decimal((request.POST.get("amount") or "0").replace(",", "."))
-            except InvalidOperation:
-                amount = Decimal("0")
+        action = request.POST.get("action")
+        if action == "create_expense":
             Expense.objects.create(
                 project=project,
-                date=request.POST.get("date") or None,
+                date=request.POST.get("date") or timezone.now().date(),
                 vendor=request.POST.get("vendor") or "",
                 category=request.POST.get("category") or "ALTRO",
-                amount=amount,
+                amount=Decimal(str(request.POST.get("amount", "0")).replace(",", ".")),
                 document=request.POST.get("document") or "",
                 note=request.POST.get("note") or "",
             )
-            # riallineo spesa aggregata del progetto
-            agg = project.expenses.aggregate(total=Sum("amount"))
-            project.spent = agg["total"] or 0
+            # opzionale: aggiorna il campo "spent" del progetto in base al totale reale
+            totals = project.expenses.aggregate(total=Sum("amount"))
+            project.spent = totals["total"] or Decimal("0")
             project.save(update_fields=["spent"])
             return redirect("project_detail", pk=project.pk)
 
-        if action == "add_limit":
-            basis = request.POST.get("basis") or "TOTAL_SPENT"
-            category = request.POST.get("category") or "MATERIALI"
-            try:
-                percentage = Decimal((request.POST.get("percentage") or "0").replace(",", "."))
-            except InvalidOperation:
-                percentage = Decimal("0")
-            SpendingLimit.objects.update_or_create(
+        if action == "create_limit":
+            SpendingLimit.objects.create(
                 project=project,
-                category=category,
-                basis=basis,
-                defaults={"percentage": percentage, "note": request.POST.get("note") or ""},
+                category=request.POST.get("category") or "MATERIALI",
+                basis=request.POST.get("basis") or "TOTAL_SPENT",
+                percentage=Decimal(str(request.POST.get("percentage", "0")).replace(",", ".")),
+                note=request.POST.get("note") or "",
             )
             return redirect("project_detail", pk=project.pk)
 
-    # Dati per calcolo limiti
-    totals = project.__class__.objects.filter(pk=project.pk).aggregate(
-        budget=Sum("budget"), spent=Sum("spent")
-    )
-    totals["budget"] = totals["budget"] or Decimal("0")
-    totals["spent"] = totals["spent"] or Decimal("0")
+    # --- B) Filtri GET su spese
+    qs = project.expenses.all()
+    category = request.GET.get("category") or ""
+    vendor = request.GET.get("vendor") or ""
+    if category:
+        qs = qs.filter(category=category)
+    if vendor:
+        qs = qs.filter(vendor__icontains=vendor)
 
-    # Applico i limiti (basis, non base!)
-    limits = list(project.limits.all())
-    computed_limits = []
-    for lim in limits:
+    expenses = qs.order_by("-date", "-id")
+    agg_all = project.expenses.aggregate(total=Sum("amount"))
+    total_spent = agg_all["total"] or Decimal("0")
+    filtered_total = expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
+    # progress % su budget
+    progress_percent = Decimal("0")
+    if project.budget and project.budget > 0:
+        progress_percent = (total_spent * Decimal("100")) / project.budget
+        if progress_percent > 100:
+            progress_percent = Decimal("100")
+
+    # --- C) Costruiamo contesto limiti senza filtri custom
+    # somma spese per categoria
+    by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
+    sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
+
+    limits_ctx = []
+    for lim in project.limits.all().order_by("category", "basis", "id"):
+        # base per il calcolo
         if lim.basis == "TOTAL_SPENT":
-            base_value = totals["spent"]
-        else:
-            base_value = totals["budget"]
-        allowed = (base_value * lim.percentage) / Decimal("100")
-        used = project.expenses.filter(category=lim.category).aggregate(t=Sum("amount"))["t"] or Decimal("0")
-        remaining = allowed - used
-        computed_limits.append({
-            "obj": lim,
-            "base_value": base_value,
-            "allowed": allowed,
-            "used": used,
+            base_total = total_spent
+            basis_label = "su Speso Totale"
+        else:  # "TOTAL_BUDGET"
+            base_total = project.budget or Decimal("0")
+            basis_label = "su Budget"
+
+        allowed_total = (lim.percentage / Decimal("100")) * base_total
+        spent_in_cat = sums_by_cat.get(lim.category, Decimal("0"))
+        remaining = allowed_total - spent_in_cat
+        pct_used = Decimal("0")
+        if allowed_total > 0:
+            pct_used = (spent_in_cat * Decimal("100")) / allowed_total
+            if pct_used > 100:
+                pct_used = Decimal("100")
+
+        limits_ctx.append({
+            "category": lim.category,
+            "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
+            "basis": lim.basis,
+            "basis_label": dict(SpendingLimit.BASIS_CHOICES).get(lim.basis, lim.basis),
+            "percentage": lim.percentage,
+            "allowed_total": allowed_total,
+            "spent_in_category": spent_in_cat,
             "remaining": remaining,
+            "pct_used": pct_used,
         })
 
-    expenses = project.expenses.order_by("-date", "-id")
-
-    return render(request, "projects/detail.html", {
+    context = {
         "project": project,
         "expenses": expenses,
-        "limits": computed_limits,
-        "totals": totals,
-    })
+        "filtered_total": filtered_total,
+        "total_spent": total_spent,
+        "progress_percent": progress_percent,
+        "category_choices": Expense.CATEGORY_CHOICES,
+        "basis_choices": SpendingLimit.BASIS_CHOICES,
+        "add_expense": request.GET.get("add") == "expense",
+        "add_limit": request.GET.get("add") == "limit",
+        "limits_ctx": limits_ctx,
+        "today": timezone.now().date().isoformat(),
+    }
+    return render(request, "projects/detail.html", context)
 
 @login_required
 def projects_by_school(request, school_id: int):
