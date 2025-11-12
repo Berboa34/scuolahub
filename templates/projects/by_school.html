@@ -1,0 +1,41 @@
+{% load humanize %}
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Progetti – {{ school.name }}</title>
+  <style>
+    body{font-family:system-ui; margin:0; background:#f7f7fb}
+    .wrap{max-width:1000px; margin:0 auto; padding:16px}
+    .card{background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px}
+    a{color:#2563eb; text-decoration:none}
+    table{width:100%; border-collapse:collapse}
+    th,td{padding:10px; border-bottom:1px solid #e5e7eb; text-align:left}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p><a href="{% url 'dashboard' %}">← Torna alla Dashboard</a></p>
+    <div class="card">
+      <h2 style="margin:0 0 8px 0;">Progetti – {{ school.name }}</h2>
+      <table>
+        <thead>
+          <tr><th>Titolo</th><th>Programma</th><th>Budget</th><th>Speso</th></tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+          <tr>
+            <td><a href="{% url 'project_detail' p.id %}">{{ p.title }}</a></td>
+            <td>{{ p.get_program_display }}</td>
+            <td>€ {{ p.budget|floatformat:0|intcomma }}</td>
+            <td>€ {{ p.spent|floatformat:0|intcomma }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">Nessun progetto.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

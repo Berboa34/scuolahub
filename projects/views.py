@@ -4,8 +4,18 @@ from django.db.models import Sum
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from .models import Project, Expense, SpendingLimit
+from .models import Project, Expense, SpendingLimit, School
 
 @login_required
+
+def projects_by_school(request, school_id: int):
+    school = get_object_or_404(School, pk=school_id)
+    projects = Project.objects.filter(school=school).order_by("title", "id")
+    return render(request, "projects/by_school.html", {
+        "school": school,
+        "projects": projects,
+    })
+
 def dashboard(request):
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
