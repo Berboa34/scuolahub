@@ -169,3 +169,23 @@ def project_detail(request, pk: int):
     }
     return render(request, "projects/detail.html", context)
 
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from django.shortcuts import redirect
+
+@require_POST
+@login_required
+def expense_delete(request, pk: int):
+    exp = get_object_or_404(Expense, pk=pk)
+
+    # Autorizzazione: stessa scuola dell’utente (se presente)
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
+    if school and exp.project.school_id and exp.project.school_id != school.id:
+        raise Http404("Spesa non trovata")
+
+    proj_id = exp.project_id
+    exp.delete()
+    messages.success(request, "Spesa eliminata.")
+    return redirect("project_detail", pk=proj_id)
+

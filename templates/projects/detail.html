@@ -1,215 +1,279 @@
 {% load humanize %}
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="utf-8" />
+  <title>{{ project.title }} — Dettaglio progetto</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ project.title }} – Dettaglio progetto</title>
   <style>
-    :root{--bg:#f7f7fb;--panel:#fff;--ink:#1b1f24;--muted:#6b7280;--line:#e5e7eb;--primary:#2563eb;}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    :root { --bg:#0b2a42; --light:#f5f7fb; --muted:#6b7280; --br:#e5e7eb; --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    a{color:#0b5cab;text-decoration:none} a:hover{text-decoration:underline}
+    header{background:var(--bg);color:#fff}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    header{background:var(--panel);border-bottom:1px solid var(--line)}
-    a{color:var(--primary);text-decoration:none}
+    .topnav{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    .crumbs a{color:#cde1ff}
     .grid{display:grid;gap:16px}
-    .cols-2{grid-template-columns:1.2fr .8fr}
-    @media (max-width:1000px){.cols-2{grid-template-columns:1fr}}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+    @media(min-width:900px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
+    .card{background:#fff;border:1px solid var(--br);border-radius:10px;padding:16px}
     .muted{color:var(--muted)}
+    .kpis{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    .kpi{padding:12px;border:1px dashed var(--br);border-radius:8px;background:var(--light)}
+    .progress{height:10px;background:#e6edf6;border-radius:999px;overflow:hidden}
+    .bar{height:100%}
+    .bar.ok{background:var(--ok)} .bar.warn{background:var(--warn)} .bar.bad{background:var(--bad)}
     table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
-    th{font-size:.9rem;color:var(--muted)}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .input{border:1px solid var(--line);padding:10px 12px;border-radius:10px;background:#fff}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer}
-    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-    .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
-    .progress>i{display:block;height:100%;background:var(--primary)}
-    .right{margin-left:auto}
-    .ok{color:#065f46}
-    .bad{color:#b91c1c}
+    th,td{padding:8px 10px;border-bottom:1px solid var(--br);vertical-align:top}
+    th{text-align:left;background:#f8fafc;font-weight:600}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;border:1px solid var(--br);background:#fff;cursor:pointer}
+    .btn.primary{background:#0b5cab;color:#fff;border-color:#0b5cab}
+    .btn.danger{background:#dc2626;color:#fff;border-color:#dc2626}
+    form.inline{display:inline}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    input[type="text"], select, input[type="date"], input[type="number"]{padding:8px;border-radius:8px;border:1px solid var(--br)}
+    .section-title{margin:0 0 10px 0;font-size:18px}
+    .small{font-size:13px}
+    .badge{display:inline-block;padding:2px 6px;border-radius:6px;background:#eef2ff;color:#334155;font-size:12px;border:1px solid #c7d2fe}
   </style>
 </head>
 <body>
+
 <header>
-  <div class="wrap" style="display:flex;gap:12px;align-items:center">
-    <a href="{% url 'dashboard' %}">← Torna alla Dashboard</a>
-    <div class="right">
-      <form method="post" action="{% url 'logout' %}" style="display:inline">
-        {% csrf_token %}<button class="btn" type="submit">Esci</button>
-      </form>
+  <div class="wrap">
+    <div class="topnav">
+      <div class="crumbs small">
+        <a href="{% url 'dashboard' %}">← Torna alla Dashboard</a> ·
+        <a href="{% url 'projects_list' %}">Torna a Progetti</a>
+      </div>
+      <div class="small">
+        Utente: <b>{{ request.user.username }}</b>
+        {% if request.user.is_staff %}<span class="badge">staff</span>{% endif %}
+      </div>
+    </div>
+    <h1 style="margin:8px 0 2px">{{ project.title }}</h1>
+    <div class="muted">
+      {% if project.school %}Scuola: <b>{{ project.school.name }}</b> · {% endif %}
+      Programma: <b>{{ project.program }}</b> ·
+      Stato: <b>{{ project.get_status_display }}</b>
+      {% if project.cup %} · CUP: {{ project.cup }}{% endif %}
+      {% if project.cig %} · CIG: {{ project.cig }}{% endif %}
     </div>
   </div>
 </header>
 
-<main class="wrap">
+<main class="wrap" style="padding:16px 16px 40px">
+  <!-- KPIs di progetto -->
   <div class="card">
-    <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
-      <div>
-        <h2 style="margin:0">{{ project.title }}</h2>
-        <div class="muted">
-          {{ project.get_program_display }} ·
-          {% if project.cup %}CUP {{ project.cup }} · {% endif %}
-          {% if project.cig %}CIG {{ project.cig }} · {% endif %}
-          {% if project.start_date %}{{ project.start_date }} – {% endif %}{{ project.end_date|default:"—" }}
-          · Stato: {{ project.get_status_display }}
-        </div>
+    <div class="kpis">
+      <div class="kpi">
+        <div class="muted small">Budget totale</div>
+        <div><b>€ {{ project.budget|floatformat:0|intcomma }}</b></div>
       </div>
-      <div class="card" style="display:flex;gap:18px;align-items:center">
-        <div><div class="muted">Budget</div><b>€ {{ project.budget|floatformat:0|intcomma }}</b></div>
-        <div><div class="muted">Speso</div><b>€ {{ total_spent|floatformat:0|intcomma }}</b></div>
-        <div style="min-width:180px">
-          <div class="muted">Avanzamento</div>
-          <div class="progress"><i style="width:{{ progress_percent }}%"></i></div>
-          <div class="muted">{{ progress_percent|floatformat:0 }}%</div>
+      <div class="kpi">
+        <div class="muted small">Speso totale</div>
+        <div><b>€ {{ total_spent|floatformat:0|intcomma }}</b></div>
+      </div>
+      <div class="kpi">
+        <div class="muted small">Avanzamento</div>
+        <div class="progress" aria-hidden="true">
+          {% with p=progress_percent %}
+            {% if p >= 90 %}
+              <div class="bar bad" style="width: {{ p }}%"></div>
+            {% elif p >= 70 %}
+              <div class="bar warn" style="width: {{ p }}%"></div>
+            {% else %}
+              <div class="bar ok" style="width: {{ p }}%"></div>
+            {% endif %}
+          {% endwith %}
         </div>
+        <div class="small muted">{{ progress_percent|floatformat:0 }}% del budget</div>
       </div>
     </div>
   </div>
 
   <div class="grid cols-2" style="margin-top:16px">
-    <!-- Spese -->
-    <div class="card">
-      <div class="toolbar">
-        <h3 style="margin:0">Spese</h3>
-        <div class="right toolbar">
-          <form method="get" class="toolbar">
-            <select name="category" class="input">
-              <option value="">Categoria: tutte</option>
-              {% for key,label in category_choices %}
-              <option value="{{ key }}" {% if request.GET.category == key %}selected{% endif %}>{{ label }}</option>
+    <!-- COLONNA SINISTRA: SPESE -->
+    <section class="card">
+      <h2 class="section-title">Spese</h2>
+
+      <!-- Filtri -->
+      <form method="get" class="filters" action="">
+        <select name="category">
+          <option value="">Tutte le categorie</option>
+          {% for val,label in category_choices %}
+            <option value="{{ val }}" {% if request.GET.category == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <input type="text" name="vendor" placeholder="Fornitore contiene…"
+               value="{{ request.GET.vendor|default:'' }}" />
+
+        <button class="btn" type="submit">Filtra</button>
+        <a class="btn" href="?">Azzera</a>
+        <span class="muted small">Totale filtrato: <b>€ {{ filtered_total|floatformat:0|intcomma }}</b></span>
+      </form>
+
+      <!-- Tabella spese -->
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:110px">Data</th>
+              <th>Fornitore</th>
+              <th style="width:150px">Categoria</th>
+              <th style="width:130px">Importo</th>
+              <th style="width:120px">Documento</th>
+              <th>Note</th>
+              <th style="width:110px">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in expenses %}
+              <tr>
+                <td class="small">{{ e.date|date:"d/m/Y" }}</td>
+                <td>{{ e.vendor|default:"—" }}</td>
+                <td class="small">{{ e.get_category_display }}</td>
+                <td><b>€ {{ e.amount|floatformat:2|intcomma }}</b></td>
+                <td class="small">{{ e.document|default:"—" }}</td>
+                <td class="small">{{ e.note|default:"" }}</td>
+                <td>
+                  <form class="inline" method="post"
+                        action="{% url 'expense_delete' e.id %}"
+                        onsubmit="return confirm('Eliminare questa spesa?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn danger">Elimina</button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="7" class="muted small">Nessuna spesa trovata.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Aggiungi spesa -->
+      <details style="margin-top:16px" {% if add_expense %}open{% endif %}>
+        <summary class="btn">+ Aggiungi spesa</summary>
+        <form method="post" action="" style="margin-top:12px" class="grid">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="add_expense" />
+          <div>
+            <label class="small muted">Data</label><br>
+            <input type="date" name="date" value="{{ today }}">
+          </div>
+          <div>
+            <label class="small muted">Fornitore</label><br>
+            <input type="text" name="vendor" placeholder="Es. Fornitore Srl">
+          </div>
+          <div>
+            <label class="small muted">Categoria</label><br>
+            <select name="category">
+              {% for val,label in category_choices %}
+                <option value="{{ val }}">{{ label }}</option>
               {% endfor %}
             </select>
-            <input name="vendor" class="input" placeholder="Fornitore…" value="{{ request.GET.vendor|default:'' }}">
-            <button class="btn">Filtra</button>
-            <a class="btn" href="?">Azzera</a>
-          </form>
-          <a class="btn primary" href="{% url 'project_detail' project.id %}?add=expense">Nuova spesa</a>
-        </div>
+          </div>
+          <div>
+            <label class="small muted">Importo</label><br>
+            <input type="number" name="amount" step="0.01" min="0" placeholder="0.00">
+          </div>
+          <div>
+            <label class="small muted">Documento</label><br>
+            <input type="text" name="document" placeholder="Es. Fattura 15/2025">
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="small muted">Note</label><br>
+            <input type="text" name="note" placeholder="Annotazioni (facoltative)">
+          </div>
+          <div>
+            <button class="btn primary" type="submit">Salva spesa</button>
+          </div>
+        </form>
+      </details>
+    </section>
+
+    <!-- COLONNA DESTRA: LIMITI -->
+    <section class="card">
+      <h2 class="section-title">Limiti di spesa per categoria</h2>
+
+      <div class="small muted" style="margin-bottom:8px">
+        Base calcolo: “Percentuale sul totale speso” oppure “Percentuale sul budget totale”.
       </div>
 
-      {% if add_expense %}
-      <form method="post" style="margin:12px 0" class="card">
-        {% csrf_token %}
-        <div class="toolbar">
-          <input type="date" name="date" class="input" value="{{ today }}">
-          <select name="category" class="input" required>
-            {% for key,label in category_choices %}
-              <option value="{{ key }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-          <input name="vendor" class="input" placeholder="Fornitore">
-          <input name="amount" class="input" placeholder="Importo (es. 1234,56 o 1234.56)" required>
-          <input name="document" class="input" placeholder="Documento (es. Fattura 12)">
-        </div>
-        <textarea name="note" class="input" placeholder="Note" style="width:100%;margin-top:8px"></textarea>
-        <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
-          <a class="btn" href="{% url 'project_detail' project.id %}">Annulla</a>
-          <button class="btn primary" name="action" value="create_expense">Salva spesa</button>
-        </div>
-      </form>
-      {% endif %}
-
-      <table style="margin-top:8px">
-        <thead>
-          <tr><th>Data</th><th>Fornitore</th><th>Categoria</th><th>Importo</th><th>Doc</th></tr>
-        </thead>
-        <tbody>
-          {% for e in expenses %}
-          <tr>
-            <td>{{ e.date }}</td>
-            <td>{{ e.vendor|default:"—" }}</td>
-            <td>{{ e.get_category_display }}</td>
-            <td>€ {{ e.amount|floatformat:2|intcomma }}</td>
-            <td>{{ e.document|default:"—" }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="5">Nessuna spesa trovata.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <p class="muted" style="margin-top:8px">Totale spese filtrate: <b>€ {{ filtered_total|floatformat:2|intcomma }}</b></p>
-    </div>
-
-    <!-- Limiti di spesa -->
-    <div class="card">
-      <div class="toolbar">
-        <h3 style="margin:0">Limiti di spesa</h3>
-        <div class="right">
-          <a class="btn primary" href="{% url 'project_detail' project.id %}?add=limit">Nuovo limite</a>
-        </div>
-      </div>
-
-      {% if add_limit %}
-      <form method="post" class="card" style="margin:12px 0">
-        {% csrf_token %}
-        <div class="toolbar" style="gap:10px;align-items:flex-start">
-          <select name="category" class="input" required>
-            {% for key,label in category_choices %}
-              <option value="{{ key }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-          <!-- NOME CAMPO CORRETTO: base -->
-          <select name="base" class="input" required>
-            {% for key,label in base_choices %}
-              <option value="{{ key }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-          <input name="percentage" class="input" placeholder="Percentuale (es. 20)" required>
-        </div>
-        <input name="note" class="input" placeholder="Nota (opzionale)" style="width:100%;margin-top:8px">
-        <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
-          <a class="btn" href="{% url 'project_detail' project.id %}">Annulla</a>
-          <button class="btn primary" name="action" value="create_limit">Salva limite</button>
-        </div>
-      </form>
-      {% endif %}
-
-      <table style="margin-top:8px">
-        <thead>
-          <tr>
-            <th>Categoria</th>
-            <th>Base</th>
-            <th>%</th>
-            <th>Consentito</th>
-            <th>Speso (cat.)</th>
-            <th>Residuo</th>
-            <th>Uso</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for L in limits_ctx %}
-          <tr>
-            <td>{{ L.category_label }}</td>
-            <td class="muted">{{ L.base_label }}</td>
-            <td>{{ L.percentage|floatformat:2 }}%</td>
-            <td>€ {{ L.allowed_total|floatformat:2|intcomma }}</td>
-            <td>€ {{ L.spent_in_category|floatformat:2|intcomma }}</td>
-            <td>
-              {% if L.remaining >= 0 %}
-                <span class="ok">€ {{ L.remaining|floatformat:2|intcomma }}</span>
-              {% else %}
-                <span class="bad">–€ {{ L.remaining_abs|floatformat:2|intcomma }}</span>
-              {% endif %}
-            </td>
-            <td>
-              <div class="progress" title="{{ L.pct_used|floatformat:0 }}%">
-                <i style="width:{{ L.pct_used }}%"></i>
+      <div style="display:grid;gap:12px">
+        {% for L in limits_ctx %}
+          <div style="border:1px solid var(--br); border-radius:8px; padding:12px">
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+              <div>
+                <b>{{ L.category_label }}</b>
+                <div class="small muted">{{ L.base_label }} — Limite: {{ L.percentage|floatformat:2 }}%</div>
               </div>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="7">Nessun limite impostato.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <p class="muted" style="margin-top:8px">
-        Base calcolo: <b>Budget</b> = € {{ project.budget|floatformat:0|intcomma }},
-        <b>Speso totale</b> = € {{ total_spent|floatformat:0|intcomma }}.
-      </p>
-    </div>
+              <div class="small muted">
+                Consentito: <b>€ {{ L.allowed_total|floatformat:0|intcomma }}</b> ·
+                Speso: <b>€ {{ L.spent_in_category|floatformat:0|intcomma }}</b> ·
+                Residuo: <b>€ {{ L.remaining|floatformat:0|intcomma }}</b>
+              </div>
+            </div>
+            <div class="progress" style="margin-top:8px">
+              {% with p=L.pct_used %}
+                {% if p >= 100 %}
+                  <div class="bar bad" style="width:100%"></div>
+                {% elif p >= 80 %}
+                  <div class="bar warn" style="width: {{ p }}%"></div>
+                {% else %}
+                  <div class="bar ok" style="width: {{ p }}%"></div>
+                {% endif %}
+              {% endwith %}
+            </div>
+            <div class="small muted" style="margin-top:4px">
+              Utilizzo: <b>{{ L.pct_used|floatformat:0 }}%</b>
+            </div>
+          </div>
+        {% empty %}
+          <div class="muted small">Nessun limite impostato.</div>
+        {% endfor %}
+      </div>
+
+      <!-- Aggiungi limite -->
+      <details style="margin-top:16px" {% if add_limit %}open{% endif %}>
+        <summary class="btn">+ Aggiungi limite</summary>
+        <form method="post" action="" style="margin-top:12px" class="grid">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="add_limit" />
+          <div>
+            <label class="small muted">Categoria</label><br>
+            <select name="category">
+              {% for val,label in category_choices %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="small muted">Base</label><br>
+            <select name="base">
+              {% for val,label in base_choices %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="small muted">% Limite</label><br>
+            <input type="number" name="percentage" step="0.01" min="0" placeholder="Es. 20.00">
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="small muted">Nota</label><br>
+            <input type="text" name="note" placeholder="Facoltativa">
+          </div>
+          <div>
+            <button class="btn primary" type="submit">Salva limite</button>
+          </div>
+        </form>
+      </details>
+    </section>
   </div>
 </main>
+
 </body>
 </html>
