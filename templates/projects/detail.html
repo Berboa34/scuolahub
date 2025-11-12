@@ -27,9 +27,8 @@
     .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
     .progress>i{display:block;height:100%;background:var(--primary)}
     .right{margin-left:auto}
-    .warn{color:#b45309}
-    .bad{color:#b91c1c}
     .ok{color:#065f46}
+    .bad{color:#b91c1c}
   </style>
 </head>
 <body>
@@ -70,7 +69,7 @@
   </div>
 
   <div class="grid cols-2" style="margin-top:16px">
-    <!-- Colonna sinistra: Spese -->
+    <!-- Spese -->
     <div class="card">
       <div class="toolbar">
         <h3 style="margin:0">Spese</h3>
@@ -133,7 +132,7 @@
       <p class="muted" style="margin-top:8px">Totale spese filtrate: <b>€ {{ filtered_total|floatformat:2|intcomma }}</b></p>
     </div>
 
-    <!-- Colonna destra: Limiti di spesa -->
+    <!-- Limiti di spesa -->
     <div class="card">
       <div class="toolbar">
         <h3 style="margin:0">Limiti di spesa</h3>
@@ -151,8 +150,9 @@
               <option value="{{ key }}">{{ label }}</option>
             {% endfor %}
           </select>
-          <select name="basis" class="input" required>
-            {% for key,label in basis_choices %}
+          <!-- NOME CAMPO CORRETTO: base -->
+          <select name="base" class="input" required>
+            {% for key,label in base_choices %}
               <option value="{{ key }}">{{ label }}</option>
             {% endfor %}
           </select>
@@ -182,7 +182,7 @@
           {% for L in limits_ctx %}
           <tr>
             <td>{{ L.category_label }}</td>
-            <td class="muted">{{ L.basis_label }}</td>
+            <td class="muted">{{ L.base_label }}</td>
             <td>{{ L.percentage|floatformat:2 }}%</td>
             <td>€ {{ L.allowed_total|floatformat:2|intcomma }}</td>
             <td>€ {{ L.spent_in_category|floatformat:2|intcomma }}</td>

@@ -1,9 +1,9 @@
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Sum, F, FloatField, Value, Case, When, Q
-from django.http import HttpResponse, Http404
-from .models import Project, School, Expense, SpendingLimit
+from django.utils import timezone
+from .models import Project, Expense, SpendingLimit
 
 @login_required
 def dashboard(request):
@@ -17,7 +17,6 @@ def dashboard(request):
     totals = qs.aggregate(budget=Sum("budget"), spent=Sum("spent"))
     totals["budget"] = totals["budget"] or 0
     totals["spent"] = totals["spent"] or 0
-
     latest = qs.order_by("-start_date")[:6]
 
     return render(request, "dashboard.html", {
@@ -35,18 +34,8 @@ def projects_list(request):
     if school:
         qs = qs.filter(school=school)
 
-    # filtro semplice per programma: ?program=PNRR/FESR/...
-    program = request.GET.get("program", "").upper().strip()
-    if program:
-        qs = qs.filter(program=program)
-
-    projects = qs.annotate(
-        percent_spent=Case(
-            When(budget__gt=0, then=100.0 * F("spent") / F("budget")),
-            default=Value(0.0),
-            output_field=FloatField(),
-        )
-    ).order_by("title", "id")
+    # percentuale spesa calcolata lato template usando budget/spent
+    projects = qs.order_by("title", "id")
 
     totals = qs.aggregate(budget=Sum("budget"), spent=Sum("spent"))
     totals["budget"] = totals["budget"] or 0
@@ -56,14 +45,13 @@ def projects_list(request):
         "projects": projects,
         "totals": totals,
         "school": school,
-        "program": program,
     })
 
 @login_required
 def project_detail(request, pk: int):
     project = get_object_or_404(Project, pk=pk)
 
-    # --- A) Gestione POST (crea spesa o limite)
+    # --- A) POST (creazione spesa o limite)
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "create_expense":
@@ -76,23 +64,23 @@ def project_detail(request, pk: int):
                 document=request.POST.get("document") or "",
                 note=request.POST.get("note") or "",
             )
-            # opzionale: aggiorna il campo "spent" del progetto in base al totale reale
             totals = project.expenses.aggregate(total=Sum("amount"))
             project.spent = totals["total"] or Decimal("0")
             project.save(update_fields=["spent"])
             return redirect("project_detail", pk=project.pk)
 
         if action == "create_limit":
+            # NOME CAMPO CORRETTO: base (NON basis)
             SpendingLimit.objects.create(
                 project=project,
                 category=request.POST.get("category") or "MATERIALI",
-                basis=request.POST.get("basis") or "TOTAL_SPENT",
+                base=request.POST.get("base") or "TOTAL_SPENT",
                 percentage=Decimal(str(request.POST.get("percentage", "0")).replace(",", ".")),
                 note=request.POST.get("note") or "",
             )
             return redirect("project_detail", pk=project.pk)
 
-    # --- B) Filtri GET su spese
+    # --- B) Filtri sulle spese
     qs = project.expenses.all()
     category = request.GET.get("category") or ""
     vendor = request.GET.get("vendor") or ""
@@ -113,20 +101,19 @@ def project_detail(request, pk: int):
         if progress_percent > 100:
             progress_percent = Decimal("100")
 
-    # --- C) Costruiamo contesto limiti senza filtri custom
-    # somma spese per categoria
+    # --- C) Limiti
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
     sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
 
     limits_ctx = []
-    for lim in project.limits.all().order_by("category", "basis", "id"):
-        # base per il calcolo
-        if lim.basis == "TOTAL_SPENT":
+    # NOME CAMPO CORRETTO NELL'ORDER_BY: "base"
+    for lim in project.limits.all().order_by("category", "base", "id"):
+        if lim.base == "TOTAL_SPENT":
             base_total = total_spent
-            basis_label = "su Speso Totale"
+            base_label = "su Speso Totale"
         else:  # "TOTAL_BUDGET"
             base_total = project.budget or Decimal("0")
-            basis_label = "su Budget"
+            base_label = "su Budget"
 
         allowed_total = (lim.percentage / Decimal("100")) * base_total
         spent_in_cat = sums_by_cat.get(lim.category, Decimal("0"))
@@ -140,8 +127,9 @@ def project_detail(request, pk: int):
         limits_ctx.append({
             "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
-            "basis": lim.basis,
-            "basis_label": dict(SpendingLimit.BASIS_CHOICES).get(lim.basis, lim.basis),
+            "base": lim.base,
+            "base_label": {"TOTAL_SPENT": "Percentuale sul totale speso",
+                           "TOTAL_BUDGET": "Percentuale sul budget totale"}.get(lim.base, lim.base),
             "percentage": lim.percentage,
             "allowed_total": allowed_total,
             "spent_in_category": spent_in_cat,
@@ -156,37 +144,12 @@ def project_detail(request, pk: int):
         "total_spent": total_spent,
         "progress_percent": progress_percent,
         "category_choices": Expense.CATEGORY_CHOICES,
-        "basis_choices": SpendingLimit.BASIS_CHOICES,
+        # Per coerenza col modello in DB usiamo chiavi TOTAL_SPENT / TOTAL_BUDGET
+        "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
+                         ("TOTAL_BUDGET", "Percentuale sul budget totale")],
         "add_expense": request.GET.get("add") == "expense",
         "add_limit": request.GET.get("add") == "limit",
         "limits_ctx": limits_ctx,
         "today": timezone.now().date().isoformat(),
     }
     return render(request, "projects/detail.html", context)
-
-@login_required
-def projects_by_school(request, school_id: int):
-    school = get_object_or_404(School, pk=school_id)
-    qs = Project.objects.filter(school=school)
-
-    projects = qs.annotate(
-        percent_spent=Case(
-            When(budget__gt=0, then=100.0 * F("spent") / F("budget")),
-            default=Value(0.0),
-            output_field=FloatField(),
-        )
-    ).order_by("title", "id")
-    totals = qs.aggregate(budget=Sum("budget"), spent=Sum("spent"))
-    totals["budget"] = totals["budget"] or 0
-    totals["spent"] = totals["spent"] or 0
-
-    return render(request, "projects/projects_by_school.html", {
-        "school": school, "projects": projects, "totals": totals
-    })
-
-@login_required
-def db_check(request):
-    qs = Project.objects.select_related("school").order_by("-start_date")
-    rows = [f"{p.id} • {p.title} • {p.school.name if p.school_id else '-'}" for p in qs[:20]]
-    html = "OK DB — Projects: %d<br>%s" % (qs.count(), "<br>".join(rows) or "— nessun progetto —")
-    return HttpResponse(html)
