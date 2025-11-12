@@ -111,42 +111,48 @@ def project_detail(request, pk: int):
         if progress_percent > 100:
             progress_percent = Decimal("100")
 
-    # --- C) Limiti
+    # --- C) Limiti di spesa per categoria ---
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
     sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
 
     limits_ctx = []
-    # NOME CAMPO CORRETTO NELL'ORDER_BY: "base"
     for lim in project.limits.all().order_by("category", "base", "id"):
+        # Determina base di calcolo
         if lim.base == "TOTAL_SPENT":
             base_total = total_spent
-            base_label = "su Speso Totale"
-        else:  # "TOTAL_BUDGET"
+            base_label = "Percentuale sul totale speso"
+        else:  # TOTAL_BUDGET
             base_total = project.budget or Decimal("0")
-            base_label = "su Budget"
+            base_label = "Percentuale sul budget totale"
 
+        # Calcolo importi
         allowed_total = (lim.percentage / Decimal("100")) * base_total
         spent_in_cat = sums_by_cat.get(lim.category, Decimal("0"))
         remaining = allowed_total - spent_in_cat
+        remaining_abs = abs(remaining)
+
+        # Percentuale utilizzata
         pct_used = Decimal("0")
         if allowed_total > 0:
             pct_used = (spent_in_cat * Decimal("100")) / allowed_total
             if pct_used > 100:
                 pct_used = Decimal("100")
 
+        # Costruzione contesto
         limits_ctx.append({
             "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
             "base": lim.base,
-            "base_label": {"TOTAL_SPENT": "Percentuale sul totale speso",
-                           "TOTAL_BUDGET": "Percentuale sul budget totale"}.get(lim.base, lim.base),
+            "base_label": base_label,
             "percentage": lim.percentage,
             "allowed_total": allowed_total,
             "spent_in_category": spent_in_cat,
             "remaining": remaining,
+            "remaining_abs": remaining_abs,  # usato nel template al posto di |abs
             "pct_used": pct_used,
         })
 
+    # Context finale
     context = {
         "project": project,
         "expenses": expenses,
@@ -154,12 +160,14 @@ def project_detail(request, pk: int):
         "total_spent": total_spent,
         "progress_percent": progress_percent,
         "category_choices": Expense.CATEGORY_CHOICES,
-        # Per coerenza col modello in DB usiamo chiavi TOTAL_SPENT / TOTAL_BUDGET
-        "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
-                         ("TOTAL_BUDGET", "Percentuale sul budget totale")],
+        "base_choices": [
+            ("TOTAL_SPENT", "Percentuale sul totale speso"),
+            ("TOTAL_BUDGET", "Percentuale sul budget totale"),
+        ],
         "add_expense": request.GET.get("add") == "expense",
         "add_limit": request.GET.get("add") == "limit",
         "limits_ctx": limits_ctx,
         "today": timezone.now().date().isoformat(),
     }
     return render(request, "projects/detail.html", context)
+
