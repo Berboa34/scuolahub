@@ -1,13 +1,11 @@
 from decimal import Decimal, InvalidOperation
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, F, FloatField, Value, Case, When, Q
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 import calendar
 from django.urls import reverse
-
-
 
 from datetime import date, timedelta
 from .models import Project, School, Expense, SpendingLimit, Event
@@ -466,3 +464,27 @@ def calendar_view(request):
         "today": today,
     }
     return render(request, "calendar.html", context)
+
+@login_required
+def event_delete(request, pk: int):
+    """
+    Elimina un evento di calendario.
+
+    Solo:
+    - il proprietario dell'evento, oppure
+    - un utente staff (is_staff=True)
+    possono eliminarlo.
+    """
+    event = get_object_or_404(Event, pk=pk)
+
+    # sicurezza: solo il proprietario o staff
+    if event.user != request.user and not request.user.is_staff:
+        return HttpResponseForbidden("Non puoi eliminare questo evento.")
+
+    if request.method == "POST":
+        event.delete()
+        # dopo l'eliminazione torniamo al calendario
+        return redirect("calendar")
+
+    # se qualcuno ci arriva in GET per sbaglio, rimandiamolo al calendario
+    return redirect("calendar")

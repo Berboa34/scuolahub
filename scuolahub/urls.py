@@ -19,6 +19,9 @@ urlpatterns = [
     # Sezioni (per ora placeholder)
     path('calendario/view/', pviews.calendar_view, name='calendar_view'),
     path('calendario/', pviews.calendar_view, name='calendar'),
+# Eliminazione evento calendario
+    path('eventi/<int:pk>/elimina/', pviews.event_delete, name='event_delete'),
+
     path('documenti/', TemplateView.as_view(template_name='documents.html'), name='documents'),
     path('deleghe/',   TemplateView.as_view(template_name='deleghe.html'),   name='deleghe'),
     path('impostazioni/', TemplateView.as_view(template_name='settings.html'), name='settings'),
