@@ -244,20 +244,65 @@ def projects_by_school(request, school_id: int):
 
 
 @login_required
-def expense_delete(request, expense_id: int):
-    """Elimina una singola spesa (bottone Elimina nella tabella)."""
-    exp = get_object_or_404(Expense, pk=expense_id)
-    project_id = exp.project_id
-    # opzionale: controllo che l’utente veda solo la propria scuola
-    profile = getattr(request.user, "profile", None)
-    school = getattr(profile, "school", None)
-    if school and exp.project.school_id and exp.project.school_id != school.id:
-        raise Http404("Non autorizzato")
-
+def expense_delete(request, pk: int):
+    """Elimina una singola spesa. URL: /spese/<pk>/elimina/ (POST)"""
     if request.method != "POST":
         return HttpResponseBadRequest("Metodo non consentito.")
+    exp = get_object_or_404(Expense, pk=pk)
+    project = exp.project
+
+    # opzionale: blocco per scuola dell'utente
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
+    if school and project.school_id and project.school_id != school.id:
+        raise Http404("Non autorizzato")
+
     exp.delete()
-    return redirect("project_detail", pk=project_id)
+    return redirect("project_detail", pk=project.pk)
+
+@login_required
+def limit_delete(request, pk: int):
+    """Elimina un limite di spesa. URL: /limiti/<pk>/elimina/ (POST)"""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Metodo non consentito.")
+    lim = get_object_or_404(SpendingLimit, pk=pk)
+    project = lim.project
+
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
+    if school and project.school_id and project.school_id != school.id:
+        raise Http404("Non autorizzato")
+
+    lim.delete()
+    return redirect("project_detail", pk=project.pk)
+
+
+@login_required
+def limit_update(request, pk: int):
+    """Modifica (base/percentage/category/note) di un limite. URL: /limiti/<pk>/modifica/ (POST)"""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Metodo non consentito.")
+    lim = get_object_or_404(SpendingLimit, pk=pk)
+    project = lim.project
+
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
+    if school and project.school_id and project.school_id != school.id:
+        raise Http404("Non autorizzato")
+
+    # Campi ammessi
+    cat = request.POST.get("category") or lim.category
+    base = request.POST.get("base") or lim.base
+    perc_str = request.POST.get("percentage") or str(lim.percentage)
+    note = (request.POST.get("note") or "").strip() or None
+
+    try:
+        lim.save()
+    except Exception as e:
+        # Fall-back: se confligge con un altro limite esistente, mostra errore semplice
+        return HttpResponseBadRequest(f"Impossibile salvare il limite: {e}")
+
+    return redirect("project_detail", pk=project.pk)
 
 
 # (se ancora lo usi in urls per test rapido; altrimenti rimuovi anche la rotta)

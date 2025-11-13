@@ -26,7 +26,10 @@ urlpatterns = [
     path('accounts/login/',  auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page=reverse_lazy('login')), name='logout'),
 
+    # Delete/Update risorse
     path('spese/<int:pk>/elimina/', pviews.expense_delete, name='expense_delete'),
+    path('limiti/<int:pk>/elimina/', pviews.limit_delete, name='limit_delete'),
+    path('limiti/<int:pk>/modifica/', pviews.limit_update, name='limit_update'),
 
 
 ]

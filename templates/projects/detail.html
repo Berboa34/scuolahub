@@ -106,8 +106,7 @@
           {% endfor %}
         </select>
 
-        <input type="text" name="vendor" placeholder="Fornitore contiene…"
-               value="{{ request.GET.vendor|default:'' }}" />
+        <input type="text" name="vendor" placeholder="Fornitore contiene…" value="{{ request.GET.vendor|default:'' }}" />
 
         <button class="btn" type="submit">Filtra</button>
         <a class="btn" href="?">Azzera</a>
@@ -138,9 +137,7 @@
                 <td class="small">{{ e.document|default:"—" }}</td>
                 <td class="small">{{ e.note|default:"" }}</td>
                 <td>
-                  <form class="inline" method="post"
-                        action="{% url 'expense_delete' e.id %}"
-                        onsubmit="return confirm('Eliminare questa spesa?');">
+                  <form class="inline" method="post" action="{% url 'expense_delete' e.id %}" onsubmit="return confirm('Eliminare questa spesa?');">
                     {% csrf_token %}
                     <button type="submit" class="btn danger">Elimina</button>
                   </form>
@@ -209,6 +206,7 @@
               <div>
                 <b>{{ L.category_label }}</b>
                 <div class="small muted">{{ L.base_label }} — Limite: {{ L.percentage|floatformat:2 }}%</div>
+                {% if L.note %}<div class="small muted">Nota: {{ L.note }}</div>{% endif %}
               </div>
               <div class="small muted">
                 Consentito: <b>€ {{ L.allowed_total|floatformat:0|intcomma }}</b> ·
@@ -216,6 +214,7 @@
                 Residuo: <b>€ {{ L.remaining|floatformat:0|intcomma }}</b>
               </div>
             </div>
+
             <div class="progress" style="margin-top:8px">
               {% with p=L.pct_used %}
                 {% if p >= 100 %}
@@ -230,6 +229,32 @@
             <div class="small muted" style="margin-top:4px">
               Utilizzo: <b>{{ L.pct_used|floatformat:0 }}%</b>
             </div>
+
+            <!-- Modifica limite -->
+            <form method="post" action="{% url 'limit_update' L.id %}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+              {% csrf_token %}
+              <select name="category" required>
+                {% for val,label in category_choices %}
+                  <option value="{{ val }}" {% if val == L.category %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+
+              <select name="base" required>
+                {% for val,label in base_choices %}
+                  <option value="{{ val }}" {% if val == L.base %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+
+              <input type="number" name="percentage" step="0.01" min="0" max="100" value="{{ L.percentage }}">
+              <input type="text" name="note" placeholder="Nota (opz.)" value="{{ L.note|default:'' }}">
+              <button class="btn" type="submit">Modifica</button>
+            </form>
+
+            <!-- Elimina limite -->
+            <form method="post" action="{% url 'limit_delete' L.id %}" onsubmit="return confirm('Eliminare questo limite?');" style="margin-top:6px;">
+              {% csrf_token %}
+              <button class="btn danger" type="submit">Elimina limite</button>
+            </form>
           </div>
         {% empty %}
           <div class="muted small">Nessun limite impostato.</div>
