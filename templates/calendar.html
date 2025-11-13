@@ -3,140 +3,259 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>Calendario — ScuolaHub</title>
+  <title>Calendario attività — ScuolaHub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    :root {
-      --bg:#0b2a42;
-      --light:#f5f7fb;
-      --muted:#6b7280;
-      --br:#e5e7eb;
-      --accent:#0b5cab;
-      --danger:#dc2626;
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      margin:0;
+      background:#f3f4f6;
+      color:#111827;
     }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,"Helvetica Neue",Arial}
-    a{color:var(--accent);text-decoration:none}
+    a{color:#0b5cab;text-decoration:none}
     a:hover{text-decoration:underline}
-    header{background:var(--bg);color:#fff}
+    header{background:#0b2a42;color:#fff}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .muted{color:var(--muted)}
-    .btn{display:inline-block;padding:6px 10px;border-radius:8px;border:1px solid var(--br);background:#fff;font-size:13px;cursor:pointer}
-    .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
-    .btn.small{padding:2px 6px;font-size:11px;border-radius:999px}
-    .calendar-grid{width:100%;border-collapse:collapse;margin-top:12px}
-    .calendar-grid th,
-    .calendar-grid td{border:1px solid var(--br);vertical-align:top;padding:6px}
-    .calendar-grid th{background:#f3f4f6;font-size:13px}
-    .day-number{font-size:12px;font-weight:600;margin-bottom:4px}
-    .other-month{background:#f9fafb;color:#9ca3af}
-    ul.events{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px}
-    .event-pill{background:#e0ecff;border-radius:6px;padding:3px 6px;font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:6px}
-    form.inline{display:inline}
-    .grid{display:grid;gap:10px}
-    @media(min-width:700px){ .grid.cols-2{grid-template-columns:2fr 1fr} }
-    input[type="text"],input[type="date"],select{width:100%;padding:6px;border-radius:6px;border:1px solid var(--br);font-size:13px}
-    h1{margin:10px 0 4px}
+    .muted{color:#6b7280}
+    .card{
+      background:#fff;
+      border-radius:10px;
+      border:1px solid #e5e7eb;
+      padding:16px;
+      margin-top:16px;
+    }
+    .topnav{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .month-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:12px;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .month-title{
+      font-size:20px;
+      font-weight:600;
+    }
+    .month-grid{
+      display:grid;
+      grid-template-columns:repeat(7,minmax(0,1fr));
+      gap:4px;
+      font-size:13px;
+    }
+    .day-name{
+      text-align:center;
+      font-weight:600;
+      color:#6b7280;
+      padding:4px 0;
+    }
+    .day-cell{
+      min-height:90px;
+      background:#f9fafb;
+      border-radius:8px;
+      border:1px solid #e5e7eb;
+      padding:4px 6px;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .day-number{
+      font-size:12px;
+      font-weight:600;
+      color:#374151;
+    }
+    .day-today{
+      border-color:#0b5cab;
+      box-shadow:0 0 0 1px #0b5cab;
+    }
     .small{font-size:13px}
+
+    ul.events{
+      list-style:none;
+      margin:0;
+      padding:0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .event-pill{
+      background:#e0ecff;
+      border-radius:6px;
+      padding:3px 6px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+    }
+
+    .btn{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:8px;
+      border:1px solid #e5e7eb;
+      background:#fff;
+      font-size:13px;
+      cursor:pointer;
+    }
+    .btn.primary{
+      background:#0b5cab;
+      color:#fff;
+      border-color:#0b5cab;
+    }
+    .btn.danger{
+      background:#dc2626;
+      color:#fff;
+      border-color:#dc2626;
+    }
+    .btn.small{
+      padding:2px 6px;
+      font-size:11px;
+      border-radius:999px;
+    }
+    form.inline{display:inline}
+
+    .grid-2{
+      display:grid;
+      gap:16px;
+    }
+    @media(min-width:900px){
+      .grid-2{
+        grid-template-columns:2fr 1fr;
+      }
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select{
+      width:100%;
+      padding:6px 8px;
+      border-radius:8px;
+      border:1px solid #e5e7eb;
+      font-size:13px;
+    }
+    label{font-size:12px;color:#6b7280}
   </style>
 </head>
 <body>
 
 <header>
   <div class="wrap">
-    <div class="topbar">
-      <div>
-        <div class="small"><a href="{% url 'dashboard' %}" style="color:#cde1ff">← Torna alla Dashboard</a></div>
-        <h1>Calendario attività</h1>
-        <div class="muted small">
-          Mese di <b>{{ month_name }} {{ year }}</b>
-        </div>
-      </div>
+    <div class="topnav">
       <div class="small">
+        <a href="{% url 'dashboard' %}" style="color:#cfe3ff;">← Torna alla Dashboard</a>
+      </div>
+      <div class="small muted">
         Utente: <b>{{ request.user.username }}</b>
       </div>
     </div>
-
-    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-      <a class="btn" href="{% url 'calendar' %}?year={{ prev_year }}&month={{ prev_month }}">← Mese precedente</a>
-      <a class="btn" href="{% url 'calendar' %}?year={{ next_year }}&month={{ next_month }}">Mese successivo →</a>
-      <a class="btn" href="{% url 'calendar' %}">Oggi</a>
-    </div>
+    <h1 style="margin:8px 0 0;">Calendario attività</h1>
+    <p class="muted" style="margin:4px 0 0;font-size:14px">
+      Vista mensile prototipale con eventi legati ai progetti ScuolaHub.
+    </p>
   </div>
 </header>
 
-<main class="wrap" style="padding:16px 16px 40px">
-  <div class="grid cols-2">
-    <!-- Colonna sinistra: calendario -->
-    <section>
-      <table class="calendar-grid">
-        <thead>
-          <tr>
-            <th>Lunedì</th>
-            <th>Martedì</th>
-            <th>Mercoledì</th>
-            <th>Giovedì</th>
-            <th>Venerdì</th>
-            <th>Sabato</th>
-            <th>Domenica</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for week in weeks %}
-            <tr>
-              {% for day in week %}
-                {% comment %}
-                  day.date -> oggetto date
-                  day.in_month -> True/False
-                  day.events -> lista di Event in quel giorno
-                {% endcomment %}
-                <td class="{% if not day.in_month %}other-month{% endif %}">
-                  <div class="day-number">{{ day.date.day }}</div>
-                  <ul class="events">
-                    {% for e in day.events %}
-                      <li>
-                        <div class="event-pill">
-                          <span>{{ e.title }}</span>
-                          <form method="post"
-                                action="{% url 'event_delete' e.id %}"
-                                class="inline"
-                                onsubmit="return confirm('Eliminare questo evento?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn small danger">x</button>
-                          </form>
-                        </div>
-                      </li>
-                    {% endfor %}
-                  </ul>
-                </td>
-              {% endfor %}
-            </tr>
+<main class="wrap">
+  <div class="grid-2">
+    <!-- COLONNA SINISTRA: CALENDARIO -->
+    <section class="card">
+      <div class="month-header">
+        <div>
+          <div class="month-title">
+            {{ month_name }} {{ year }}
+          </div>
+          <div class="muted small">
+            Oggi: {{ today|date:"d/m/Y" }}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn" href="{% url 'calendar' %}?year={{ prev_year }}&month={{ prev_month }}">← Mese precedente</a>
+          <a class="btn" href="{% url 'calendar' %}">Oggi</a>
+          <a class="btn" href="{% url 'calendar' %}?year={{ next_year }}&month={{ next_month }}">Mese successivo →</a>
+        </div>
+      </div>
+
+      <div class="month-grid">
+        <!-- Nomi giorni -->
+        <div class="day-name">Lun</div>
+        <div class="day-name">Mar</div>
+        <div class="day-name">Mer</div>
+        <div class="day-name">Gio</div>
+        <div class="day-name">Ven</div>
+        <div class="day-name">Sab</div>
+        <div class="day-name">Dom</div>
+
+        <!-- Celle dei giorni (costruite dalla view) -->
+        {% for week in weeks %}
+          {% for day in week %}
+            <div class="day-cell
+                        {% if day.date == today %}day-today{% endif %}
+                        {% if not day.in_month %} muted{% endif %}">
+              <div class="day-number">
+                {{ day.date.day }}
+              </div>
+
+              {% if day.events %}
+                <ul class="events">
+                  {% for e in day.events %}
+                    <li>
+                      <div class="event-pill">
+                        <span>
+                          {{ e.title }}
+                          {% if e.project %}
+                            — <span class="muted">{{ e.project.title }}</span>
+                          {% endif %}
+                        </span>
+                        <form method="post"
+                              action="{% url 'event_delete' e.id %}"
+                              class="inline"
+                              onsubmit="return confirm('Eliminare questo evento?');">
+                          {% csrf_token %}
+                          <button type="submit" class="btn small danger">x</button>
+                        </form>
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </div>
           {% endfor %}
-        </tbody>
-      </table>
+        {% endfor %}
+      </div>
     </section>
 
-    <!-- Colonna destra: form aggiunta evento -->
-    <section>
+    <!-- COLONNA DESTRA: AGGIUNGI EVENTO -->
+    <section class="card">
       <h2 style="margin-top:0">Aggiungi evento</h2>
-      <p class="small muted">
-        Gli eventi creati qui sono legati al tuo utente e visibili solo nel tuo calendario.
+      <p class="muted small" style="margin-top:0">
+        Gli eventi creati qui sono legati al tuo utente e visualizzati nel tuo calendario.
       </p>
+
       <form method="post" action="">
         {% csrf_token %}
         <input type="hidden" name="op" value="add_event">
-        <div style="margin-bottom:8px">
-          <label class="small muted">Data</label><br>
-          <input type="date" name="date" value="{{ today }}">
+
+        <div style="margin-bottom:10px">
+          <label>Data</label><br>
+          <input type="date" name="date" value="{{ today|date:'Y-m-d' }}">
         </div>
-        <div style="margin-bottom:8px">
-          <label class="small muted">Titolo</label><br>
+
+        <div style="margin-bottom:10px">
+          <label>Titolo</label><br>
           <input type="text" name="title" placeholder="Es. Scadenza caricamento FESR" required>
         </div>
-        <div style="margin-bottom:8px">
-          <label class="small muted">Progetto collegato (facoltativo)</label><br>
+
+        <div style="margin-bottom:10px">
+          <label>Progetto collegato (facoltativo)</label><br>
           <select name="project_id">
             <option value="">— Nessun collegamento —</option>
             {% for p in user_projects %}
@@ -144,10 +263,12 @@
             {% endfor %}
           </select>
         </div>
-        <div style="margin-bottom:8px">
-          <label class="small muted">Note (facoltative)</label><br>
+
+        <div style="margin-bottom:10px">
+          <label>Note (facoltative)</label><br>
           <input type="text" name="note" placeholder="Dettagli, riferimenti, ecc.">
         </div>
+
         <button type="submit" class="btn primary">Salva evento</button>
       </form>
     </section>
