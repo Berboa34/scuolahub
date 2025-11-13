@@ -1,6 +1,6 @@
 # projects/admin.py
 from django.contrib import admin
-from .models import School, Project, Expense, SpendingLimit
+from .models import School, Project, Expense, SpendingLimit, Event
 
 
 @admin.register(School)
@@ -34,3 +34,9 @@ class SpendingLimitAdmin(admin.ModelAdmin):
     search_fields = ("project__title", "note")
     autocomplete_fields = ("project",)
     ordering = ("project", "category", "base")
+
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
+    list_display = ("title", "date", "owner", "school", "project")
+    list_filter = ("school", "owner", "date")
+    search_fields = ("title", "description")

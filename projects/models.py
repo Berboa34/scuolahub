@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
+from django.conf import settings
+
 
 class School(models.Model):
     name = models.CharField(max_length=200)
@@ -85,9 +87,51 @@ class SpendingLimit(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     note       = models.CharField(max_length=255, blank=True, null=True)
 
+
+
     class Meta:
         ordering = ["category", "base", "id"]
         unique_together = (("project", "category", "base"),)
 
     def __str__(self):
         return f"{self.project} – {self.category} {self.percentage}% su {self.base}"
+
+class Event(models.Model):
+    """
+    Evento di calendario (personale, per ora) legato a:
+    - una scuola (opzionale)
+    - un progetto (opzionale)
+    - un utente (owner) -> calendario personale
+    """
+    school = models.ForeignKey(
+        School,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="events",
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="events",
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="events",
+    )
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    date = models.DateField(default=timezone.now)
+    all_day = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+
+    def __str__(self):
+        return f"{self.title} ({self.date})"

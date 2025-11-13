@@ -4,8 +4,13 @@ from django.db.models import Sum, F, FloatField, Value, Case, When, Q
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
+import calendar
+from django.urls import reverse
 
-from .models import Project, School, Expense, SpendingLimit
+
+
+from datetime import date, timedelta
+from .models import Project, School, Expense, SpendingLimit, Event
 
 
 @login_required
@@ -342,3 +347,122 @@ def db_check(request):
     rows = [f"{p.id} • {p.title} • {p.school.name if p.school_id else '-'}" for p in qs[:20]]
     html = "OK DB — Projects: %d<br>%s" % (qs.count(), "<br>".join(rows) or "— nessun progetto —")
     return HttpResponse(html)
+
+@login_required
+def calendar_view(request):
+    """
+    Calendario mensile:
+    - ogni utente vede i propri eventi (owner = request.user)
+    - filtrati eventualmenti per scuola (profile.school)
+    """
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
+
+    today = timezone.localdate()
+
+    # Leggiamo anno/mese dai parametri GET, altrimenti mese corrente
+    try:
+        year = int(request.GET.get("year", today.year))
+        month = int(request.GET.get("month", today.month))
+        if not (1 <= month <= 12):
+            raise ValueError
+    except ValueError:
+        year, month = today.year, today.month
+
+    # Se POST -> aggiungo un nuovo evento
+    if request.method == "POST":
+        title = (request.POST.get("title") or "").strip()
+        date_str = request.POST.get("date")
+        description = (request.POST.get("description") or "").strip()
+        project_id = request.POST.get("project_id") or None
+
+        if title and date_str:
+            try:
+                ev_date = date.fromisoformat(date_str)
+            except ValueError:
+                ev_date = today
+
+            project = None
+            if project_id:
+                try:
+                    project = Project.objects.get(pk=project_id)
+                except Project.DoesNotExist:
+                    project = None
+
+            Event.objects.create(
+                school=school or (project.school if project else None),
+                project=project,
+                owner=request.user,
+                title=title,
+                description=description,
+                date=ev_date,
+            )
+
+        # Redirect alla stessa vista / mese per evitare il repost del form
+        return redirect(f"{reverse('calendar_view')}?year={year}&month={month}")
+
+    # Intervallo del mese
+    first_day = date(year, month, 1)
+    _, last_day_num = calendar.monthrange(year, month)
+    last_day = date(year, month, last_day_num)
+
+    # Eventi dell'utente nel mese
+    events_qs = Event.objects.filter(
+        owner=request.user,
+        date__gte=first_day,
+        date__lte=last_day,
+    )
+    if school:
+        events_qs = events_qs.filter(school=school)
+
+    events_by_day = {}
+    for ev in events_qs.select_related("project"):
+        events_by_day.setdefault(ev.date, []).append(ev)
+
+    # Costruiamo la griglia (settimane x giorni)
+    cal = calendar.Calendar(firstweekday=0)  # 0 = lunedì, 6 = domenica
+    weeks = []
+    week = []
+    for d in cal.itermonthdates(year, month):
+        cell = {
+            "date": d,
+            "in_month": (d.month == month),
+            "events": events_by_day.get(d, []),
+            "is_today": (d == today),
+        }
+        week.append(cell)
+        if len(week) == 7:
+            weeks.append(week)
+            week = []
+    if week:
+        weeks.append(week)
+
+    # Calcolo mese precedente / successivo
+    prev_month_date = (first_day - timedelta(days=1)).replace(day=1)
+    next_month_date = (last_day + timedelta(days=1)).replace(day=1)
+
+    months_it = [
+        "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+        "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
+    ]
+    month_label = f"{months_it[month - 1]} {year}"
+
+    # Progetti della scuola per collegare eventualmente eventi a un progetto
+    projects_qs = Project.objects.all()
+    if school:
+        projects_qs = projects_qs.filter(school=school)
+
+    context = {
+        "school": school,
+        "weeks": weeks,
+        "month_label": month_label,
+        "year": year,
+        "month": month,
+        "prev_year": prev_month_date.year,
+        "prev_month": prev_month_date.month,
+        "next_year": next_month_date.year,
+        "next_month": next_month_date.month,
+        "projects": projects_qs.order_by("title"),
+        "today": today,
+    }
+    return render(request, "calendar.html", context)

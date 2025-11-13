@@ -17,7 +17,7 @@ urlpatterns = [
     path('scuole/<int:school_id>/progetti/', pviews.projects_by_school, name='projects_by_school'),
 
     # Sezioni (per ora placeholder)
-    path('calendario/', TemplateView.as_view(template_name='calendar.html'), name='calendar'),
+    path("calendario/", pviews.calendar_view, name="calendar_view"),
     path('documenti/', TemplateView.as_view(template_name='documents.html'), name='documents'),
     path('deleghe/',   TemplateView.as_view(template_name='deleghe.html'),   name='deleghe'),
     path('impostazioni/', TemplateView.as_view(template_name='settings.html'), name='settings'),
