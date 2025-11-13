@@ -156,7 +156,7 @@
                 </span>
               </td>
               <td>€ {{ p.budget|default:0|floatformat:0|intcomma }}</td>
-              <td>€ {{ p.spent|default:0|floatformat:0|intcomma }}</td>
+              <td>€ {{ p.spent_from_expenses|floatformat:0|intcomma }}</td>
             </tr>
           {% empty %}
             <tr><td colspan="6" class="muted">Nessun progetto disponibile.</td></tr>

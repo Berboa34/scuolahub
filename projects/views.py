@@ -13,21 +13,49 @@ def dashboard(request):
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
 
+    # Query di base dei progetti
     qs = Project.objects.all()
     if school:
         qs = qs.filter(school=school)
 
-    totals = qs.aggregate(budget=Sum("budget"), spent=Sum("spent"))
-    totals["budget"] = totals["budget"] or 0
-    totals["spent"] = totals["spent"] or 0
+    # --- Totali globali ---
+    # budget: somma dei budget dei progetti
+    totals_budget = qs.aggregate(b=Sum("budget"))["b"] or Decimal("0")
 
-    latest = qs.order_by("-start_date")[:6]
+    # spent: somma REALE delle Expense collegate ai progetti visibili
+    totals_spent = (
+        Expense.objects
+        .filter(project__in=qs)
+        .aggregate(s=Sum("amount"))["s"]
+        or Decimal("0")
+    )
 
-    return render(request, "dashboard.html", {
-        "school": school,
-        "totals": totals,
-        "latest": latest,
-    })
+    totals = {
+        "budget": totals_budget,
+        "spent": totals_spent,
+    }
+
+    # --- Progetti in evidenza (ultimi 6) con "speso" calcolato dalle Expense ---
+    latest = (
+        qs.annotate(
+            spent_from_expenses=Sum("expenses__amount")
+        )
+        .order_by("-start_date", "-id")[:6]
+    )
+
+    # Normalizziamo i None a 0
+    for p in latest:
+        p.spent_from_expenses = p.spent_from_expenses or Decimal("0")
+
+    return render(
+        request,
+        "dashboard.html",
+        {
+            "school": school,
+            "totals": totals,
+            "latest": latest,
+        },
+    )
 
 
 @login_required
