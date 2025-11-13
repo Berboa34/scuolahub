@@ -468,23 +468,15 @@ def calendar_view(request):
 @login_required
 def event_delete(request, pk: int):
     """
-    Elimina un evento di calendario.
-
-    Solo:
-    - il proprietario dell'evento, oppure
-    - un utente staff (is_staff=True)
-    possono eliminarlo.
+    Elimina un evento dal calendario.
+    Per ora NON controlliamo l'owner dell'evento, perché il modello Event
+    non ha ancora un campo 'user'. Qualsiasi utente autenticato può eliminare.
     """
     event = get_object_or_404(Event, pk=pk)
 
-    # sicurezza: solo il proprietario o staff
-    if event.user != request.user and not request.user.is_staff:
-        return HttpResponseForbidden("Non puoi eliminare questo evento.")
-
     if request.method == "POST":
         event.delete()
-        # dopo l'eliminazione torniamo al calendario
         return redirect("calendar")
 
-    # se qualcuno ci arriva in GET per sbaglio, rimandiamolo al calendario
+    # Se qualcuno arriva in GET, lo rimandiamo comunque al calendario
     return redirect("calendar")
