@@ -462,3 +462,20 @@ def calendar_view(request):
         "today": today,
     }
     return render(request, "calendar.html", context)
+
+
+@login_required
+def event_delete(request, pk: int):
+    """
+    Elimina un evento dal calendario.
+    Per ora NON controlliamo l'owner dell'evento, perché il modello Event
+    non ha ancora un campo 'user'. Qualsiasi utente autenticato può eliminare.
+    """
+    event = get_object_or_404(Event, pk=pk)
+
+    if request.method == "POST":
+        event.delete()
+        return redirect("calendar")
+
+    # Se qualcuno arriva in GET, lo rimandiamo comunque al calendario
+    return redirect("calendar")
