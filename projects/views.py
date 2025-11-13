@@ -1,21 +1,14 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
-from django.shortcuts import render, get_object_or_404, redirect
+from django.db.models import Sum, F, FloatField, Value, Case, When, Q
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
-from .models import Project, Expense, SpendingLimit
-from .models import Project, Expense, SpendingLimit, School
+
+from .models import Project, School, Expense, SpendingLimit
+
 
 @login_required
-
-def projects_by_school(request, school_id: int):
-    school = get_object_or_404(School, pk=school_id)
-    projects = Project.objects.filter(school=school).order_by("title", "id")
-    return render(request, "projects/by_school.html", {
-        "school": school,
-        "projects": projects,
-    })
-
 def dashboard(request):
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
@@ -27,6 +20,7 @@ def dashboard(request):
     totals = qs.aggregate(budget=Sum("budget"), spent=Sum("spent"))
     totals["budget"] = totals["budget"] or 0
     totals["spent"] = totals["spent"] or 0
+
     latest = qs.order_by("-start_date")[:6]
 
     return render(request, "dashboard.html", {
@@ -34,6 +28,7 @@ def dashboard(request):
         "totals": totals,
         "latest": latest,
     })
+
 
 @login_required
 def projects_list(request):
@@ -44,8 +39,18 @@ def projects_list(request):
     if school:
         qs = qs.filter(school=school)
 
-    # percentuale spesa calcolata lato template usando budget/spent
-    projects = qs.order_by("title", "id")
+    # filtro per programma (GET ?program=PNRR, etc.)
+    program = request.GET.get("program") or ""
+    if program:
+        qs = qs.filter(program=program)
+
+    projects = qs.annotate(
+        percent_spent=Case(
+            When(budget__gt=0, then=100.0 * F("spent") / F("budget")),
+            default=Value(0.0),
+            output_field=FloatField(),
+        )
+    ).order_by("title", "id")
 
     totals = qs.aggregate(budget=Sum("budget"), spent=Sum("spent"))
     totals["budget"] = totals["budget"] or 0
@@ -55,102 +60,151 @@ def projects_list(request):
         "projects": projects,
         "totals": totals,
         "school": school,
+        "program_selected": program,
     })
+
 
 @login_required
 def project_detail(request, pk: int):
     project = get_object_or_404(Project, pk=pk)
 
-    # --- A) POST (creazione spesa o limite)
+    # Se l’utente è legato a una scuola, impediamo accesso ad altre scuole
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
+    if school and project.school_id and project.school_id != school.id:
+        raise Http404("Progetto non trovato")
+
+    # ---------------------------
+    # A) Gestione POST (insert)
+    # ---------------------------
     if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "create_expense":
-            Expense.objects.create(
-                project=project,
-                date=request.POST.get("date") or timezone.now().date(),
-                vendor=request.POST.get("vendor") or "",
-                category=request.POST.get("category") or "ALTRO",
-                amount=Decimal(str(request.POST.get("amount", "0")).replace(",", ".")),
-                document=request.POST.get("document") or "",
-                note=request.POST.get("note") or "",
-            )
-            totals = project.expenses.aggregate(total=Sum("amount"))
-            project.spent = totals["total"] or Decimal("0")
-            project.save(update_fields=["spent"])
-            return redirect("project_detail", pk=project.pk)
+        op = request.POST.get("op", "")
+        # A.1) Aggiungi spesa
+        if op == "add_expense":
+            try:
+                date_str = request.POST.get("date") or timezone.now().date().isoformat()
+                date_val = date_str  # field è DateField, Django lo parse in automatico se è 'YYYY-MM-DD'
+                vendor = (request.POST.get("vendor") or "").strip() or None
+                category = request.POST.get("category") or "ALTRO"
+                amount_str = request.POST.get("amount") or "0"
+                try:
+                    amount = Decimal(amount_str)
+                except (InvalidOperation, TypeError):
+                    amount = Decimal("0")
+                document = (request.POST.get("document") or "").strip() or None
+                note = (request.POST.get("note") or "").strip() or None
 
-        if action == "create_limit":
-            # NOME CAMPO CORRETTO: base (NON basis)
-            SpendingLimit.objects.create(
-                project=project,
-                category=request.POST.get("category") or "MATERIALI",
-                base=request.POST.get("base") or "TOTAL_SPENT",
-                percentage=Decimal(str(request.POST.get("percentage", "0")).replace(",", ".")),
-                note=request.POST.get("note") or "",
-            )
-            return redirect("project_detail", pk=project.pk)
+                Expense.objects.create(
+                    project=project,
+                    date=date_val,
+                    vendor=vendor,
+                    category=category,
+                    amount=amount,
+                    document=document,
+                    note=note,
+                )
+                # Post/Redirect/Get
+                return redirect("project_detail", pk=project.pk)
+            except Exception as e:
+                return HttpResponseBadRequest(f"Errore inserimento spesa: {e}")
 
-    # --- B) Filtri sulle spese
-    qs = project.expenses.all()
-    category = request.GET.get("category") or ""
-    vendor = request.GET.get("vendor") or ""
-    if category:
-        qs = qs.filter(category=category)
-    if vendor:
-        qs = qs.filter(vendor__icontains=vendor)
+        # A.2) Aggiungi limite
+        if op == "add_limit":
+            try:
+                category = request.POST.get("category") or "MATERIALI"
+                base = request.POST.get("base") or "TOTAL_SPENT"   # <-- usa il campo 'base' (non 'basis')
+                perc_str = request.POST.get("percentage") or "0"
+                try:
+                    percentage = Decimal(perc_str)
+                except (InvalidOperation, TypeError):
+                    percentage = Decimal("0")
+                note = (request.POST.get("note") or "").strip() or None
 
-    expenses = qs.order_by("-date", "-id")
-    agg_all = project.expenses.aggregate(total=Sum("amount"))
-    total_spent = agg_all["total"] or Decimal("0")
-    filtered_total = expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+                # unique_together = (project, category, base) — aggiorna se già esiste
+                lim, created = SpendingLimit.objects.get_or_create(
+                    project=project,
+                    category=category,
+                    base=base,
+                    defaults={"percentage": percentage, "note": note},
+                )
+                if not created:
+                    lim.percentage = percentage
+                    lim.note = note
+                    lim.save(update_fields=["percentage", "note"])
 
-    # progress % su budget
+                return redirect("project_detail", pk=project.pk)
+            except Exception as e:
+                return HttpResponseBadRequest(f"Errore inserimento limite: {e}")
+
+        # Se POST senza op valido
+        return HttpResponseBadRequest("Operazione non riconosciuta.")
+
+    # ---------------------------
+    # B) Gestione GET (filtri)
+    # ---------------------------
+    exp_qs = project.expenses.all().order_by("-date", "-id")
+
+    cat = request.GET.get("category") or ""
+    if cat:
+        exp_qs = exp_qs.filter(category=cat)
+
+    vendor_q = request.GET.get("vendor") or ""
+    if vendor_q:
+        exp_qs = exp_qs.filter(vendor__icontains=vendor_q)
+
+    expenses = list(exp_qs)
+    filtered_total = exp_qs.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
+    # Totale speso su tutte le spese del progetto
+    total_spent = project.expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
+    # Avanzamento (speso vs budget)
+    budget = project.budget or Decimal("0")
     progress_percent = Decimal("0")
-    if project.budget and project.budget > 0:
-        progress_percent = (total_spent * Decimal("100")) / project.budget
+    if budget > 0:
+        progress_percent = (total_spent * Decimal("100")) / budget
         if progress_percent > 100:
             progress_percent = Decimal("100")
 
-    # --- C) Limiti di spesa per categoria ---
+    # ---------------------------
+    # C) Limiti
+    # ---------------------------
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
-    sums_by_cat = {row["category"]: (row["total"] or Decimal("0")) for row in by_cat}
+    sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
 
     limits_ctx = []
     for lim in project.limits.all().order_by("category", "base", "id"):
+        # lim.base: "TOTAL_SPENT" | "TOTAL_BUDGET"
         if lim.base == "TOTAL_SPENT":
             base_total = total_spent
-            base_label = "Percentuale sul totale speso"
         else:  # "TOTAL_BUDGET"
-            base_total = project.budget or Decimal("0")
-            base_label = "Percentuale sul budget totale"
+            base_total = budget
 
-        # calcoli in Decimal
         allowed_total = (lim.percentage / Decimal("100")) * base_total
         spent_in_cat = sums_by_cat.get(lim.category, Decimal("0"))
         remaining = allowed_total - spent_in_cat
 
-        # percentuale usata
+        pct_used = Decimal("0")
         if allowed_total > 0:
             pct_used = (spent_in_cat * Decimal("100")) / allowed_total
             if pct_used > 100:
                 pct_used = Decimal("100")
-        else:
-            pct_used = Decimal("0")
 
         limits_ctx.append({
             "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
             "base": lim.base,
-            "base_label": base_label,
+            "base_label": {
+                "TOTAL_SPENT": "Percentuale sul totale speso",
+                "TOTAL_BUDGET": "Percentuale sul budget totale"
+            }.get(lim.base, lim.base),
             "percentage": lim.percentage,
             "allowed_total": allowed_total,
             "spent_in_category": spent_in_cat,
             "remaining": remaining,
-            "remaining_abs": (remaining.copy_abs() if hasattr(remaining, "copy_abs") else (remaining * -1)),
             "pct_used": pct_used,
         })
 
-    # Context finale
     context = {
         "project": project,
         "expenses": expenses,
@@ -158,10 +212,8 @@ def project_detail(request, pk: int):
         "total_spent": total_spent,
         "progress_percent": progress_percent,
         "category_choices": Expense.CATEGORY_CHOICES,
-        "base_choices": [
-            ("TOTAL_SPENT", "Percentuale sul totale speso"),
-            ("TOTAL_BUDGET", "Percentuale sul budget totale"),
-        ],
+        "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
+                         ("TOTAL_BUDGET", "Percentuale sul budget totale")],
         "add_expense": request.GET.get("add") == "expense",
         "add_limit": request.GET.get("add") == "limit",
         "limits_ctx": limits_ctx,
@@ -169,23 +221,49 @@ def project_detail(request, pk: int):
     }
     return render(request, "projects/detail.html", context)
 
-from django.views.decorators.http import require_POST
-from django.contrib import messages
-from django.shortcuts import redirect
 
-@require_POST
 @login_required
-def expense_delete(request, pk: int):
-    exp = get_object_or_404(Expense, pk=pk)
+def projects_by_school(request, school_id: int):
+    # (opzionale: se non la usi più puoi rimuoverla e togliere la rotta)
+    school = get_object_or_404(School, pk=school_id)
+    qs = Project.objects.filter(school=school)
+    totals = qs.aggregate(budget=Sum("budget"), spent=Sum("spent"))
+    totals["budget"] = totals["budget"] or 0
+    totals["spent"] = totals["spent"] or 0
 
-    # Autorizzazione: stessa scuola dell’utente (se presente)
+    projects = qs.annotate(
+        percent_spent=Case(
+            When(budget__gt=0, then=100.0 * F("spent") / F("budget")),
+            default=Value(0.0),
+            output_field=FloatField(),
+        )
+    ).order_by("title", "id")
+
+    return render(request, "projects/projects_by_school.html",
+                  {"school": school, "projects": projects, "totals": totals})
+
+
+@login_required
+def expense_delete(request, expense_id: int):
+    """Elimina una singola spesa (bottone Elimina nella tabella)."""
+    exp = get_object_or_404(Expense, pk=expense_id)
+    project_id = exp.project_id
+    # opzionale: controllo che l’utente veda solo la propria scuola
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
     if school and exp.project.school_id and exp.project.school_id != school.id:
-        raise Http404("Spesa non trovata")
+        raise Http404("Non autorizzato")
 
-    proj_id = exp.project_id
+    if request.method != "POST":
+        return HttpResponseBadRequest("Metodo non consentito.")
     exp.delete()
-    messages.success(request, "Spesa eliminata.")
-    return redirect("project_detail", pk=proj_id)
+    return redirect("project_detail", pk=project_id)
 
+
+# (se ancora lo usi in urls per test rapido; altrimenti rimuovi anche la rotta)
+@login_required
+def db_check(request):
+    qs = Project.objects.select_related("school").order_by("-start_date")
+    rows = [f"{p.id} • {p.title} • {p.school.name if p.school_id else '-'}" for p in qs[:20]]
+    html = "OK DB — Projects: %d<br>%s" % (qs.count(), "<br>".join(rows) or "— nessun progetto —")
+    return HttpResponse(html)
