@@ -258,7 +258,7 @@
           <label>Progetto collegato (facoltativo)</label><br>
           <select name="project_id">
             <option value="">— Nessun collegamento —</option>
-            {% for p in user_projects %}
+            {% for p in projects %}
               <option value="{{ p.id }}">{{ p.title }}</option>
             {% endfor %}
           </select>

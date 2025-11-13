@@ -351,14 +351,14 @@ def calendar_view(request):
     """
     Calendario mensile:
     - ogni utente vede i propri eventi (owner = request.user)
-    - filtrati eventualmenti per scuola (profile.school)
+    - facoltativamente filtrati per scuola (profile.school)
     """
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
 
     today = timezone.localdate()
 
-    # Leggiamo anno/mese dai parametri GET, altrimenti mese corrente
+    # anno / mese dai parametri, altrimenti mese corrente
     try:
         year = int(request.GET.get("year", today.year))
         month = int(request.GET.get("month", today.month))
@@ -367,12 +367,12 @@ def calendar_view(request):
     except ValueError:
         year, month = today.year, today.month
 
-    # Se POST -> aggiungo un nuovo evento
+    # --- A) Se POST: aggiungo un nuovo evento
     if request.method == "POST":
         title = (request.POST.get("title") or "").strip()
         date_str = request.POST.get("date")
         description = (request.POST.get("description") or "").strip()
-        project_id = request.POST.get("project_id") or None
+        project_id = request.POST.get("project_id") or None  # ← IMPORTANTE: NOME CAMPO
 
         if title and date_str:
             try:
@@ -396,10 +396,9 @@ def calendar_view(request):
                 date=ev_date,
             )
 
-        # Redirect alla stessa vista / mese per evitare il repost del form
-        return redirect(f"{reverse('calendar_view')}?year={year}&month={month}")
+        return redirect(f"{reverse('calendar')}?year={year}&month={month}")
 
-    # Intervallo del mese
+    # --- B) Intervallo del mese
     first_day = date(year, month, 1)
     _, last_day_num = calendar.monthrange(year, month)
     last_day = date(year, month, last_day_num)
@@ -417,8 +416,7 @@ def calendar_view(request):
     for ev in events_qs.select_related("project"):
         events_by_day.setdefault(ev.date, []).append(ev)
 
-    # Costruiamo la griglia (settimane x giorni)
-    cal = calendar.Calendar(firstweekday=0)  # 0 = lunedì, 6 = domenica
+    cal = calendar.Calendar(firstweekday=0)
     weeks = []
     week = []
     for d in cal.itermonthdates(year, month):
@@ -435,7 +433,7 @@ def calendar_view(request):
     if week:
         weeks.append(week)
 
-    # Calcolo mese precedente / successivo
+    # Mese precedente / successivo
     prev_month_date = (first_day - timedelta(days=1)).replace(day=1)
     next_month_date = (last_day + timedelta(days=1)).replace(day=1)
 
@@ -445,7 +443,7 @@ def calendar_view(request):
     ]
     month_label = f"{months_it[month - 1]} {year}"
 
-    # Progetti della scuola per collegare eventualmente eventi a un progetto
+    # Progetti della scuola / tutti
     projects_qs = Project.objects.all()
     if school:
         projects_qs = projects_qs.filter(school=school)
@@ -460,23 +458,7 @@ def calendar_view(request):
         "prev_month": prev_month_date.month,
         "next_year": next_month_date.year,
         "next_month": next_month_date.month,
-        "projects": projects_qs.order_by("title"),
+        "projects": projects_qs.order_by("title"),  # ← QUI PASSIAMO I PROGETTI
         "today": today,
     }
     return render(request, "calendar.html", context)
-
-@login_required
-def event_delete(request, pk: int):
-    """
-    Elimina un evento dal calendario.
-    Per ora NON controlliamo l'owner dell'evento, perché il modello Event
-    non ha ancora un campo 'user'. Qualsiasi utente autenticato può eliminare.
-    """
-    event = get_object_or_404(Event, pk=pk)
-
-    if request.method == "POST":
-        event.delete()
-        return redirect("calendar")
-
-    # Se qualcuno arriva in GET, lo rimandiamo comunque al calendario
-    return redirect("calendar")
