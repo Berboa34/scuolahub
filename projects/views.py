@@ -191,6 +191,7 @@ def project_detail(request, pk: int):
                 pct_used = Decimal("100")
 
         limits_ctx.append({
+            "limit_id": lim.id,  # <<< AGGIUNTO: id vero dal model
             "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
             "base": lim.base,
@@ -203,6 +204,7 @@ def project_detail(request, pk: int):
             "spent_in_category": spent_in_cat,
             "remaining": remaining,
             "pct_used": pct_used,
+            "note": getattr(lim, "note", None),
         })
 
     context = {

@@ -231,7 +231,7 @@
             </div>
 
             <!-- Modifica limite -->
-            <form method="post" action="{% url 'limit_update' L.id %}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+            <form method="post" action="{% url 'limit_update' L.limit_id %}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
               {% csrf_token %}
               <select name="category" required>
                 {% for val,label in category_choices %}
@@ -251,7 +251,7 @@
             </form>
 
             <!-- Elimina limite -->
-            <form method="post" action="{% url 'limit_delete' L.id %}" onsubmit="return confirm('Eliminare questo limite?');" style="margin-top:6px;">
+            <form method="post" action="{% url 'limit_delete' L.limit_id %}" onsubmit="return confirm('Eliminare questo limite?');" style="margin-top:6px;">
               {% csrf_token %}
               <button class="btn danger" type="submit">Elimina limite</button>
             </form>
