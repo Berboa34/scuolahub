@@ -35,5 +35,6 @@ urlpatterns = [
     path('limiti/<int:pk>/elimina/', pviews.limit_delete, name='limit_delete'),
     path('limiti/<int:pk>/modifica/', pviews.limit_update, name='limit_update'),
 
+    path("deleghe/<int:pk>/revoca/", pviews.delegation_revoke, name="delegation_revoke"),
 
 ]

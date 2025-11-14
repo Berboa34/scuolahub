@@ -1,7 +1,7 @@
 # projects/admin.py
 from django.contrib import admin
 from .models import School, Project, Expense, SpendingLimit, Event
-
+from .models import Delegation
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
@@ -40,3 +40,20 @@ class EventAdmin(admin.ModelAdmin):
     list_display = ("title", "date", "owner", "school", "project")
     list_filter = ("school", "owner", "date")
     search_fields = ("title", "description")
+
+
+@admin.register(Delegation)
+class DelegationAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "from_user",
+        "to_user",
+        "school",
+        "project",
+        "start_date",
+        "end_date",
+        "is_active",
+        "created_at",
+    )
+    list_filter = ("is_active", "school", "project")
+    search_fields = ("title", "from_user__username", "to_user__username", "to_user__email")

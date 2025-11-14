@@ -8,7 +8,12 @@ import calendar
 from django.urls import reverse
 
 from datetime import date, timedelta
-from .models import Project, School, Expense, SpendingLimit, Event
+from .models import Project, School, Expense, SpendingLimit, Event, Delegation
+
+from datetime import date, timedelta
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+
 
 
 @login_required
@@ -462,6 +467,155 @@ def calendar_view(request):
         "today": today,
     }
     return render(request, "calendar.html", context)
+
+
+@login_required
+def deleghe_view(request):
+    """
+    Gestione deleghe:
+    - elenco deleghe date e ricevute
+    - form per creare una nuova delega verso un collaboratore
+    """
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
+
+    User = get_user_model()
+
+    # Collaboratori possibili: altri utenti, eventualmente filtrati per scuola
+    collaborators = User.objects.exclude(id=request.user.id)
+    if school:
+        collaborators = collaborators.filter(profile__school=school)
+
+    # Progetti della scuola (o tutti, se non c'è scuola collegata)
+    projects_qs = Project.objects.all()
+    if school:
+        projects_qs = projects_qs.filter(school=school)
+
+    # --- Creazione nuova delega
+    if request.method == "POST":
+        to_user_id = request.POST.get("to_user")
+        title = (request.POST.get("title") or "").strip()
+        scope = (request.POST.get("scope") or "").strip()
+        project_id = request.POST.get("project_id") or None
+        start_str = request.POST.get("start_date") or ""
+        end_str = request.POST.get("end_date") or ""
+
+        if to_user_id and title:
+            to_user = get_object_or_404(User, pk=to_user_id)
+
+            project = None
+            if project_id:
+                try:
+                    project = Project.objects.get(pk=project_id)
+                except Project.DoesNotExist:
+                    project = None
+
+            start_date = None
+            end_date = None
+            try:
+                if start_str:
+                    start_date = date.fromisoformat(start_str)
+                if end_str:
+                    end_date = date.fromisoformat(end_str)
+            except ValueError:
+                # Se le date sono malformate le ignoriamo
+                pass
+
+            delega = Delegation.objects.create(
+                school=school or (project.school if project else None),
+                project=project,
+                from_user=request.user,
+                to_user=to_user,
+                title=title,
+                scope=scope,
+                start_date=start_date,
+                end_date=end_date,
+                is_active=True,
+            )
+
+            # Notifica email (per ora backend console o log; non blocca in caso di errore)
+            if to_user.email:
+                subject = f"[ScuolaHub] Nuova delega: {delega.title}"
+                school_name = delega.school.name if delega.school else "—"
+                project_title = delega.project.title if delega.project else "—"
+
+                msg_lines = [
+                    f"Ciao {to_user.get_full_name() or to_user.username},",
+                    "",
+                    f"ti è stata assegnata una nuova delega da "
+                    f"{request.user.get_full_name() or request.user.username}.",
+                    "",
+                    f"Titolo: {delega.title}",
+                    f"Scuola: {school_name}",
+                    f"Progetto: {project_title}",
+                ]
+                if start_date or end_date:
+                    msg_lines.append(
+                        f"Periodo: {start_date or '—'} → {end_date or '—'}"
+                    )
+                if scope:
+                    msg_lines.extend(["", "Ambito:", scope])
+
+                msg_lines.append("")
+                msg_lines.append("Accedi a ScuolaHub per vedere i dettagli della delega.")
+                message = "\n".join(msg_lines)
+
+                try:
+                    send_mail(
+                        subject,
+                        message,
+                        None,               # usa DEFAULT_FROM_EMAIL se configurato
+                        [to_user.email],
+                        fail_silently=True, # non blocca la view se l'email fallisce
+                    )
+                except Exception:
+                    pass
+
+            return redirect("deleghe")
+
+    # Deleghe che ho dato io
+    deleghe_give = (
+        Delegation.objects.filter(from_user=request.user)
+        .select_related("to_user", "project", "school")
+        .order_by("-created_at")
+    )
+
+    # Deleghe che ho ricevuto
+    deleghe_receive = (
+        Delegation.objects.filter(to_user=request.user)
+        .select_related("from_user", "project", "school")
+        .order_by("-created_at")
+    )
+
+    context = {
+        "school": school,
+        "collaborators": collaborators.order_by("username"),
+        "projects": projects_qs.order_by("title"),
+        "deleghe_give": deleghe_give,
+        "deleghe_receive": deleghe_receive,
+    }
+    return render(request, "deleghe.html", context)
+
+
+@login_required
+def delegation_revoke(request, pk: int):
+    """
+    Revoca una delega: la segniamo come non attiva.
+    (Non la cancelliamo dal DB, così rimane traccia storica.)
+    """
+    delega = get_object_or_404(Delegation, pk=pk)
+
+    # Per sicurezza, permetti la revoca solo a chi l'ha creata o a staff
+    if delega.from_user != request.user and not request.user.is_staff:
+        return redirect("deleghe")
+
+    if request.method == "POST":
+        delega.is_active = False
+        delega.save(update_fields=["is_active"])
+        return redirect("deleghe")
+
+    return redirect("deleghe")
+
 
 
 @login_required
