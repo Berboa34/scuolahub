@@ -478,13 +478,13 @@ def deleghe_view(request):
     """
     User = get_user_model()
 
-    # --- Collaboratori: TUTTI gli utenti (nessun filtro / exclude)
+    # 1) TUTTI gli utenti
     collaborators = User.objects.all().order_by("username")
 
-    # --- Progetti: TUTTI i progetti
+    # 2) TUTTI i progetti
     projects_qs = Project.objects.all().order_by("title")
 
-    # --- Creazione nuova delega via POST
+    # 3) Creazione nuova delega
     if request.method == "POST":
         to_user_id = request.POST.get("to_user")
         title = (request.POST.get("title") or "").strip()
@@ -513,7 +513,6 @@ def deleghe_view(request):
             except ValueError:
                 pass
 
-            # NOTA: school qui non è obbligatorio; se il modello Delegation ha school, puoi passare project.school se esiste
             school = getattr(project, "school", None) if project else None
 
             Delegation.objects.create(
@@ -530,14 +529,14 @@ def deleghe_view(request):
 
         return redirect(reverse("deleghe"))
 
-    # --- Deleghe che ho dato io
+    # 4) Deleghe che ho dato
     deleghe_give = (
         Delegation.objects.filter(from_user=request.user)
         .select_related("to_user", "project", "school")
         .order_by("-created_at")
     )
 
-    # --- Deleghe che ho ricevuto
+    # 5) Deleghe che ho ricevuto
     deleghe_receive = (
         Delegation.objects.filter(to_user=request.user)
         .select_related("from_user", "project", "school")
