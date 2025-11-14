@@ -469,7 +469,6 @@ def calendar_view(request):
 
 
 @login_required
-@login_required
 def deleghe_view(request):
     """
     Gestione deleghe (versione semplificata):
