@@ -481,15 +481,11 @@ def deleghe_view(request):
 
     User = get_user_model()
 
-    # Collaboratori possibili: altri utenti, eventualmente filtrati per scuola
+    # --- Collaboratori: tutti gli altri utenti tranne me
     collaborators = User.objects.exclude(id=request.user.id)
-    if school:
-        collaborators = collaborators.filter(profile__school=school)
 
-    # Progetti della scuola (o tutti, se non c'è scuola collegata)
+    # --- Progetti: per ora TUTTI, senza filtrare per scuola
     projects_qs = Project.objects.all()
-    if school:
-        projects_qs = projects_qs.filter(school=school)
 
     # --- Creazione nuova delega
     if request.method == "POST":
@@ -522,6 +518,8 @@ def deleghe_view(request):
                 pass
 
             delega = Delegation.objects.create(
+                # Se hai una school associata al profilo, la usiamo;
+                # altrimenti proviamo a prendere la school dal progetto.
                 school=school or (project.school if project else None),
                 project=project,
                 from_user=request.user,
@@ -533,7 +531,7 @@ def deleghe_view(request):
                 is_active=True,
             )
 
-            # Notifica email (per ora backend console o log; non blocca in caso di errore)
+            # NOTIFICA EMAIL (può restare così, anche se per ora non ti interessa)
             if to_user.email:
                 subject = f"[ScuolaHub] Nuova delega: {delega.title}"
                 school_name = delega.school.name if delega.school else "—"
@@ -564,9 +562,9 @@ def deleghe_view(request):
                     send_mail(
                         subject,
                         message,
-                        None,               # usa DEFAULT_FROM_EMAIL se configurato
+                        None,
                         [to_user.email],
-                        fail_silently=True, # non blocca la view se l'email fallisce
+                        fail_silently=True,
                     )
                 except Exception:
                     pass
@@ -595,6 +593,7 @@ def deleghe_view(request):
         "deleghe_receive": deleghe_receive,
     }
     return render(request, "deleghe.html", context)
+
 
 
 @login_required
