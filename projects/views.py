@@ -7,7 +7,6 @@ from django.utils import timezone
 import calendar
 from django.urls import reverse
 
-from datetime import date, timedelta
 from .models import Project, School, Expense, SpendingLimit, Event, Delegation
 
 from datetime import date, timedelta
@@ -470,24 +469,23 @@ def calendar_view(request):
 
 
 @login_required
+@login_required
 def deleghe_view(request):
     """
-    Gestione deleghe:
-    - elenco deleghe date e ricevute
-    - form per creare una nuova delega verso un collaboratore
+    Gestione deleghe (versione semplificata):
+    - Collaboratori: tutti gli utenti del sistema
+    - Progetti: tutti i progetti
+    - Deleghe visualizzate: quelle che ho dato e quelle che ho ricevuto
     """
-    profile = getattr(request.user, "profile", None)
-    school = getattr(profile, "school", None)
-
     User = get_user_model()
 
-    # --- Collaboratori: tutti gli altri utenti tranne me
-    collaborators = User.objects.exclude(id=request.user.id)
+    # --- Collaboratori: TUTTI gli utenti (nessun filtro / exclude)
+    collaborators = User.objects.all().order_by("username")
 
-    # --- Progetti: per ora TUTTI (senza filtro scuola, così sei sicuro di vederli)
-    projects_qs = Project.objects.all()
+    # --- Progetti: TUTTI i progetti
+    projects_qs = Project.objects.all().order_by("title")
 
-    # --- Creazione nuova delega
+    # --- Creazione nuova delega via POST
     if request.method == "POST":
         to_user_id = request.POST.get("to_user")
         title = (request.POST.get("title") or "").strip()
@@ -516,8 +514,11 @@ def deleghe_view(request):
             except ValueError:
                 pass
 
-            delega = Delegation.objects.create(
-                school=school or (project.school if project else None),
+            # NOTA: school qui non è obbligatorio; se il modello Delegation ha school, puoi passare project.school se esiste
+            school = getattr(project, "school", None) if project else None
+
+            Delegation.objects.create(
+                school=school,
                 project=project,
                 from_user=request.user,
                 to_user=to_user,
@@ -528,54 +529,16 @@ def deleghe_view(request):
                 is_active=True,
             )
 
-            # NOTIFICA EMAIL (ok anche se ora non ti interessa)
-            if to_user.email:
-                subject = f"[ScuolaHub] Nuova delega: {delega.title}"
-                school_name = delega.school.name if delega.school else "—"
-                project_title = delega.project.title if delega.project else "—"
+        return redirect(reverse("deleghe"))
 
-                msg_lines = [
-                    f"Ciao {to_user.get_full_name() or to_user.username},",
-                    "",
-                    f"ti è stata assegnata una nuova delega da "
-                    f"{request.user.get_full_name() or request.user.username}.",
-                    "",
-                    f"Titolo: {delega.title}",
-                    f"Scuola: {school_name}",
-                    f"Progetto: {project_title}",
-                ]
-                if start_date or end_date:
-                    msg_lines.append(
-                        f"Periodo: {start_date or '—'} → {end_date or '—'}"
-                    )
-                if scope:
-                    msg_lines.extend(["", "Ambito:", scope])
-
-                msg_lines.append("")
-                msg_lines.append("Accedi a ScuolaHub per vedere i dettagli della delega.")
-                message = "\n".join(msg_lines)
-
-                try:
-                    send_mail(
-                        subject,
-                        message,
-                        None,
-                        [to_user.email],
-                        fail_silently=True,
-                    )
-                except Exception:
-                    pass
-
-            return redirect("deleghe")
-
-    # Deleghe che ho dato io
+    # --- Deleghe che ho dato io
     deleghe_give = (
         Delegation.objects.filter(from_user=request.user)
         .select_related("to_user", "project", "school")
         .order_by("-created_at")
     )
 
-    # Deleghe che ho ricevuto
+    # --- Deleghe che ho ricevuto
     deleghe_receive = (
         Delegation.objects.filter(to_user=request.user)
         .select_related("from_user", "project", "school")
@@ -583,14 +546,12 @@ def deleghe_view(request):
     )
 
     context = {
-        "school": school,
-        "collaborators": collaborators.order_by("username"),
-        "projects": projects_qs.order_by("title"),
+        "collaborators": collaborators,
+        "projects": projects_qs,
         "deleghe_give": deleghe_give,
         "deleghe_receive": deleghe_receive,
     }
     return render(request, "deleghe.html", context)
-
 
 @login_required
 def delegation_revoke(request, pk: int):

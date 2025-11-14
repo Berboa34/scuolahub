@@ -33,15 +33,6 @@
       flex-wrap:wrap;
     }
     .small{font-size:13px}
-    .badge{
-      display:inline-block;
-      padding:2px 6px;
-      border-radius:999px;
-      background:#eef2ff;
-      color:#1f2937;
-      border:1px solid #c7d2fe;
-      font-size:11px;
-    }
     .grid-2{
       display:grid;
       gap:16px;
@@ -101,25 +92,24 @@
       </div>
       <div class="small">
         Utente: <b>{{ request.user.username }}</b>
-        {% if school %} · Scuola: <b>{{ school.name }}</b>{% endif %}
       </div>
     </div>
     <h1 style="margin:8px 0 0;">Gestione deleghe</h1>
     <p class="muted" style="margin:4px 0 0;font-size:14px">
-      In questa sezione puoi assegnare deleghe operative ai collaboratori e visualizzare
-      quelle che hai ricevuto da altri utenti.
+      Assegna deleghe operative ai collaboratori e consulta quelle che hai ricevuto.
     </p>
 
-    <!-- Debug leggero: per verificare che arrivino dati -->
+    <!-- RIGA DI DEBUG PER CAPIRE SE VEDE I DATI -->
     <p class="muted small" style="margin-top:6px">
-      Collaboratori disponibili: <b>{{ collaborators|length }}</b> ·
-      Progetti disponibili: <b>{{ projects|length }}</b>
+      Collaboratori trovati: <b>{{ collaborators|length }}</b> ·
+      Progetti trovati: <b>{{ projects|length }}</b> ·
+      Deleghe date: <b>{{ deleghe_give|length }}</b> ·
+      Deleghe ricevute: <b>{{ deleghe_receive|length }}</b>
     </p>
   </div>
 </header>
 
 <main class="wrap">
-
   <div class="grid-2">
 
     <!-- FORM NUOVA DELEGA -->
@@ -139,7 +129,7 @@
                 {% if u.email %} ({{ u.email }}){% endif %}
               </option>
             {% empty %}
-              <option disabled>(Nessun collaboratore disponibile)</option>
+              <option disabled>(Nessun utente disponibile nel sistema)</option>
             {% endfor %}
           </select>
         </div>
@@ -174,7 +164,8 @@
 
         <div style="margin-bottom:10px">
           <label>Ambito / descrizione della delega</label>
-          <textarea name="scope" placeholder="Es. gestione preventivi, ordini su MEPA, monitoraggio scadenze, ecc."></textarea>
+          <textarea name="scope"
+                    placeholder="Es. gestione MEPA, coordinamento team digitale, monitoraggio scadenze..."></textarea>
         </div>
 
         <button type="submit" class="btn primary">Salva delega</button>
@@ -183,16 +174,13 @@
 
     <!-- ELENCO DELEGHE -->
     <section class="card">
-      <h2 style="margin:0 0 8px;font-size:18px;">Deleghe assegnate</h2>
-      <p class="muted small" style="margin-top:0">
-        Deleghe che hai assegnato ad altri utenti.
-      </p>
+      <h2 style="margin:0 0 8px;font-size:18px;">Deleghe che hai assegnato</h2>
 
       <div style="overflow:auto;margin-bottom:16px">
         <table>
           <thead>
             <tr>
-              <th>Collaboratore</th>
+              <th>A</th>
               <th>Progetto</th>
               <th>Titolo</th>
               <th>Periodo</th>
@@ -202,12 +190,8 @@
           <tbody>
             {% for d in deleghe_give %}
               <tr>
-                <td>
-                  {{ d.to_user.get_full_name|default:d.to_user.username }}
-                </td>
-                <td>
-                  {% if d.project %}{{ d.project.title }}{% else %}—{% endif %}
-                </td>
+                <td>{{ d.to_user.get_full_name|default:d.to_user.username }}</td>
+                <td>{% if d.project %}{{ d.project.title }}{% else %}—{% endif %}</td>
                 <td>{{ d.title }}</td>
                 <td class="small">
                   {% if d.start_date or d.end_date %}
@@ -220,19 +204,14 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="5" class="muted small">
-                  Non hai ancora assegnato deleghe.
-                </td>
+                <td colspan="5" class="muted small">Non hai ancora assegnato deleghe.</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
 
-      <h2 style="margin:16px 0 8px;font-size:18px;">Deleghe ricevute</h2>
-      <p class="muted small" style="margin-top:0">
-        Deleghe che altri utenti hanno assegnato a te.
-      </p>
+      <h2 style="margin:16px 0 8px;font-size:18px;">Deleghe che hai ricevuto</h2>
 
       <div style="overflow:auto">
         <table>
@@ -248,12 +227,8 @@
           <tbody>
             {% for d in deleghe_receive %}
               <tr>
-                <td>
-                  {{ d.from_user.get_full_name|default:d.from_user.username }}
-                </td>
-                <td>
-                  {% if d.project %}{{ d.project.title }}{% else %}—{% endif %}
-                </td>
+                <td>{{ d.from_user.get_full_name|default:d.from_user.username }}</td>
+                <td>{% if d.project %}{{ d.project.title }}{% else %}—{% endif %}</td>
                 <td>{{ d.title }}</td>
                 <td class="small">
                   {% if d.start_date or d.end_date %}
@@ -266,16 +241,14 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="5" class="muted small">
-                  Non hai ancora ricevuto deleghe.
-                </td>
+                <td colspan="5" class="muted small">Non ti sono state ancora assegnate deleghe.</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-
     </section>
+
   </div>
 </main>
 
