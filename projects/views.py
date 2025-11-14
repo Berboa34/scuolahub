@@ -484,7 +484,7 @@ def deleghe_view(request):
     # --- Collaboratori: tutti gli altri utenti tranne me
     collaborators = User.objects.exclude(id=request.user.id)
 
-    # --- Progetti: per ora TUTTI, senza filtrare per scuola
+    # --- Progetti: per ora TUTTI (senza filtro scuola, così sei sicuro di vederli)
     projects_qs = Project.objects.all()
 
     # --- Creazione nuova delega
@@ -514,12 +514,9 @@ def deleghe_view(request):
                 if end_str:
                     end_date = date.fromisoformat(end_str)
             except ValueError:
-                # Se le date sono malformate le ignoriamo
                 pass
 
             delega = Delegation.objects.create(
-                # Se hai una school associata al profilo, la usiamo;
-                # altrimenti proviamo a prendere la school dal progetto.
                 school=school or (project.school if project else None),
                 project=project,
                 from_user=request.user,
@@ -531,7 +528,7 @@ def deleghe_view(request):
                 is_active=True,
             )
 
-            # NOTIFICA EMAIL (può restare così, anche se per ora non ti interessa)
+            # NOTIFICA EMAIL (ok anche se ora non ti interessa)
             if to_user.email:
                 subject = f"[ScuolaHub] Nuova delega: {delega.title}"
                 school_name = delega.school.name if delega.school else "—"
@@ -593,7 +590,6 @@ def deleghe_view(request):
         "deleghe_receive": deleghe_receive,
     }
     return render(request, "deleghe.html", context)
-
 
 
 @login_required

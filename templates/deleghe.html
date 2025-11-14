@@ -1,14 +1,15 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
   <title>Gestione deleghe — ScuolaHub</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
     body{
-      margin:0;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      margin:0;
       background:#f3f4f6;
       color:#111827;
     }
@@ -16,11 +17,7 @@
     a:hover{text-decoration:underline}
     header{background:#0b2a42;color:#fff}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .topnav{
-      display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;
-    }
     .muted{color:#6b7280}
-    .small{font-size:13px}
     .card{
       background:#fff;
       border-radius:10px;
@@ -28,44 +25,53 @@
       padding:16px;
       margin-top:16px;
     }
+    .topnav{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .small{font-size:13px}
+    .badge{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:999px;
+      background:#eef2ff;
+      color:#1f2937;
+      border:1px solid #c7d2fe;
+      font-size:11px;
+    }
     .grid-2{
       display:grid;
       gap:16px;
     }
     @media(min-width:900px){
-      .grid-2{grid-template-columns:1.1fr 1fr;}
+      .grid-2{grid-template-columns:2fr 3fr}
     }
-    input[type="text"],
-    input[type="date"],
-    select,
-    textarea{
+    label{font-size:12px;color:#4b5563;display:block;margin-bottom:4px}
+    input[type="text"],input[type="date"],select,textarea{
       width:100%;
       padding:8px;
       border-radius:8px;
-      border:1px solid #e5e7eb;
+      border:1px solid #d1d5db;
+      font-family:inherit;
       font-size:14px;
-      box-sizing:border-box;
     }
-    textarea{resize:vertical}
-    label.small{display:block;margin-bottom:2px}
+    textarea{min-height:80px;resize:vertical}
     .btn{
       display:inline-block;
       padding:8px 12px;
       border-radius:8px;
-      border:1px solid #e5e7eb;
+      border:1px solid #d1d5db;
       background:#fff;
-      cursor:pointer;
       font-size:14px;
+      cursor:pointer;
     }
     .btn.primary{
       background:#0b5cab;
       color:#fff;
       border-color:#0b5cab;
-    }
-    .btn.danger{
-      background:#dc2626;
-      color:#fff;
-      border-color:#dc2626;
     }
     table{
       width:100%;
@@ -77,25 +83,11 @@
       border-bottom:1px solid #e5e7eb;
       vertical-align:top;
     }
-    th{background:#f9fafb;text-align:left}
-    .badge{
-      display:inline-block;
-      padding:2px 6px;
-      border-radius:6px;
-      font-size:11px;
-      border:1px solid #cbd5f5;
-      background:#e5edff;
-      color:#1f2937;
-    }
-    .badge.red{
-      background:#fee2e2;
-      border-color:#fecaca;
-      color:#991b1b;
-    }
-    .badge.green{
-      background:#dcfce7;
-      border-color:#bbf7d0;
-      color:#166534;
+    th{
+      text-align:left;
+      background:#f9fafb;
+      font-weight:600;
+      color:#374151;
     }
   </style>
 </head>
@@ -107,204 +99,182 @@
       <div class="small">
         <a href="{% url 'dashboard' %}" style="color:#cfe3ff;">← Torna alla Dashboard</a>
       </div>
-      <div class="small muted">
+      <div class="small">
         Utente: <b>{{ request.user.username }}</b>
+        {% if school %} · Scuola: <b>{{ school.name }}</b>{% endif %}
       </div>
     </div>
-    <h1 style="margin:8px 0 4px;">Gestione deleghe</h1>
-    <p class="muted small" style="margin:0 0 8px;">
-      Assegna deleghe operative ai collaboratori (ad es. per la gestione di uno specifico progetto) e tieni traccia delle responsabilità.
-      In questa versione prototipale le notifiche vengono inviate tramite backend email di Django (console/log).
+    <h1 style="margin:8px 0 0;">Gestione deleghe</h1>
+    <p class="muted" style="margin:4px 0 0;font-size:14px">
+      In questa sezione puoi assegnare deleghe operative ai collaboratori e visualizzare
+      quelle che hai ricevuto da altri utenti.
+    </p>
+
+    <!-- Debug leggero: per verificare che arrivino dati -->
+    <p class="muted small" style="margin-top:6px">
+      Collaboratori disponibili: <b>{{ collaborators|length }}</b> ·
+      Progetti disponibili: <b>{{ projects|length }}</b>
     </p>
   </div>
 </header>
 
-<main class="wrap" style="padding-bottom:40px">
+<main class="wrap">
+
   <div class="grid-2">
-    <!-- COLONNA SINISTRA: NUOVA DELEGA -->
+
+    <!-- FORM NUOVA DELEGA -->
     <section class="card">
-      <h2 style="margin-top:0;font-size:18px;">Nuova delega</h2>
+      <h2 style="margin:0 0 12px;font-size:18px;">Nuova delega</h2>
 
       <form method="post" action="">
         {% csrf_token %}
 
         <div style="margin-bottom:10px">
-          <label class="small muted">Collaboratore</label>
+          <label>Collaboratore</label>
           <select name="to_user" required>
-            <option value="">— Seleziona il collaboratore —</option>
+            <option value="">— Seleziona collaboratore —</option>
             {% for u in collaborators %}
               <option value="{{ u.id }}">
                 {{ u.get_full_name|default:u.username }}
-                {% if u.profile.school %} ({{ u.profile.school.name }}){% endif %}
+                {% if u.email %} ({{ u.email }}){% endif %}
               </option>
             {% empty %}
-              <option value="">Nessun collaboratore disponibile</option>
+              <option disabled>(Nessun collaboratore disponibile)</option>
             {% endfor %}
           </select>
         </div>
 
         <div style="margin-bottom:10px">
-          <label class="small muted">Progetto collegato (facoltativo)</label>
+          <label>Progetto collegato (facoltativo)</label>
           <select name="project_id">
-            <option value="">— Nessun progetto specifico —</option>
+            <option value="">— Nessun progetto collegato —</option>
             {% for p in projects %}
               <option value="{{ p.id }}">{{ p.title }}</option>
             {% empty %}
-              <option value="">Nessun progetto disponibile</option>
+              <option disabled>(Nessun progetto presente)</option>
             {% endfor %}
           </select>
         </div>
 
         <div style="margin-bottom:10px">
-          <label class="small muted">Titolo / oggetto della delega</label>
-          <input type="text" name="title" required placeholder="Es. Gestione acquisti PNRR – lotto attrezzature" />
+          <label>Titolo delega</label>
+          <input type="text" name="title" placeholder="Es. Referente acquisti PNRR" required>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label>Data inizio (facoltativa)</label>
+            <input type="date" name="start_date">
+          </div>
+          <div>
+            <label>Data fine (facoltativa)</label>
+            <input type="date" name="end_date">
+          </div>
         </div>
 
         <div style="margin-bottom:10px">
-          <label class="small muted">Ambito / descrizione (facoltativo)</label>
-          <textarea name="scope" rows="3" placeholder="Descrivi brevemente l'ambito della delega, es. gestione Mepa, monitoraggio spese, caricamento documenti..."></textarea>
+          <label>Ambito / descrizione della delega</label>
+          <textarea name="scope" placeholder="Es. gestione preventivi, ordini su MEPA, monitoraggio scadenze, ecc."></textarea>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-          <div>
-            <label class="small muted">Data inizio (facoltativa)</label>
-            <input type="date" name="start_date" />
-          </div>
-          <div>
-            <label class="small muted">Data fine (facoltativa)</label>
-            <input type="date" name="end_date" />
-          </div>
-        </div>
-
-        <button type="submit" class="btn primary">Assegna delega</button>
+        <button type="submit" class="btn primary">Salva delega</button>
       </form>
-
-      <p class="small muted" style="margin-top:10px;">
-        Nota: l’invio email dipende dalla configurazione del server di posta di Django.<br>
-        In ambiente di test può essere configurato il backend "console" per vedere le email nei log.
-      </p>
     </section>
 
-    <!-- COLONNA DESTRA: ELENCO DELEGHE -->
+    <!-- ELENCO DELEGHE -->
     <section class="card">
-      <h2 style="margin-top:0;font-size:18px;">Deleghe attive e storiche</h2>
+      <h2 style="margin:0 0 8px;font-size:18px;">Deleghe assegnate</h2>
+      <p class="muted small" style="margin-top:0">
+        Deleghe che hai assegnato ad altri utenti.
+      </p>
 
-      <h3 class="small" style="margin:0 0 6px;">Deleghe che hai assegnato</h3>
-      <div style="max-height:260px;overflow:auto;margin-bottom:12px;border:1px solid #e5e7eb;border-radius:8px;">
+      <div style="overflow:auto;margin-bottom:16px">
         <table>
           <thead>
             <tr>
               <th>Collaboratore</th>
-              <th>Oggetto</th>
               <th>Progetto</th>
+              <th>Titolo</th>
               <th>Periodo</th>
-              <th>Stato</th>
-              <th></th>
+              <th>Ambito</th>
             </tr>
           </thead>
           <tbody>
             {% for d in deleghe_give %}
               <tr>
-                <td class="small">
+                <td>
                   {{ d.to_user.get_full_name|default:d.to_user.username }}
-                  {% if d.school %}<br><span class="muted">{{ d.school.name }}</span>{% endif %}
                 </td>
-                <td class="small">
-                  <b>{{ d.title }}</b><br>
-                  {% if d.scope %}<span class="muted">{{ d.scope|truncatechars:80 }}</span>{% endif %}
+                <td>
+                  {% if d.project %}{{ d.project.title }}{% else %}—{% endif %}
                 </td>
-                <td class="small">
-                  {% if d.project %}
-                    {{ d.project.title }}
-                  {% else %}
-                    <span class="muted">—</span>
-                  {% endif %}
-                </td>
+                <td>{{ d.title }}</td>
                 <td class="small">
                   {% if d.start_date or d.end_date %}
-                    {{ d.start_date|default:"?" }} → {{ d.end_date|default:"?" }}
+                    {{ d.start_date|default:"" }} → {{ d.end_date|default:"" }}
                   {% else %}
-                    <span class="muted">Non specificato</span>
+                    —
                   {% endif %}
                 </td>
-                <td class="small">
-                  {% if d.is_active %}
-                    <span class="badge green">Attiva</span>
-                  {% else %}
-                    <span class="badge red">Revocata</span>
-                  {% endif %}
-                  <br>
-                  <span class="muted">Creata il {{ d.created_at|date:"d/m/Y" }}</span>
-                </td>
-                <td class="small">
-                  {% if d.is_active %}
-                    <form method="post"
-                          action="{% url 'delegation_revoke' d.id %}"
-                          onsubmit="return confirm('Vuoi revocare questa delega?');">
-                      {% csrf_token %}
-                      <button type="submit" class="btn danger small">Revoca</button>
-                    </form>
-                  {% endif %}
-                </td>
+                <td class="small">{{ d.scope|default:"" }}</td>
               </tr>
             {% empty %}
-              <tr><td colspan="6" class="small muted">Non hai ancora assegnato deleghe.</td></tr>
+              <tr>
+                <td colspan="5" class="muted small">
+                  Non hai ancora assegnato deleghe.
+                </td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
 
-      <h3 class="small" style="margin:8px 0 6px;">Deleghe che hai ricevuto</h3>
-      <div style="max-height:180px;overflow:auto;border:1px solid #e5e7eb;border-radius:8px;">
+      <h2 style="margin:16px 0 8px;font-size:18px;">Deleghe ricevute</h2>
+      <p class="muted small" style="margin-top:0">
+        Deleghe che altri utenti hanno assegnato a te.
+      </p>
+
+      <div style="overflow:auto">
         <table>
           <thead>
             <tr>
               <th>Da</th>
-              <th>Oggetto</th>
               <th>Progetto</th>
+              <th>Titolo</th>
               <th>Periodo</th>
-              <th>Stato</th>
+              <th>Ambito</th>
             </tr>
           </thead>
           <tbody>
             {% for d in deleghe_receive %}
               <tr>
-                <td class="small">
+                <td>
                   {{ d.from_user.get_full_name|default:d.from_user.username }}
-                  {% if d.school %}<br><span class="muted">{{ d.school.name }}</span>{% endif %}
                 </td>
-                <td class="small">
-                  <b>{{ d.title }}</b><br>
-                  {% if d.scope %}<span class="muted">{{ d.scope|truncatechars:80 }}</span>{% endif %}
+                <td>
+                  {% if d.project %}{{ d.project.title }}{% else %}—{% endif %}
                 </td>
-                <td class="small">
-                  {% if d.project %}
-                    {{ d.project.title }}
-                  {% else %}
-                    <span class="muted">—</span>
-                  {% endif %}
-                </td>
+                <td>{{ d.title }}</td>
                 <td class="small">
                   {% if d.start_date or d.end_date %}
-                    {{ d.start_date|default:"?" }} → {{ d.end_date|default:"?" }}
+                    {{ d.start_date|default:"" }} → {{ d.end_date|default:"" }}
                   {% else %}
-                    <span class="muted">Non specificato</span>
+                    —
                   {% endif %}
                 </td>
-                <td class="small">
-                  {% if d.is_active %}
-                    <span class="badge green">Attiva</span>
-                  {% else %}
-                    <span class="badge red">Revocata</span>
-                  {% endif %}
-                </td>
+                <td class="small">{{ d.scope|default:"" }}</td>
               </tr>
             {% empty %}
-              <tr><td colspan="5" class="small muted">Non hai ancora ricevuto deleghe.</td></tr>
+              <tr>
+                <td colspan="5" class="muted small">
+                  Non hai ancora ricevuto deleghe.
+                </td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+
     </section>
   </div>
 </main>
