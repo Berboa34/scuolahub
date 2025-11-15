@@ -80,6 +80,15 @@
       font-weight:600;
       color:#374151;
     }
+    .badge{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      background:#eef2ff;
+      border:1px solid #c7d2fe;
+      font-size:11px;
+      color:#1e293b;
+    }
   </style>
 </head>
 <body>
@@ -96,15 +105,14 @@
     </div>
     <h1 style="margin:8px 0 0;">Gestione deleghe</h1>
     <p class="muted" style="margin:4px 0 0;font-size:14px">
-      Assegna deleghe operative ai collaboratori e consulta quelle che hai ricevuto.
+      Assegna deleghe operative ai collaboratori e consulta tutte le deleghe registrate nel sistema.
     </p>
 
-    <!-- RIGA DI DEBUG PER CAPIRE SE VEDE I DATI -->
+    <!-- Riga diagnostica per capire cosa vede la vista -->
     <p class="muted small" style="margin-top:6px">
       Collaboratori trovati: <b>{{ collaborators|length }}</b> ·
       Progetti trovati: <b>{{ projects|length }}</b> ·
-      Deleghe date: <b>{{ deleghe_give|length }}</b> ·
-      Deleghe ricevute: <b>{{ deleghe_receive|length }}</b>
+      Deleghe totali: <b>{{ deleghe_all|length }}</b>
     </p>
   </div>
 </header>
@@ -172,24 +180,27 @@
       </form>
     </section>
 
-    <!-- ELENCO DELEGHE -->
+    <!-- ELENCO COMPLETO DELLE DELEGHE -->
     <section class="card">
-      <h2 style="margin:0 0 8px;font-size:18px;">Deleghe che hai assegnato</h2>
+      <h2 style="margin:0 0 8px;font-size:18px;">Tutte le deleghe registrate</h2>
 
-      <div style="overflow:auto;margin-bottom:16px">
+      <div style="overflow:auto">
         <table>
           <thead>
             <tr>
+              <th>Da</th>
               <th>A</th>
               <th>Progetto</th>
               <th>Titolo</th>
               <th>Periodo</th>
               <th>Ambito</th>
+              <th>Stato</th>
             </tr>
           </thead>
           <tbody>
-            {% for d in deleghe_give %}
+            {% for d in deleghe_all %}
               <tr>
+                <td>{{ d.from_user.get_full_name|default:d.from_user.username }}</td>
                 <td>{{ d.to_user.get_full_name|default:d.to_user.username }}</td>
                 <td>{% if d.project %}{{ d.project.title }}{% else %}—{% endif %}</td>
                 <td>{{ d.title }}</td>
@@ -201,47 +212,19 @@
                   {% endif %}
                 </td>
                 <td class="small">{{ d.scope|default:"" }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="5" class="muted small">Non hai ancora assegnato deleghe.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <h2 style="margin:16px 0 8px;font-size:18px;">Deleghe che hai ricevuto</h2>
-
-      <div style="overflow:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Da</th>
-              <th>Progetto</th>
-              <th>Titolo</th>
-              <th>Periodo</th>
-              <th>Ambito</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for d in deleghe_receive %}
-              <tr>
-                <td>{{ d.from_user.get_full_name|default:d.from_user.username }}</td>
-                <td>{% if d.project %}{{ d.project.title }}{% else %}—{% endif %}</td>
-                <td>{{ d.title }}</td>
                 <td class="small">
-                  {% if d.start_date or d.end_date %}
-                    {{ d.start_date|default:"" }} → {{ d.end_date|default:"" }}
+                  {% if d.is_active %}
+                    <span class="badge">Attiva</span>
                   {% else %}
-                    —
+                    <span class="badge" style="background:#fee2e2;border-color:#fecaca;color:#991b1b;">Non attiva</span>
                   {% endif %}
                 </td>
-                <td class="small">{{ d.scope|default:"" }}</td>
               </tr>
             {% empty %}
               <tr>
-                <td colspan="5" class="muted small">Non ti sono state ancora assegnate deleghe.</td>
+                <td colspan="7" class="muted small">
+                  Nessuna delega registrata nel sistema.
+                </td>
               </tr>
             {% endfor %}
           </tbody>

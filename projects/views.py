@@ -468,23 +468,37 @@ def calendar_view(request):
     return render(request, "calendar.html", context)
 
 
+from datetime import date, timedelta
+import calendar
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+
+from .models import Project, Expense, SpendingLimit, Event, Delegation
+from django.utils import timezone
+
+
 @login_required
 def deleghe_view(request):
     """
-    Gestione deleghe (versione semplificata):
-    - Collaboratori: tutti gli utenti del sistema
-    - Progetti: tutti i progetti
-    - Deleghe visualizzate: quelle che ho dato e quelle che ho ricevuto
+    Versione SEMPLIFICATA della gestione deleghe:
+    - Collaboratori: TUTTI gli utenti del sistema
+    - Progetti: TUTTI i progetti
+    - Elenco deleghe: tutte le deleghe presenti nel DB (indipendentemente dall'utente)
     """
     User = get_user_model()
 
-    # --- Collaboratori: TUTTI gli utenti (nessun filtro / exclude)
+    # Tutti gli utenti
     collaborators = User.objects.all().order_by("username")
 
-    # --- Progetti: TUTTI i progetti
+    # Tutti i progetti
     projects_qs = Project.objects.all().order_by("title")
 
-    # --- Creazione nuova delega via POST
+    # Se POST -> creazione nuova delega
     if request.method == "POST":
         to_user_id = request.POST.get("to_user")
         title = (request.POST.get("title") or "").strip()
@@ -513,7 +527,7 @@ def deleghe_view(request):
             except ValueError:
                 pass
 
-            # NOTA: school qui non è obbligatorio; se il modello Delegation ha school, puoi passare project.school se esiste
+            # Se il modello Delegation ha il campo school, usiamo quella del progetto (se c'è)
             school = getattr(project, "school", None) if project else None
 
             Delegation.objects.create(
@@ -528,27 +542,20 @@ def deleghe_view(request):
                 is_active=True,
             )
 
+        # redirect alla pagina deleghe per evitare repost
         return redirect(reverse("deleghe"))
 
-    # --- Deleghe che ho dato io
-    deleghe_give = (
-        Delegation.objects.filter(from_user=request.user)
-        .select_related("to_user", "project", "school")
-        .order_by("-created_at")
-    )
-
-    # --- Deleghe che ho ricevuto
-    deleghe_receive = (
-        Delegation.objects.filter(to_user=request.user)
-        .select_related("from_user", "project", "school")
+    # Tutte le deleghe esistenti nel DB (per capire se le leggiamo correttamente)
+    deleghe_all = (
+        Delegation.objects.all()
+        .select_related("from_user", "to_user", "project", "school")
         .order_by("-created_at")
     )
 
     context = {
         "collaborators": collaborators,
         "projects": projects_qs,
-        "deleghe_give": deleghe_give,
-        "deleghe_receive": deleghe_receive,
+        "deleghe_all": deleghe_all,
     }
     return render(request, "deleghe.html", context)
 
