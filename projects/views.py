@@ -12,6 +12,8 @@ from .models import Project, School, Expense, SpendingLimit, Event, Delegation
 from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from django.contrib.auth.models import User
+
 
 
 
@@ -485,77 +487,87 @@ from django.utils import timezone
 @login_required
 def deleghe_view(request):
     """
-    Versione SEMPLIFICATA della gestione deleghe:
-    - Collaboratori: TUTTI gli utenti del sistema
-    - Progetti: TUTTI i progetti
-    - Elenco deleghe: tutte le deleghe presenti nel DB (indipendentemente dall'utente)
+    Gestione deleghe:
+    - mostra le deleghe collegate alla scuola dell'utente (se c'è)
+    - se l'utente NON ha una scuola (es. admin) mostra TUTTO
+    - permette di aggiungere una nuova delega
     """
-    User = get_user_model()
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
 
-    # Tutti gli utenti
-    collaborators = User.objects.all().order_by("username")
+    # --- Base query: se la scuola è definita, filtro per scuola; altrimenti vedo tutto
+    if school:
+        delegations_qs = Delegation.objects.filter(school=school)
+        projects_qs = Project.objects.filter(school=school)
+        collaborators_qs = User.objects.filter(
+            is_active=True,
+            # se hai il profilo con la scuola:
+            profile__school=school
+        ).exclude(id=request.user.id)
+    else:
+        # admin o utenti senza scuola: vedono tutto
+        delegations_qs = Delegation.objects.all()
+        projects_qs = Project.objects.all()
+        collaborators_qs = User.objects.filter(is_active=True).exclude(id=request.user.id)
 
-    # Tutti i progetti
-    projects_qs = Project.objects.all().order_by("title")
-
-    # Se POST -> creazione nuova delega
+    # --- Se POST: creazione nuova delega
     if request.method == "POST":
-        to_user_id = request.POST.get("to_user")
         title = (request.POST.get("title") or "").strip()
-        scope = (request.POST.get("scope") or "").strip()
-        project_id = request.POST.get("project_id") or None
-        start_str = request.POST.get("start_date") or ""
-        end_str = request.POST.get("end_date") or ""
+        to_user_id = request.POST.get("to_user") or ""
+        project_id = request.POST.get("project") or ""
+        description = (request.POST.get("description") or "").strip()
+        start_date_str = request.POST.get("start_date") or ""
+        end_date_str = request.POST.get("end_date") or ""
 
-        if to_user_id and title:
-            to_user = get_object_or_404(User, pk=to_user_id)
-
-            project = None
-            if project_id:
-                try:
-                    project = Project.objects.get(pk=project_id)
-                except Project.DoesNotExist:
-                    project = None
-
-            start_date = None
-            end_date = None
+        if title and to_user_id and project_id:
             try:
-                if start_str:
-                    start_date = date.fromisoformat(start_str)
-                if end_str:
-                    end_date = date.fromisoformat(end_str)
-            except ValueError:
-                pass
+                to_user = User.objects.get(pk=to_user_id)
+            except User.DoesNotExist:
+                to_user = None
 
-            # Se il modello Delegation ha il campo school, usiamo quella del progetto (se c'è)
-            school = getattr(project, "school", None) if project else None
+            try:
+                project = Project.objects.get(pk=project_id)
+            except Project.DoesNotExist:
+                project = None
 
-            Delegation.objects.create(
-                school=school,
-                project=project,
-                from_user=request.user,
-                to_user=to_user,
-                title=title,
-                scope=scope,
-                start_date=start_date,
-                end_date=end_date,
-                is_active=True,
-            )
+            if to_user and project:
+                # Se l'utente non ha school, provo a prendere quella del progetto
+                deleg_school = school or getattr(project, "school", None)
 
-        # redirect alla pagina deleghe per evitare repost
-        return redirect(reverse("deleghe"))
+                try:
+                    sd = date.fromisoformat(start_date_str) if start_date_str else None
+                except ValueError:
+                    sd = None
 
-    # Tutte le deleghe esistenti nel DB (per capire se le leggiamo correttamente)
-    deleghe_all = (
-        Delegation.objects.all()
-        .select_related("from_user", "to_user", "project", "school")
-        .order_by("-created_at")
-    )
+                try:
+                    ed = date.fromisoformat(end_date_str) if end_date_str else None
+                except ValueError:
+                    ed = None
+
+                Delegation.objects.create(
+                    title=title,
+                    from_user=request.user,
+                    to_user=to_user,
+                    project=project,
+                    school=deleg_school,
+                    description=description,
+                    start_date=sd,
+                    end_date=ed,
+                    is_active=True,
+                )
+
+                return redirect("deleghe")
+
+    # --- Lista deleghe ordinate (più recenti in alto)
+    delegations = delegations_qs.select_related(
+        "from_user", "to_user", "project", "school"
+    ).order_by("-created_at")
 
     context = {
-        "collaborators": collaborators,
-        "projects": projects_qs,
-        "deleghe_all": deleghe_all,
+        "school": school,
+        "delegations": delegations,
+        "projects": projects_qs.order_by("title"),
+        "collaborators": collaborators_qs.order_by("username"),
     }
     return render(request, "deleghe.html", context)
 

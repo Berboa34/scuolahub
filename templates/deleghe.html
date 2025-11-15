@@ -17,7 +17,7 @@
     a:hover{text-decoration:underline}
     header{background:#0b2a42;color:#fff}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .muted{color:#6b7280}
+    .muted{color:#6b7280;font-size:13px}
     .card{
       background:#fff;
       border-radius:10px;
@@ -32,63 +32,19 @@
       align-items:center;
       flex-wrap:wrap;
     }
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:8px 10px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+    th{text-align:left;background:#f9fafb}
+    .badge{display:inline-block;padding:2px 6px;border-radius:6px;background:#eef2ff;border:1px solid #c7d2fe;font-size:12px}
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:14px}
+    .btn.primary{background:#0b5cab;color:#fff;border-color:#0b5cab}
+    .grid{display:grid;gap:12px}
+    @media(min-width:800px){ .grid.cols-2{grid-template-columns:1.2fr 1fr} }
+    input[type="text"],input[type="date"],textarea,select{
+      width:100%;padding:8px;border-radius:8px;border:1px solid #d1d5db;font-size:14px;
+    }
+    textarea{min-height:70px;resize:vertical}
     .small{font-size:13px}
-    .grid-2{
-      display:grid;
-      gap:16px;
-    }
-    @media(min-width:900px){
-      .grid-2{grid-template-columns:2fr 3fr}
-    }
-    label{font-size:12px;color:#4b5563;display:block;margin-bottom:4px}
-    input[type="text"],input[type="date"],select,textarea{
-      width:100%;
-      padding:8px;
-      border-radius:8px;
-      border:1px solid #d1d5db;
-      font-family:inherit;
-      font-size:14px;
-    }
-    textarea{min-height:80px;resize:vertical}
-    .btn{
-      display:inline-block;
-      padding:8px 12px;
-      border-radius:8px;
-      border:1px solid #d1d5db;
-      background:#fff;
-      font-size:14px;
-      cursor:pointer;
-    }
-    .btn.primary{
-      background:#0b5cab;
-      color:#fff;
-      border-color:#0b5cab;
-    }
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:13px;
-    }
-    th,td{
-      padding:8px 10px;
-      border-bottom:1px solid #e5e7eb;
-      vertical-align:top;
-    }
-    th{
-      text-align:left;
-      background:#f9fafb;
-      font-weight:600;
-      color:#374151;
-    }
-    .badge{
-      display:inline-block;
-      padding:2px 6px;
-      border-radius:6px;
-      background:#eef2ff;
-      border:1px solid #c7d2fe;
-      font-size:11px;
-      color:#1e293b;
-    }
   </style>
 </head>
 <body>
@@ -101,137 +57,114 @@
       </div>
       <div class="small">
         Utente: <b>{{ request.user.username }}</b>
+        {% if school %} · Scuola: <b>{{ school.name }}</b>{% endif %}
       </div>
     </div>
-    <h1 style="margin:8px 0 0;">Gestione deleghe</h1>
-    <p class="muted" style="margin:4px 0 0;font-size:14px">
-      Assegna deleghe operative ai collaboratori e consulta tutte le deleghe registrate nel sistema.
-    </p>
-
-    <!-- Riga diagnostica per capire cosa vede la vista -->
-    <p class="muted small" style="margin-top:6px">
-      Collaboratori trovati: <b>{{ collaborators|length }}</b> ·
-      Progetti trovati: <b>{{ projects|length }}</b> ·
-      Deleghe totali: <b>{{ deleghe_all|length }}</b>
+    <h1 style="margin:8px 0 4px;">Gestione deleghe</h1>
+    <p class="muted">
+      In questa sezione puoi assegnare deleghe operative ai collaboratori su specifici progetti.
     </p>
   </div>
 </header>
 
 <main class="wrap">
-  <div class="grid-2">
-
-    <!-- FORM NUOVA DELEGA -->
+  <div class="grid cols-2">
+    <!-- Elenco deleghe -->
     <section class="card">
-      <h2 style="margin:0 0 12px;font-size:18px;">Nuova delega</h2>
-
-      <form method="post" action="">
-        {% csrf_token %}
-
-        <div style="margin-bottom:10px">
-          <label>Collaboratore</label>
-          <select name="to_user" required>
-            <option value="">— Seleziona collaboratore —</option>
-            {% for u in collaborators %}
-              <option value="{{ u.id }}">
-                {{ u.get_full_name|default:u.username }}
-                {% if u.email %} ({{ u.email }}){% endif %}
-              </option>
-            {% empty %}
-              <option disabled>(Nessun utente disponibile nel sistema)</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div style="margin-bottom:10px">
-          <label>Progetto collegato (facoltativo)</label>
-          <select name="project_id">
-            <option value="">— Nessun progetto collegato —</option>
-            {% for p in projects %}
-              <option value="{{ p.id }}">{{ p.title }}</option>
-            {% empty %}
-              <option disabled>(Nessun progetto presente)</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div style="margin-bottom:10px">
-          <label>Titolo delega</label>
-          <input type="text" name="title" placeholder="Es. Referente acquisti PNRR" required>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <div>
-            <label>Data inizio (facoltativa)</label>
-            <input type="date" name="start_date">
-          </div>
-          <div>
-            <label>Data fine (facoltativa)</label>
-            <input type="date" name="end_date">
-          </div>
-        </div>
-
-        <div style="margin-bottom:10px">
-          <label>Ambito / descrizione della delega</label>
-          <textarea name="scope"
-                    placeholder="Es. gestione MEPA, coordinamento team digitale, monitoraggio scadenze..."></textarea>
-        </div>
-
-        <button type="submit" class="btn primary">Salva delega</button>
-      </form>
-    </section>
-
-    <!-- ELENCO COMPLETO DELLE DELEGHE -->
-    <section class="card">
-      <h2 style="margin:0 0 8px;font-size:18px;">Tutte le deleghe registrate</h2>
-
-      <div style="overflow:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Da</th>
-              <th>A</th>
-              <th>Progetto</th>
-              <th>Titolo</th>
-              <th>Periodo</th>
-              <th>Ambito</th>
-              <th>Stato</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for d in deleghe_all %}
+      <h2 style="margin-top:0;font-size:18px;">Deleghe attive</h2>
+      {% if delegations %}
+        <div style="overflow:auto">
+          <table>
+            <thead>
               <tr>
-                <td>{{ d.from_user.get_full_name|default:d.from_user.username }}</td>
-                <td>{{ d.to_user.get_full_name|default:d.to_user.username }}</td>
-                <td>{% if d.project %}{{ d.project.title }}{% else %}—{% endif %}</td>
+                <th>Titolo</th>
+                <th>Da</th>
+                <th>A</th>
+                <th>Progetto</th>
+                <th>Periodo</th>
+                <th>Stato</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for d in delegations %}
+              <tr>
                 <td>{{ d.title }}</td>
+                <td class="small">{{ d.from_user.get_full_name|default:d.from_user.username }}</td>
+                <td class="small">{{ d.to_user.get_full_name|default:d.to_user.username }}</td>
                 <td class="small">
-                  {% if d.start_date or d.end_date %}
-                    {{ d.start_date|default:"" }} → {{ d.end_date|default:"" }}
+                  {% if d.project %}
+                    {{ d.project.title }}
                   {% else %}
                     —
                   {% endif %}
                 </td>
-                <td class="small">{{ d.scope|default:"" }}</td>
+                <td class="small">
+                  {% if d.start_date %}{{ d.start_date|date:"d/m/Y" }}{% endif %}
+                  {% if d.end_date %}– {{ d.end_date|date:"d/m/Y" }}{% endif %}
+                </td>
                 <td class="small">
                   {% if d.is_active %}
                     <span class="badge">Attiva</span>
                   {% else %}
-                    <span class="badge" style="background:#fee2e2;border-color:#fecaca;color:#991b1b;">Non attiva</span>
+                    <span class="badge" style="background:#fee2e2;border-color:#fecaca;">Chiusa</span>
                   {% endif %}
                 </td>
               </tr>
-            {% empty %}
-              <tr>
-                <td colspan="7" class="muted small">
-                  Nessuna delega registrata nel sistema.
-                </td>
-              </tr>
             {% endfor %}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="muted">Non sono ancora state inserite deleghe.</p>
+      {% endif %}
     </section>
 
+    <!-- Nuova delega -->
+    <section class="card">
+      <h2 style="margin-top:0;font-size:18px;">Nuova delega</h2>
+      <form method="post" class="grid">
+        {% csrf_token %}
+        <div>
+          <label class="small muted">Titolo della delega</label><br>
+          <input type="text" name="title" placeholder="Es. Gestione acquisti PNRR">
+        </div>
+        <div>
+          <label class="small muted">Collaboratore</label><br>
+          <select name="to_user">
+            <option value="">— Seleziona collaboratore —</option>
+            {% for u in collaborators %}
+              <option value="{{ u.id }}">
+                {{ u.get_full_name|default:u.username }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="small muted">Progetto</label><br>
+          <select name="project">
+            <option value="">— Seleziona progetto —</option>
+            {% for p in projects %}
+              <option value="{{ p.id }}">{{ p.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="small muted">Data inizio</label><br>
+          <input type="date" name="start_date">
+        </div>
+        <div>
+          <label class="small muted">Data fine</label><br>
+          <input type="date" name="end_date">
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="small muted">Descrizione / note operative</label><br>
+          <textarea name="description" placeholder="Specifica ambito, responsabilità e limiti operativi della delega."></textarea>
+        </div>
+        <div>
+          <button type="submit" class="btn primary">Salva delega</button>
+        </div>
+      </form>
+    </section>
   </div>
 </main>
 
