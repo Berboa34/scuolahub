@@ -13,6 +13,9 @@ from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .models import School,  # aggiunto Document
+
 
 
 
@@ -608,3 +611,67 @@ def event_delete(request, pk: int):
 
     # Se qualcuno arriva in GET, lo rimandiamo comunque al calendario
     return redirect("calendar")
+
+@login_required
+def documents_view(request):
+    """
+    Elenco documenti + upload di nuovi documenti.
+    Lo spazio è comune, eventualmente filtrato per scuola.
+    """
+    profile = getattr(request.user, "profile", None)
+    school = getattr(profile, "school", None)
+
+    docs = Document.objects.all().select_related("project", "uploaded_by", "school")
+    if school:
+        docs = docs.filter(school=school)
+
+    # Upload di un nuovo documento
+    if request.method == "POST" and request.POST.get("op") == "upload":
+        title = (request.POST.get("title") or "").strip()
+        description = (request.POST.get("description") or "").strip()
+        project_id = request.POST.get("project_id") or None
+        uploaded_file = request.FILES.get("file")
+
+        if title and uploaded_file:
+            project = None
+            if project_id:
+                project = Project.objects.filter(pk=project_id).first()
+
+            doc = Document(
+                title=title,
+                description=description,
+                file=uploaded_file,
+                uploaded_by=request.user,
+                school=school or (project.school if project else None),
+                project=project,
+            )
+            doc.save()
+
+        return redirect("documents")
+
+    # Progetti da mostrare nel menu a tendina
+    projects_qs = Project.objects.all()
+    if school:
+        projects_qs = projects_qs.filter(school=school)
+
+    context = {
+        "documents": docs.order_by("-created_at"),
+        "projects": projects_qs.order_by("title"),
+        "school": school,
+    }
+    return render(request, "documents.html", context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def document_finalize(request, pk: int):
+    """
+    L'amministratore può marcare un documento come DEFINITIVO.
+    Da qui in poi in piattaforma non è più modificabile.
+    (In admin volendo si può comunque intervenire, ma per il mockup va bene così.)
+    """
+    doc = get_object_or_404(Document, pk=pk)
+    if request.method == "POST":
+        doc.status = "FINAL"
+        doc.save(update_fields=["status"])
+    return redirect("documents")

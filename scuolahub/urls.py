@@ -37,4 +37,8 @@ urlpatterns = [
 
     path("deleghe/<int:pk>/revoca/", pviews.delegation_revoke, name="delegation_revoke"),
 
+# DOCUMENTI
+    path('documenti/', pviews.documents_view, name='documents'),
+    path('documenti/<int:pk>/finalizza/', pviews.document_finalize, name='document_finalize'),
+
 ]

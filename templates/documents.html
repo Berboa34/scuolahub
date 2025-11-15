@@ -1,28 +1,210 @@
-<!doctype html>
+{% load humanize %}
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Documenti – ScuolaHub</title>
+  <meta charset="utf-8" />
+  <title>Documenti — ScuolaHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{--bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb;}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:1100px;margin:0 auto;padding:24px}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
-    a{color:var(--primary);text-decoration:none}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      background:#f3f4f6;
+      color:#111827;
+    }
+    a{color:#0b5cab;text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{background:#0b2a42;color:#fff}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .topnav{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .muted{color:#6b7280;font-size:13px}
+    .card{
+      background:#fff;
+      border-radius:10px;
+      border:1px solid #e5e7eb;
+      padding:16px;
+      margin-top:16px;
+    }
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:8px 10px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+    th{background:#f9fafb;text-align:left;font-weight:600}
+    .badge{display:inline-block;padding:2px 6px;border-radius:6px;font-size:11px}
+    .badge.draft{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+    .badge.final{background:#dcfce7;color:#166534;border:1px solid #86efac}
+    .btn{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:8px;
+      border:1px solid #d1d5db;
+      background:#fff;
+      font-size:13px;
+      cursor:pointer;
+    }
+    .btn.primary{background:#0b5cab;color:#fff;border-color:#0b5cab}
+    .btn.small{padding:4px 8px;font-size:12px}
+    input[type="text"], textarea, select, input[type="file"]{
+      width:100%;
+      padding:7px 8px;
+      border-radius:8px;
+      border:1px solid #d1d5db;
+      font-size:13px;
+    }
+    textarea{min-height:60px;resize:vertical}
+    .grid{display:grid;gap:12px}
+    @media(min-width:800px){ .grid.cols-2{grid-template-columns:1.2fr 1fr} }
+    form.inline{display:inline}
   </style>
 </head>
 <body>
+
+<header>
   <div class="wrap">
-    <h1>Documenti</h1>
-    <div class="card">
-      <p>In questa sezione sarà possibile caricare e consultare documenti relativi ai progetti: determine, verbali, rendicontazioni, contratti, ecc.</p>
-      <ul>
-        <li>Caricamento e versionamento dei file</li>
-        <li>Filtri per tipo di documento e progetto</li>
-        <li>Collegamento ai progetti presenti nel database</li>
-      </ul>
+    <div class="topnav">
+      <div class="muted">
+        <a href="{% url 'dashboard' %}" style="color:#cfe3ff;">← Torna alla Dashboard</a>
+      </div>
+      <div class="muted">
+        Utente: <b>{{ request.user.username }}</b>
+        {% if school %} · Scuola: <b>{{ school.name }}</b>{% endif %}
+      </div>
     </div>
-    <p><a href="{% url 'dashboard' %}">← Torna alla dashboard</a></p>
+    <h1 style="margin:8px 0 4px">Spazio documenti</h1>
+    <p class="muted">
+      Area comune per condividere bozze e documenti definitivi legati ai progetti.
+      Solo l’amministratore può marcare un documento come <b>definitivo</b>.
+    </p>
   </div>
+</header>
+
+<main class="wrap" style="padding-bottom:40px">
+  <div class="grid cols-2 card">
+    <!-- Elenco documenti -->
+    <section>
+      <h2 style="margin:0 0 10px;font-size:18px">Documenti caricati</h2>
+
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Titolo</th>
+              <th>Progetto</th>
+              <th>Stato</th>
+              <th>Caricato da</th>
+              <th>Data</th>
+              <th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in documents %}
+              <tr>
+                <td>
+                  {% if d.file %}
+                    <a href="{{ d.file.url }}" target="_blank" rel="noopener">
+                      {{ d.title }}
+                    </a>
+                  {% else %}
+                    {{ d.title }}
+                  {% endif %}
+                  {% if d.description %}
+                    <div class="muted">{{ d.description }}</div>
+                  {% endif %}
+                </td>
+                <td class="muted">
+                  {% if d.project %}
+                    {{ d.project.title }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>
+                  {% if d.status == "FINAL" %}
+                    <span class="badge final">Definitivo</span>
+                  {% else %}
+                    <span class="badge draft">Bozza</span>
+                  {% endif %}
+                </td>
+                <td class="muted">
+                  {% if d.uploaded_by %}
+                    {{ d.uploaded_by.username }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td class="muted">{{ d.created_at|date:"d/m/Y H:i" }}</td>
+                <td>
+                  {% if user.is_staff and d.status != "FINAL" %}
+                    <form method="post"
+                          action="{% url 'document_finalize' d.id %}"
+                          class="inline"
+                          onsubmit="return confirm('Marcare il documento come DEFINITIVO? Non sarà più modificabile in piattaforma.');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn small primary">Finalizza</button>
+                    </form>
+                  {% else %}
+                    <span class="muted small">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="muted">Nessun documento caricato.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Upload nuovo documento -->
+    <section>
+      <h2 style="margin:0 0 10px;font-size:18px">Carica nuovo documento</h2>
+      <p class="muted" style="margin:0 0 10px">
+        Carica una bozza di documento e collegala opzionalmente a un progetto.
+        Successivamente un utente staff potrà marcarla come definitiva.
+      </p>
+
+      <form method="post" action="" enctype="multipart/form-data" class="grid">
+        {% csrf_token %}
+        <input type="hidden" name="op" value="upload" />
+
+        <div>
+          <label class="muted">Titolo</label><br>
+          <input type="text" name="title" required placeholder="Es. Verbale riunione del 10/11">
+        </div>
+
+        <div>
+          <label class="muted">Progetto collegato (facoltativo)</label><br>
+          <select name="project_id">
+            <option value="">— Nessun progetto —</option>
+            {% for p in projects %}
+              <option value="{{ p.id }}">{{ p.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="muted">File</label><br>
+          <input type="file" name="file" required>
+        </div>
+
+        <div>
+          <label class="muted">Descrizione (facoltativa)</label><br>
+          <textarea name="description" placeholder="Note, utilizzo, versione…"></textarea>
+        </div>
+
+        <div>
+          <button type="submit" class="btn primary">Carica documento</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</main>
+
 </body>
 </html>

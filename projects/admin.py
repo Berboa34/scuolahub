@@ -57,3 +57,18 @@ class DelegationAdmin(admin.ModelAdmin):
     )
     list_filter = ("is_active", "school", "project")
     search_fields = ("title", "from_user__username", "to_user__username", "to_user__email")
+
+from .models import Document
+
+@admin.register(Document)
+class DocumentAdmin(admin.ModelAdmin):
+    list_display = ("title", "project", "school", "status", "uploaded_by", "created_at")
+    list_filter = ("status", "school", "project")
+    search_fields = ("title", "description")
+    readonly_fields = ("uploaded_by", "created_at")
+
+    def save_model(self, request, obj, form, change):
+        # se è nuovo, salvo chi l'ha caricato
+        if not obj.pk and not obj.uploaded_by:
+            obj.uploaded_by = request.user
+        super().save_model(request, obj, form, change)

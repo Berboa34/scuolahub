@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.conf import settings
 
 
+
 class School(models.Model):
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=32, blank=True, null=True)
@@ -190,3 +191,32 @@ class Delegation(models.Model):
 
     def __str__(self):
         return f"{self.title} → {self.to_user}"
+
+class Document(models.Model):
+    STATUS_CHOICES = [
+        ("DRAFT", "Bozza"),
+        ("FINAL", "Definitivo"),
+    ]
+
+    school = models.ForeignKey(
+        School, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    project = models.ForeignKey(
+        Project, on_delete=models.SET_NULL, null=True, blank=True, related_name="documents"
+    )
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    file = models.FileField(upload_to="documents/")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="DRAFT")
+
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
