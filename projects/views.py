@@ -612,55 +612,82 @@ def event_delete(request, pk: int):
     # Se qualcuno arriva in GET, lo rimandiamo comunque al calendario
     return redirect("calendar")
 
+
 @login_required
 def documents_view(request):
     """
-    Elenco documenti + upload di nuovi documenti.
-    Lo spazio è comune, eventualmente filtrato per scuola.
+    Area Documenti:
+    - lista tutti i documenti collegati alla scuola dell'utente (se esiste)
+    - permette di caricare un nuovo documento e opzionalmente collegarlo a un progetto
+    - permette di marcare un documento come 'finale' (non più modificabile a livello logico)
     """
+
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
 
-    docs = Document.objects.all().select_related("project", "uploaded_by", "school")
+    # ---- A) Query di base sui documenti ----
+    docs_qs = Document.objects.all().select_related("project", "school")
     if school:
-        docs = docs.filter(school=school)
+        docs_qs = docs_qs.filter(school=school)
 
-    # Upload di un nuovo documento
-    if request.method == "POST" and request.POST.get("op") == "upload":
-        title = (request.POST.get("title") or "").strip()
-        description = (request.POST.get("description") or "").strip()
-        project_id = request.POST.get("project_id") or None
-        uploaded_file = request.FILES.get("file")
+    # ---- B) Gestione POST (upload o marca come finale) ----
+    if request.method == "POST":
+        op = request.POST.get("op")
 
-        if title and uploaded_file:
+        # 1. Caricamento di un nuovo documento
+        if op == "upload":
+            title = (request.POST.get("title") or "").strip()
+            project_id = request.POST.get("project_id") or ""
+            status = request.POST.get("status") or "DRAFT"
+            file_obj = request.FILES.get("file")
+
             project = None
             if project_id:
-                project = Project.objects.filter(pk=project_id).first()
+                try:
+                    project = Project.objects.get(pk=project_id)
+                except Project.DoesNotExist:
+                    project = None
 
-            doc = Document(
-                title=title,
-                description=description,
-                file=uploaded_file,
-                uploaded_by=request.user,
-                school=school or (project.school if project else None),
-                project=project,
-            )
-            doc.save()
+            if title and file_obj:
+                Document.objects.create(
+                    title=title,
+                    project=project,
+                    school=school or (project.school if project else None),
+                    status=status,
+                    file=file_obj,
+                    created_by=request.user,
+                )
 
-        return redirect("documents")
+            return redirect("documents")
 
-    # Progetti da mostrare nel menu a tendina
+        # 2. Marca un documento come finale
+        if op == "make_final":
+            doc_id = request.POST.get("doc_id")
+            if doc_id:
+                try:
+                    doc = Document.objects.get(pk=doc_id)
+                    if school is None or doc.school_id == getattr(school, "id", None):
+                        doc.status = "FINAL"
+                        doc.save()
+                except Document.DoesNotExist:
+                    pass
+            return redirect("documents")
+
+    # ---- C) Lista documenti ordinata ----
+    documents = docs_qs.order_by("-created_at")
+
+    # ---- D) Progetti associabili (stessa logica del calendario) ----
     projects_qs = Project.objects.all()
     if school:
         projects_qs = projects_qs.filter(school=school)
 
     context = {
-        "documents": docs.order_by("-created_at"),
-        "projects": projects_qs.order_by("title"),
         "school": school,
+        "documents": documents,
+        "projects": projects_qs.order_by("title"),
+        "today": timezone.now().date().isoformat(),
     }
     return render(request, "documents.html", context)
-
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
