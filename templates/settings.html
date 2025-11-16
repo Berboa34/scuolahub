@@ -1,28 +1,431 @@
-<!doctype html>
+{% load static %}
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Impostazioni – ScuolaHub</title>
+  <meta charset="utf-8">
+  <title>Impostazioni — ScuolaHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    :root{--bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;--primary:#2563eb;--line:#e5e7eb;}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:1100px;margin:0 auto;padding:24px}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
-    a{color:var(--primary);text-decoration:none}
+    :root {
+      --bg: #0b2a42;
+      --accent: #0b5cab;
+      --light: #f3f4f6;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      background: var(--light);
+      color: #111827;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* HEADER / NAVBAR */
+    header {
+      background: var(--bg);
+      color: #fff;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      font-weight: 700;
+      letter-spacing: .04em;
+      font-size: 18px;
+    }
+    .brand span {
+      opacity: 0.8;
+      font-weight: 400;
+      font-size: 13px;
+      display: block;
+    }
+    nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+    nav a {
+      color: #dbeafe;
+      padding: 6px 10px;
+      border-radius: 999px;
+      text-decoration: none;
+    }
+    nav a:hover {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    nav a.active {
+      background: #fff;
+      color: #0f172a;
+      font-weight: 600;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.6);
+    }
+    .user-pill {
+      font-size: 13px;
+      color: #e5e7eb;
+    }
+    .user-pill b {
+      color: #fff;
+    }
+    .badge {
+      background: rgba(59,130,246,0.18);
+      color: #bfdbfe;
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 11px;
+      margin-left: 4px;
+      border: 1px solid rgba(191,219,254,0.6);
+    }
+
+    h1 {
+      margin: 10px 0 4px;
+      font-size: 22px;
+    }
+    .subtitle {
+      margin: 0;
+      font-size: 14px;
+      color: #cbd5f5;
+    }
+
+    /* LAYOUT PRINCIPALE */
+    main.wrap {
+      padding-top: 18px;
+      padding-bottom: 40px;
+    }
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+    @media(min-width: 900px) {
+      .grid.cols-2 {
+        grid-template-columns: 1.1fr 0.9fr;
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-soft);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .card-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .card-subtitle {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .muted { color: var(--muted); }
+    .small { font-size: 13px; }
+
+    .field-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--border);
+      font-size: 14px;
+    }
+    .field-row:last-child {
+      border-bottom: none;
+    }
+    .field-label {
+      color: var(--muted);
+    }
+    .field-value {
+      font-weight: 500;
+      text-align: right;
+    }
+
+    /* SWITCH / TOGGLE ESTETICO (non funzionale) */
+    .toggle {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: default;
+    }
+    .toggle-label {
+      font-size: 13px;
+    }
+    .toggle-pill {
+      width: 38px;
+      height: 20px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .toggle-pill::before {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(15,23,42,.25);
+    }
+    .toggle-pill.on {
+      background: #0b5cab;
+    }
+    .toggle-pill.on::before {
+      left: 20px;
+    }
+    .tag {
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:999px;
+      background:#eff6ff;
+      color:#1d4ed8;
+      font-size:11px;
+      border:1px solid #bfdbfe;
+    }
+
+    .pill-list {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:8px;
+      font-size:12px;
+    }
+    .pill {
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#f9fafb;
+      color:#374151;
+    }
   </style>
 </head>
 <body>
+
+<header>
   <div class="wrap">
-    <h1>Impostazioni</h1>
-    <div class="card">
-      <p>Da qui si potranno modificare le impostazioni dell’istituto e della piattaforma, come:</p>
-      <ul>
-        <li>Dati anagrafici della scuola (nome, codice meccanografico, contatti)</li>
-        <li>Preferenze di notifica</li>
-        <li>Gestione utenti e livelli di accesso</li>
-      </ul>
+    <div class="topbar">
+      <div class="brand">
+        ScuolaHub
+        <span>Pannello di amministrazione prototipale</span>
+      </div>
+      <nav>
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'projects_list' %}">Progetti</a>
+        <a href="{% url 'calendar' %}">Calendario</a>
+        <a href="{% url 'documents' %}">Documenti</a>
+        <a href="{% url 'deleghe' %}">Deleghe</a>
+        <a href="{% url 'settings' %}" class="active">Impostazioni</a>
+      </nav>
+      <div class="user-pill">
+        Utente: <b>{{ request.user.username }}</b>
+        {% if request.user.is_staff or request.user.is_superuser %}
+          <span class="badge">amministratore</span>
+        {% else %}
+          <span class="badge">utente</span>
+        {% endif %}
+      </div>
     </div>
-    <p><a href="{% url 'dashboard' %}">← Torna alla dashboard</a></p>
+
+    <h1>Impostazioni piattaforma</h1>
+    <p class="subtitle">
+      Riepilogo del profilo, preferenze (mockup) e stato della piattaforma ScuolaHub.
+      Questa sezione è pensata per la fase di sperimentazione e validazione.
+    </p>
   </div>
+</header>
+
+<main class="wrap">
+  <div class="grid cols-2">
+    <!-- COLONNA SINISTRA: PROFILO E CONTESTO -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Profilo utente</h2>
+          <p class="card-subtitle">
+            Informazioni base sull’account con cui si accede a ScuolaHub.
+          </p>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-label">Nome utente</div>
+        <div class="field-value">{{ request.user.username }}</div>
+      </div>
+      <div class="field-row">
+        <div class="field-label">Email</div>
+        <div class="field-value">
+          {{ request.user.email|default:"(non impostata)" }}
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-label">Ruolo applicativo</div>
+        <div class="field-value">
+          {% if request.user.is_superuser %}
+            Amministratore di sistema
+          {% elif request.user.is_staff %}
+            Utente staff
+          {% else %}
+            Utente standard
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-label">Stato account</div>
+        <div class="field-value">
+          Attivo
+        </div>
+      </div>
+
+      <p class="small muted" style="margin-top:12px">
+        Nella versione attuale queste informazioni sono prevalentemente descrittive.
+        In una futura evoluzione sarà possibile gestire profili multipli (es. Dirigente,
+        DSGA, assistenti amministrativi) e associare permessi differenziati per sezione.
+      </p>
+    </section>
+
+    <!-- COLONNA DESTRA: PREFERENZE MOCKUP -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Preferenze utente (mockup)</h2>
+          <p class="card-subtitle">
+            Controlli grafici che rappresentano come potrebbero essere gestite le preferenze
+            personali in una versione completa.
+          </p>
+        </div>
+        <span class="tag">Prototipo</span>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <div class="field-label">Notifiche scadenze progetti</div>
+          <div class="small muted">Promemoria per bandi e milestone rilevanti.</div>
+        </div>
+        <div class="field-value">
+          <span class="toggle">
+            <span class="toggle-label muted">non attivo</span>
+            <span class="toggle-pill"></span>
+          </span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <div class="field-label">Riepilogo settimanale</div>
+          <div class="small muted">Email di sintesi su progetti, scadenze e spese.</div>
+        </div>
+        <div class="field-value">
+          <span class="toggle">
+            <span class="toggle-label muted">non attivo</span>
+            <span class="toggle-pill"></span>
+          </span>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <div class="field-label">Tema interfaccia</div>
+          <div class="small muted">Impostazione solo illustrativa.</div>
+        </div>
+        <div class="field-value">
+          <span class="pill small">Chiaro (predefinito)</span>
+        </div>
+      </div>
+
+      <p class="small muted" style="margin-top:12px">
+        In questo mockup i controlli non modificano realmente il comportamento del sistema:
+        servono a rappresentare il tipo di personalizzazione che potrebbe essere sviluppata
+        in una fase successiva (es. integrazione con notifiche email o calendario).
+      </p>
+    </section>
+  </div>
+
+  <!-- SECONDA RIGA: STATO PIATTAFORMA E ROADMAP -->
+  <section class="card" style="margin-top:20px">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Stato della piattaforma e prossimi passi</h2>
+        <p class="card-subtitle">
+          Sintesi dello stato attuale di ScuolaHub e delle direzioni evolutive previste.
+        </p>
+      </div>
+    </div>
+
+    <div class="grid" style="gap:10px; margin-top:6px">
+      <div>
+        <p class="small muted" style="margin-top:0">
+          Attualmente ScuolaHub è in una fase di <b>prototipo funzionale</b>:
+        </p>
+        <ul class="small muted">
+          <li>
+            La autenticazione è attiva e consente l’accesso a una dashboard personalizzata.
+          </li>
+          <li>
+            La sezione <b>Progetti</b> dialoga con il database e permette di monitorare
+            budget, spese e limiti percentuali per categoria.
+          </li>
+          <li>
+            Il <b>Calendario</b> consente di registrare eventi legati ai progetti e
+            rappresenta la base per future integrazioni con calendari esterni.
+          </li>
+          <li>
+            Le sezioni <b>Deleghe</b> e <b>Documenti</b> sono in corso di sperimentazione
+            e potranno evolvere verso una gestione strutturata di responsabilità e archivio digitale.
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <p class="small muted" style="margin-top:0">
+          Alcune possibili <b>evoluzioni</b>:
+        </p>
+        <div class="pill-list">
+          <span class="pill">Gestione ruoli avanzata</span>
+          <span class="pill">Workflow approvativi</span>
+          <span class="pill">Notifiche automatizzate</span>
+          <span class="pill">Integrazione calendario esterno</span>
+          <span class="pill">Versioning documenti</span>
+          <span class="pill">Reportistica KPI</span>
+        </div>
+        <p class="small muted" style="margin-top:10px">
+          Questa sezione Impostazioni ha quindi una funzione prevalentemente descrittiva,
+          utile a rappresentare la direzione progettuale e a rendere più chiaro, anche
+          a soggetti esterni (Fondazione, Politecnico, dirigenti scolastici), come
+          potrebbero essere governate le preferenze e la configurazione del sistema
+          in una fase di rilascio più matura.
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
+
 </body>
 </html>
