@@ -1,69 +1,80 @@
-{% load humanize %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="utf-8">
   <title>Documenti — ScuolaHub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    :root{
-      --bg:#0b2a42;--light:#f5f7fb;--muted:#6b7280;--br:#e5e7eb;
-      --accent:#0b5cab;--danger:#dc2626;
-    }
-    *{box-sizing:border-box}
     body{
-      margin:0;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      margin:0;
       background:#f3f4f6;
       color:#111827;
     }
-    a{color:var(--accent);text-decoration:none}
+    a{color:#0b5cab;text-decoration:none}
     a:hover{text-decoration:underline}
-    header{background:var(--bg);color:#fff}
+    header{background:#0b2a42;color:#fff}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .topnav{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
-    .muted{color:var(--muted)}
+    .muted{color:#6b7280}
     .card{
       background:#fff;
       border-radius:10px;
-      border:1px solid var(--br);
+      border:1px solid #e5e7eb;
       padding:16px;
       margin-top:16px;
     }
+    .topnav{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
     table{width:100%;border-collapse:collapse;font-size:14px}
-    th,td{padding:8px 10px;border-bottom:1px solid var(--br);vertical-align:top}
-    th{background:#f9fafb;text-align:left}
+    th,td{padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}
+    th{background:#f9fafb;font-weight:600}
     .badge{
       display:inline-block;
-      padding:2px 6px;
-      border-radius:6px;
       font-size:11px;
-      border:1px solid #e5e7eb;
-      background:#f9fafb;
-      color:#374151;
+      padding:2px 6px;
+      border-radius:999px;
+      background:#eef2ff;
+      border:1px solid #c7d2fe;
+      color:#1e293b;
     }
-    .badge.final{background:#dcfce7;border-color:#86efac;color:#166534}
+    .badge.final{background:#dcfce7;border-color:#22c55e;color:#166534}
+    .small{font-size:13px}
     .btn{
       display:inline-block;
-      padding:6px 10px;
+      padding:8px 12px;
       border-radius:8px;
-      border:1px solid var(--br);
+      border:1px solid #d1d5db;
       background:#fff;
       cursor:pointer;
       font-size:13px;
     }
-    .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
-    .small{font-size:13px}
+    .btn.primary{background:#0b5cab;color:#fff;border-color:#0b5cab}
+    .btn.danger{background:#dc2626;color:#fff;border-color:#dc2626}
+    form.inline{display:inline}
     input[type="text"], select, input[type="file"]{
       padding:6px 8px;
       border-radius:8px;
-      border:1px solid var(--br);
+      border:1px solid #d1d5db;
+      font-size:13px;
       width:100%;
-      font-size:14px;
+      box-sizing:border-box;
     }
     .grid{display:grid;gap:12px}
-    @media(min-width:800px){ .grid.cols-2{grid-template-columns:2fr 1.4fr} }
+    @media(min-width:800px){
+      .grid.cols-2{grid-template-columns:1.3fr .7fr}
+    }
+    .field-label{
+      font-size:12px;
+      color:#6b7280;
+      margin-bottom:2px;
+    }
   </style>
 </head>
 <body>
@@ -78,139 +89,125 @@
         Utente: <b>{{ request.user.username }}</b>
       </div>
     </div>
-    <h1 style="margin:8px 0 0;">Gestione documenti</h1>
-    <p class="muted small" style="margin:4px 0 0;">
-      Spazio condiviso per i documenti di progetto.
-      I documenti contrassegnati come
-      <span class="badge final">Definitivo</span> sono considerati chiusi a livello logico.
+    <h1 style="margin:8px 0 0;">Documenti condivisi</h1>
+    <p class="muted" style="margin:4px 0 0;font-size:14px">
+      Spazio comune per i documenti di progetto. L'amministratore può marcarli come
+      <b>definitivi</b> così da bloccarne la modifica dalla piattaforma.
     </p>
   </div>
 </header>
 
 <main class="wrap">
   <div class="grid cols-2">
-    <!-- COLONNA SINISTRA: elenco documenti -->
+    <!-- Lista documenti -->
     <section class="card">
-      <h2 style="margin-top:0;font-size:18px;">Documenti caricati</h2>
-
-      <div class="small muted" style="margin-bottom:8px;">
-        Totale documenti: <b>{{ documents|length }}</b>
-      </div>
-
-      <div style="overflow:auto;">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:26%;">Titolo</th>
-              <th style="width:20%;">Progetto</th>
-              <th style="width:14%;">Stato</th>
-              <th style="width:18%;">Data caricamento</th>
-              <th>Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for d in documents %}
+      <h2 style="margin:0 0 8px 0;font-size:18px;">Elenco documenti</h2>
+      {% if documents %}
+        <div style="overflow:auto">
+          <table>
+            <thead>
               <tr>
-                <td>
-                  {% if d.file %}
-                    <a href="{{ d.file.url }}" target="_blank">{{ d.title }}</a>
-                  {% else %}
-                    {{ d.title }}
-                  {% endif %}
-                  {% if d.school %}
-                    <div class="small muted">Scuola: {{ d.school.name }}</div>
-                  {% endif %}
-                </td>
-                <td class="small">
-                  {% if d.project %}
-                    {{ d.project.title }}
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-                <td class="small">
-                  {% if d.status == "FINAL" %}
-                    <span class="badge final">Definitivo</span>
-                  {% else %}
-                    <span class="badge">Bozza</span>
-                  {% endif %}
-                </td>
-                <td class="small">
-                  {{ d.created_at|date:"d/m/Y H:i" }}
-                </td>
-                <td class="small">
-                  {% if d.status != "FINAL" %}
-                    <form method="post" action="" style="display:inline;">
+                <th>Titolo</th>
+                <th>Progetto</th>
+                <th>Caricato da</th>
+                <th>Data</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in documents %}
+                <tr>
+                  <td>
+                    {% if d.file %}
+                      <a href="{{ d.file.url }}" target="_blank">{{ d.title }}</a>
+                    {% else %}
+                      {{ d.title }}
+                    {% endif %}
+                  </td>
+                  <td class="small">
+                    {% if d.project %}
+                      {{ d.project.title }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td class="small">
+                    {% if d.uploaded_by %}
+                      {{ d.uploaded_by.username }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td class="small">{{ d.uploaded_at|date:"d/m/Y H:i" }}</td>
+                  <td class="small">
+                    {% if d.is_final %}
+                      <span class="badge final">Definitivo</span>
+                    {% else %}
+                      <span class="badge">Bozza</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <form method="post"
+                          action="{% url 'document_delete' d.id %}"
+                          class="inline"
+                          onsubmit="return confirm('Eliminare questo documento?');">
                       {% csrf_token %}
-                      <input type="hidden" name="op" value="make_final">
-                      <input type="hidden" name="doc_id" value="{{ d.id }}">
-                      <button class="btn" type="submit"
-                              onclick="return confirm('Segnare questo documento come definitivo?');">
-                        Segna definitivo
-                      </button>
+                      <button type="submit" class="btn danger">Elimina</button>
                     </form>
-                  {% else %}
-                    <span class="muted">—</span>
-                  {% endif %}
-                </td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="5" class="small muted">
-                  Nessun documento presente. Caricane uno dal pannello a destra.
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="muted small" style="margin-top:8px">
+          Nessun documento caricato finora.
+        </p>
+      {% endif %}
     </section>
 
-    <!-- COLONNA DESTRA: upload documento -->
+    <!-- Upload nuovo documento -->
     <section class="card">
-      <h2 style="margin-top:0;font-size:18px;">Carica un nuovo documento</h2>
-
-      <form method="post" action="" enctype="multipart/form-data" class="grid">
+      <h2 style="margin:0 0 8px 0;font-size:18px;">Carica nuovo documento</h2>
+      <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        <input type="hidden" name="op" value="upload">
-
-        <div>
-          <label class="small muted">Titolo documento</label><br>
-          <input type="text" name="title" placeholder="Es. Verbale riunione del 10/10/2025">
-        </div>
-
-        <div>
-          <label class="small muted">Progetto (opzionale)</label><br>
-          <select name="project_id">
-            <option value="">— Nessun progetto specifico —</option>
-            {% for p in projects %}
-              <option value="{{ p.id }}">{{ p.title }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div>
-          <label class="small muted">Stato iniziale</label><br>
-          <select name="status">
-            <option value="DRAFT">Bozza</option>
-            <option value="FINAL">Definitivo</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="small muted">File</label><br>
-          <input type="file" name="file" required>
-        </div>
-
-        <div>
-          <button class="btn primary" type="submit">Carica documento</button>
+        <div class="grid" style="gap:10px">
+          <div>
+            <div class="field-label">Titolo</div>
+            <input type="text" name="title" required placeholder="Es. Verbale consiglio di istituto">
+          </div>
+          <div>
+            <div class="field-label">Progetto collegato (opzionale)</div>
+            {% if projects %}
+              <select name="project_id">
+                <option value="">— Nessun progetto —</option>
+                {% for p in projects %}
+                  <option value="{{ p.id }}">{{ p.title }}</option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <select disabled>
+                <option>Nessun progetto disponibile</option>
+              </select>
+            {% endif %}
+          </div>
+          <div>
+            <div class="field-label">File</div>
+            <input type="file" name="file" required>
+          </div>
+          <div>
+            <label class="small">
+              <input type="checkbox" name="is_final" value="1">
+              Segna come <b>definitivo</b> (non modificabile dalla piattaforma)
+            </label>
+          </div>
+          <div>
+            <button type="submit" class="btn primary">Carica documento</button>
+          </div>
         </div>
       </form>
-
-      <p class="small muted" style="margin-top:10px;">
-        I file caricati sono accessibili solo agli utenti autenticati della piattaforma.
-        In una versione futura sarà possibile definire permessi più dettagliati e integrare firme digitali.
-      </p>
     </section>
   </div>
 </main>

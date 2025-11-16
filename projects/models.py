@@ -192,31 +192,40 @@ class Delegation(models.Model):
     def __str__(self):
         return f"{self.title} → {self.to_user}"
 
+
 class Document(models.Model):
-    STATUS_CHOICES = [
-        ("DRAFT", "Bozza"),
-        ("FINAL", "Definitivo"),
-    ]
-
-    school = models.ForeignKey(
-        School, on_delete=models.SET_NULL, null=True, blank=True
-    )
-    project = models.ForeignKey(
-        Project, on_delete=models.SET_NULL, null=True, blank=True, related_name="documents"
-    )
-
+    """
+    Documento condiviso su ScuolaHub.
+    - title: nome leggibile del documento
+    - file: file caricato
+    - project: (opzionale) progetto collegato
+    - uploaded_by: utente che lo ha caricato
+    - uploaded_at: data/ora di caricamento
+    - is_final: se vero, considerato "definitivo" (bloccato)
+    """
     title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
     file = models.FileField(upload_to="documents/")
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="DRAFT")
-
-    uploaded_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="documents",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_documents",
+    )
+    uploaded_at = models.DateTimeField(default=timezone.now)
+    is_final = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["-uploaded_at"]
 
     def __str__(self):
+        if self.project:
+            return f"{self.title} ({self.project.title})"
         return self.title

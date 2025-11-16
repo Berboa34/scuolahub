@@ -62,13 +62,12 @@ from .models import Document
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ("title", "project", "school", "status", "uploaded_by", "created_at")
-    list_filter = ("status", "school", "project")
-    search_fields = ("title", "description")
-    readonly_fields = ("uploaded_by", "created_at")
-
-    def save_model(self, request, obj, form, change):
-        # se è nuovo, salvo chi l'ha caricato
-        if not obj.pk and not obj.uploaded_by:
-            obj.uploaded_by = request.user
-        super().save_model(request, obj, form, change)
+    """
+    Admin per i Document:
+    - niente 'school' o 'status'
+    - usiamo 'uploaded_at' (non 'created_at')
+    """
+    list_display = ("title", "project", "uploaded_by", "uploaded_at", "is_final")
+    list_filter = ("project", "uploaded_by", "is_final")
+    search_fields = ("title", "project__title", "uploaded_by__username")
+    readonly_fields = ("uploaded_at",)

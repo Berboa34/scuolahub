@@ -613,72 +613,72 @@ def event_delete(request, pk: int):
     return redirect("calendar")
 
 
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+
+# ... altre view sopra ...
+
+
 @login_required
 def documents_view(request):
     """
-    Area Documenti semplice:
-    - mostra tutti i documenti presenti
-    - permette di caricare un nuovo documento
-    - permette di marcare un documento come 'FINAL'
-    NIENTE filtri su school, così siamo sicuri di vedere i dati.
+    Gestione documenti condivisi.
+    - Mostra tutti i documenti caricati
+    - Permette di caricare un nuovo documento
+    - Permette di collegare (opzionale) un progetto
+    - is_final: se spuntato, il documento è 'definitivo' (non modificabile dalla UI)
     """
+    # Progetti disponibili nel menu a tendina: TUTTI i progetti
+    projects_qs = Project.objects.all().order_by("title")
 
-    # A) Query documenti (tutti, senza filtro school per ora)
-    documents = Document.objects.all().select_related("project", "school").order_by("-created_at")
-
-    # B) Progetti per il menù a tendina (tutti, senza filtro school per ora)
-    projects = Project.objects.all().order_by("title")
-
-    # C) Gestione POST: upload o "segna definitivo"
     if request.method == "POST":
-        op = request.POST.get("op")
+        title = (request.POST.get("title") or "").strip()
+        project_id = request.POST.get("project_id") or None
+        is_final = bool(request.POST.get("is_final"))
+        uploaded_file = request.FILES.get("file")
 
-        # 1. Carica nuovo documento
-        if op == "upload":
-            title = (request.POST.get("title") or "").strip()
-            project_id = request.POST.get("project_id") or ""
-            status = request.POST.get("status") or "DRAFT"
-            file_obj = request.FILES.get("file")
+        project = None
+        if project_id:
+            project = Project.objects.filter(pk=project_id).first()
 
-            project = None
-            if project_id:
-                try:
-                    project = Project.objects.get(pk=project_id)
-                except Project.DoesNotExist:
-                    project = None
+        if title and uploaded_file:
+            Document.objects.create(
+                title=title,
+                file=uploaded_file,
+                project=project,
+                uploaded_by=request.user,
+                is_final=is_final,
+            )
 
-            if title and file_obj:
-                Document.objects.create(
-                    title=title,
-                    project=project,
-                    # se il modello Document ha school obbligatorio e hai un profile.school,
-                    # puoi aggiungere qui una logica; per ora lasciamo school=None
-                    status=status,
-                    file=file_obj,
-                    created_by=request.user,
-                )
+        # Sempre redirect per evitare il repost del form
+        return redirect("documents")
 
-            # ricarica la stessa pagina, evitando repost del form
-            return redirect(request.path)
-
-        # 2. Segna documento come definitivo
-        if op == "make_final":
-            doc_id = request.POST.get("doc_id")
-            if doc_id:
-                try:
-                    doc = Document.objects.get(pk=doc_id)
-                    doc.status = "FINAL"
-                    doc.save()
-                except Document.DoesNotExist:
-                    pass
-            return redirect(request.path)
+    # Lista documenti
+    documents_qs = Document.objects.select_related("project", "uploaded_by")
 
     context = {
-        "documents": documents,
-        "projects": projects,
-        "today": timezone.now().date().isoformat(),
+        "documents": documents_qs,
+        "projects": projects_qs,
     }
     return render(request, "documents.html", context)
+
+
+@login_required
+def document_delete(request, pk: int):
+    """
+    Elimina un documento caricato.
+    (Per ora non controlliamo ruoli: qualsiasi utente autenticato può eliminare.)
+    """
+    doc = get_object_or_404(Document, pk=pk)
+
+    if request.method == "POST":
+        doc.delete()
+        return redirect("documents")
+
+    return redirect("documents")
+
+
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)

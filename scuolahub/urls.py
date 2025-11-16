@@ -39,6 +39,6 @@ urlpatterns = [
 
 # DOCUMENTI
     path('documenti/', pviews.documents_view, name='documents'),
-    path('documenti/<int:pk>/finalizza/', pviews.document_finalize, name='document_finalize'),
+    path('documenti/<int:pk>/elimina/', pviews.document_delete, name='document_delete'),
 
 ]
