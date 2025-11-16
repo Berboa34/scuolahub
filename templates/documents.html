@@ -76,14 +76,13 @@
       </div>
       <div class="small muted">
         Utente: <b>{{ request.user.username }}</b>
-        {% if school %} · Scuola: <b>{{ school.name }}</b>{% endif %}
       </div>
     </div>
     <h1 style="margin:8px 0 0;">Gestione documenti</h1>
     <p class="muted small" style="margin:4px 0 0;">
-      Spazio condiviso per i documenti di progetto. I documenti contrassegnati come
-      <span class="badge final">Definitivo</span> sono considerati chiusi e non più
-      modificabili a livello logico.
+      Spazio condiviso per i documenti di progetto.
+      I documenti contrassegnati come
+      <span class="badge final">Definitivo</span> sono considerati chiusi a livello logico.
     </p>
   </div>
 </header>
@@ -209,8 +208,8 @@
       </form>
 
       <p class="small muted" style="margin-top:10px;">
-        I file sono salvati nello storage del server. In una versione futura si potranno
-        integrare firme digitali e regole più rigide sui permessi di modifica.
+        I file caricati sono accessibili solo agli utenti autenticati della piattaforma.
+        In una versione futura sarà possibile definire permessi più dettagliati e integrare firme digitali.
       </p>
     </section>
   </div>

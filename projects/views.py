@@ -14,7 +14,7 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import School # aggiunto Document
+from .models import School, Document
 
 
 
@@ -616,25 +616,24 @@ def event_delete(request, pk: int):
 @login_required
 def documents_view(request):
     """
-    Area Documenti:
-    - lista tutti i documenti collegati alla scuola dell'utente (se esiste)
-    - permette di caricare un nuovo documento e opzionalmente collegarlo a un progetto
-    - permette di marcare un documento come 'finale' (non più modificabile a livello logico)
+    Area Documenti semplice:
+    - mostra tutti i documenti presenti
+    - permette di caricare un nuovo documento
+    - permette di marcare un documento come 'FINAL'
+    NIENTE filtri su school, così siamo sicuri di vedere i dati.
     """
 
-    profile = getattr(request.user, "profile", None)
-    school = getattr(profile, "school", None)
+    # A) Query documenti (tutti, senza filtro school per ora)
+    documents = Document.objects.all().select_related("project", "school").order_by("-created_at")
 
-    # ---- A) Query di base sui documenti ----
-    docs_qs = Document.objects.all().select_related("project", "school")
-    if school:
-        docs_qs = docs_qs.filter(school=school)
+    # B) Progetti per il menù a tendina (tutti, senza filtro school per ora)
+    projects = Project.objects.all().order_by("title")
 
-    # ---- B) Gestione POST (upload o marca come finale) ----
+    # C) Gestione POST: upload o "segna definitivo"
     if request.method == "POST":
         op = request.POST.get("op")
 
-        # 1. Caricamento di un nuovo documento
+        # 1. Carica nuovo documento
         if op == "upload":
             title = (request.POST.get("title") or "").strip()
             project_id = request.POST.get("project_id") or ""
@@ -652,39 +651,31 @@ def documents_view(request):
                 Document.objects.create(
                     title=title,
                     project=project,
-                    school=school or (project.school if project else None),
+                    # se il modello Document ha school obbligatorio e hai un profile.school,
+                    # puoi aggiungere qui una logica; per ora lasciamo school=None
                     status=status,
                     file=file_obj,
                     created_by=request.user,
                 )
 
-            return redirect("documents")
+            # ricarica la stessa pagina, evitando repost del form
+            return redirect(request.path)
 
-        # 2. Marca un documento come finale
+        # 2. Segna documento come definitivo
         if op == "make_final":
             doc_id = request.POST.get("doc_id")
             if doc_id:
                 try:
                     doc = Document.objects.get(pk=doc_id)
-                    if school is None or doc.school_id == getattr(school, "id", None):
-                        doc.status = "FINAL"
-                        doc.save()
+                    doc.status = "FINAL"
+                    doc.save()
                 except Document.DoesNotExist:
                     pass
-            return redirect("documents")
-
-    # ---- C) Lista documenti ordinata ----
-    documents = docs_qs.order_by("-created_at")
-
-    # ---- D) Progetti associabili (stessa logica del calendario) ----
-    projects_qs = Project.objects.all()
-    if school:
-        projects_qs = projects_qs.filter(school=school)
+            return redirect(request.path)
 
     context = {
-        "school": school,
         "documents": documents,
-        "projects": projects_qs.order_by("title"),
+        "projects": projects,
         "today": timezone.now().date().isoformat(),
     }
     return render(request, "documents.html", context)
