@@ -696,71 +696,82 @@ def document_finalize(request, pk: int):
     return redirect("documents")
 
 
+# Funzione di supporto per verificare se l'utente è un superuser (Admin)
+def is_superuser(user):
+    return user.is_authenticated and user.is_superuser
+
+
+# ----------------------------------------------------------------------
+# VISTA PRINCIPALE PER LA GESTIONE DELEGHE
+# ----------------------------------------------------------------------
 
 @login_required
+@user_passes_test(is_superuser, login_url='/accounts/login/')  # Richiede accesso e che sia superuser
 def deleghe_view(request):
-    """
-    Gestione deleghe:
-    - mostra deleghe esistenti
-    - permette di crearne di nuove
-    """
-    user = request.user
-    profile = getattr(user, "profile", None)
-    school = getattr(profile, "school", None)
+    # Recupera il modello User (Collaboratori)
+    User = get_user_model()
 
-    # Progetti: se esiste la scuola sul profilo, filtriamo per quella
-    projects = Project.objects.all()
-    if school:
-        projects = projects.filter(school=school)
+    # 1. RECUPERO DATI PER I DROPDOWN E LA TABELLA
+    # Passiamo al template l'elenco dei progetti e degli utenti (collaboratori)
+    projects = Project.objects.all().order_by('title')
+    collaborators = User.objects.filter(is_active=True).order_by('username')
 
-    # Collaboratori: per ora TUTTI gli utenti dell'istanza
-    collaborators = User.objects.all().order_by("username")
+    # Pre-carica le deleghe attive per la tabella (colonna destra)
+    # select_related ottimizza il recupero dei titoli di progetto e nomi utente
+    deleghe = Delegation.objects.all().select_related('project', 'collaborator')
 
-    # Elenco deleghe
-    deleghe_qs = Delegation.objects.select_related("project", "collaborator")
-    if school:
-        deleghe_qs = deleghe_qs.filter(project__school=school)
-
-    # Creazione nuova delega
-    if request.method == "POST" and request.POST.get("op") == "add_delegation":
-        project_id = request.POST.get("project_id")
-        collaborator_id = request.POST.get("collaborator_id")
-        role_label = (request.POST.get("role_label") or "").strip()
-        note = (request.POST.get("note") or "").strip()
+    # 2. GESTIONE INVIO FORM (Nuova Delega)
+    if request.method == 'POST' and request.POST.get('op') == 'add_delegation':
+        project_id = request.POST.get('project_id')
+        collaborator_id = request.POST.get('collaborator_id')
+        role_label = request.POST.get('role_label')
+        note = request.POST.get('note')
 
         if project_id and collaborator_id:
             try:
-                project = Project.objects.get(pk=project_id)
-                collaborator = User.objects.get(pk=collaborator_id)
+                # Recupera gli oggetti Project e User basandosi sugli ID
+                project = get_object_or_404(Project, pk=project_id)
+                collaborator = get_object_or_404(User, pk=collaborator_id)
+
+                # Crea la nuova istanza di Delega
                 Delegation.objects.create(
                     project=project,
                     collaborator=collaborator,
                     role_label=role_label,
                     note=note,
-                    status="ACTIVE",
+                    status="ACTIVE"
                 )
-            except (Project.DoesNotExist, User.DoesNotExist):
-                pass
+                messages.success(request,
+                                 f"Delega per {collaborator.username} su {project.title} salvata con successo.")
+            except Exception as e:
+                messages.error(request, f"Errore durante il salvataggio della delega: {e}")
+        else:
+            messages.error(request, "Si prega di selezionare un progetto e un collaboratore.")
 
-        return redirect("deleghe")
+        # Redireziona dopo il POST per prevenire l'invio doppio del form
+        return redirect('deleghe')
 
+    # 3. RENDERIZZAZIONE DELLA PAGINA
     context = {
-        "school": school,
-        "projects": projects,
-        "collaborators": collaborators,
-        "deleghe": deleghe_qs,
+        'projects': projects,
+        'collaborators': collaborators,
+        'deleghe': deleghe,
     }
-    return render(request, "deleghe.html", context)
 
+    return render(request, 'deleghe.html', context)
+
+
+# ----------------------------------------------------------------------
+# VISTA PER ELIMINAZIONE DELEGA (associata a deleghe/<int:pk>/elimina/)
+# ----------------------------------------------------------------------
 
 @login_required
-def delegation_delete(request, pk: int):
-    """
-    Elimina una delega.
-    Per ora qualunque utente autenticato può farlo.
-    """
-    delega = get_object_or_404(Delegation, pk=pk)
-    if request.method == "POST":
-        delega.delete()
-        return redirect("deleghe")
-    return redirect("deleghe")
+@user_passes_test(is_superuser, login_url='/accounts/login/')
+def delegation_delete(request, pk):
+    # La logica del tuo urls.py richiede che questa vista sia un POST per eliminare
+    delegation = get_object_or_404(Delegation, pk=pk)
+    if request.method == 'POST':
+        # Optional: Aggiungere qui un controllo di sicurezza in più
+        delegation.delete()
+        messages.success(request, "Delega eliminata con successo.")
+    return redirect('deleghe')
