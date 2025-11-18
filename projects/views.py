@@ -7,6 +7,8 @@ from django.utils import timezone
 import calendar
 from django.urls import reverse
 
+from django.contrib import messages
+
 from .models import Project, School, Expense, SpendingLimit, Event, Delegation
 
 from datetime import date, timedelta
