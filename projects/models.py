@@ -194,6 +194,8 @@ class Delegation(models.Model):
         Project,
         on_delete=models.CASCADE,
         related_name="delegations",
+        null=True,  # <--- AGGIUNGI O RIPRISTINA QUESTO
+        blank=True,  # <--- AGGIUNGI O RIPRISTINA QUESTO
     )
     collaborator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
