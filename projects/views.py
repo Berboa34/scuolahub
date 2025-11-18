@@ -698,119 +698,116 @@ def document_finalize(request, pk: int):
     return redirect("documents")
 
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from django.contrib.auth import get_user_model
-# Assicurati che i tuoi modelli siano importati correttamente
-from .models import Project, Delegation
-
-
-# --- FUNZIONI DI SUPPORTO ---
-
+# Funzione di supporto per verificare se l'utente è un superuser (Admin)
 def is_superuser(user):
-    """Verifica se l'utente è autenticato e un superuser."""
     return user.is_authenticated and user.is_superuser
 
 
-# --- VISTE DI DELEGHE ---
+# ----------------------------------------------------------------------
+# VISTA PRINCIPALE PER LA GESTIONE DELEGHE
+# ----------------------------------------------------------------------
 
-# 1. ROUTER (Punto di accesso unico, URL name='deleghe')
 @login_required
-def deleghe_router_view(request):
-    """
-    Controlla il ruolo dell'utente e lo reindirizza alla sua pagina specifica.
-    Questo impedisce al Prof di incontrare la protezione Admin.
-    """
-    if request.user.is_superuser:
-        # Reindirizza l'Admin alla vista di gestione protetta
-        return redirect('admin_deleghe')
-    else:
-        # Reindirizza il Prof alla sua vista filtrata
-        return redirect('my_delegations')
-
-
-# 2. VISTA ADMIN DEDICATA (URL name='admin_deleghe')
-@login_required
-# Il Prof non arriverà mai qui perché il router lo intercetta, ma manteniamo la protezione
-@user_passes_test(is_superuser, login_url='dashboard')
-def admin_deleghe_view(request):
+@user_passes_test(is_superuser, login_url='/accounts/login/')  # Richiede accesso e che sia superuser
+def deleghe_view(request):
+    # Recupera il modello User (Collaboratori)
     User = get_user_model()
 
-    # --- LOGICA POST (CREAZIONE NUOVA DELEGA) ---
-    if request.method == 'POST':
+    # 1. RECUPERO DATI PER I DROPDOWN E LA TABELLA
+    # Passiamo al template l'elenco dei progetti e degli utenti (collaboratori)
+    projects = Project.objects.all().order_by('title')
+    collaborators = User.objects.filter(is_active=True).order_by('username')
+
+    # Pre-carica le deleghe attive per la tabella (colonna destra)
+    # select_related ottimizza il recupero dei titoli di progetto e nomi utente
+    deleghe = Delegation.objects.all().select_related('project', 'collaborator')
+
+    # 2. GESTIONE INVIO FORM (Nuova Delega)
+    if request.method == 'POST' and request.POST.get('op') == 'add_delegation':
         project_id = request.POST.get('project_id')
         collaborator_id = request.POST.get('collaborator_id')
         role_label = request.POST.get('role_label')
         note = request.POST.get('note')
 
-        try:
-            project = Project.objects.get(id=project_id)
-            collaborator = User.objects.get(id=collaborator_id)
+        if project_id and collaborator_id:
+            try:
+                # Recupera gli oggetti Project e User basandosi sugli ID
+                project = get_object_or_404(Project, pk=project_id)
+                collaborator = get_object_or_404(User, pk=collaborator_id)
 
-            # Crea la delega con lo stato iniziale PENDING
-            Delegation.objects.create(
-                project=project,
-                collaborator=collaborator,
-                role_label=role_label,
-                note=note,
-                status="PENDING",  # Imposta lo stato iniziale a In attesa di conferma
-            )
-            messages.success(request, f"Delega per {collaborator.username} creata in stato 'In attesa di conferma'.")
-        except (Project.DoesNotExist, User.DoesNotExist):
-            messages.error(request, "Errore: Progetto o Collaboratore non valido.")
+                # Crea la nuova istanza di Delega
+                Delegation.objects.create(
+                    project=project,
+                    collaborator=collaborator,
+                    role_label=role_label,
+                    note=note,
+                    status="ACTIVE"
+                )
+                messages.success(request,
+                                 f"Delega per {collaborator.username} su {project.title} salvata con successo.")
+            except Exception as e:
+                messages.error(request, f"Errore durante il salvataggio della delega: {e}")
+        else:
+            messages.error(request, "Si prega di selezionare un progetto e un collaboratore.")
 
-        # Reindirizza alla pagina Admin corretta
-        return redirect('admin_deleghe')
+        # Redireziona dopo il POST per prevenire l'invio doppio del form
+        return redirect('deleghe')
 
-        # --- LOGICA GET (VISUALIZZAZIONE) ---
-
-    # Per l'Admin, visualizza tutte le deleghe
-    deleghe = Delegation.objects.all().select_related('project', 'collaborator').order_by('-created_at')
-
-    # Dati per il form di creazione
-    projects = Project.objects.all().order_by('title')
-    collaborators = User.objects.filter(is_active=True).order_by('username')
-
+    # 3. RENDERIZZAZIONE DELLA PAGINA
     context = {
         'projects': projects,
         'collaborators': collaborators,
         'deleghe': deleghe,
-        'is_admin_view': True,  # Flag per il template
     }
 
     return render(request, 'deleghe.html', context)
 
 
-# 3. VISTA COLLABORATORE DEDICATA (URL name='my_delegations')
+# ----------------------------------------------------------------------
+# VISTA PER ELIMINAZIONE DELEGA (associata a deleghe/<int:pk>/elimina/)
+# ----------------------------------------------------------------------
+
+@login_required
+@user_passes_test(is_superuser, login_url='/accounts/login/')
+def delegation_delete(request, pk):
+    # La logica del tuo urls.py richiede che questa vista sia un POST per eliminare
+    delegation = get_object_or_404(Delegation, pk=pk)
+    if request.method == 'POST':
+        # Optional: Aggiungere qui un controllo di sicurezza in più
+        delegation.delete()
+        messages.success(request, "Delega eliminata con successo.")
+    return redirect('deleghe')
+
+
 @login_required
 def my_delegations_view(request):
-    """
-        Mostra solo le deleghe assegnate all'utente loggato.
-        """
     # Filtra solo le deleghe dove l'utente loggato è il collaboratore
-    my_deleghe = Delegation.objects.filter(collaborator=request.user).select_related('project').order_by('-created_at')
+    my_deleghe = Delegation.objects.filter(collaborator=request.user).select_related('project')
 
+    # Prepara un template specifico o usa deleghe.html in modalità lettura
     context = {
         'deleghe': my_deleghe,
+        'is_collaborator_view': True,  # Variabile per disabilitare il form di creazione nel template
     }
 
-    # Questo template NON deve avere il form di creazione
-    return render(request, 'deleghe_collaborator.html', context)
+    # Dovrai creare un template my_delegations.html o adattare deleghe.html
+    return render(request, 'my_delegations.html', context)
 
 
-# 4. AZIONE DI CONFERMA (URL name='delegation_confirm')
+# In projects/views.py
+
 @login_required
 def delegation_confirm(request, pk):
-    """
-        Permette al collaboratore di cambiare lo stato di una sua delega a CONFIRMED.
-        """
-    # Trova la delega E verifica che sia assegnata all'utente loggato
-    delegation = get_object_or_404(Delegation, pk=pk, collaborator=request.user)
+    delegation = get_object_or_404(Delegation, pk=pk)
+
+    # Sicurezza: solo il collaboratore assegnato può confermare
+    if delegation.collaborator != request.user:
+        messages.error(request, "Non sei autorizzato a modificare questa delega.")
+        return redirect('my_delegations')
 
     if request.method == 'POST':
-        delegation.status = "CONFIRMED"
+        delegation.status = "CONFIRMED"  # O "ACTIVE", a seconda della tua logica
         delegation.save()
-        messages.success(request, f"Delega per {delegation.project.title} confermata con successo.")
+        messages.success(request, f"Delega per {delegation.project.title} confermata.")
 
     return redirect('my_delegations')

@@ -36,7 +36,7 @@ urlpatterns = [
 
 
     path("deleghe/", pviews.deleghe_view, name="deleghe"),
-    path("deleghe/<int:pk>/elimina/", pviews.delegation_revoke, name="delegation_delete"),
+    path("deleghe/<int:pk>/elimina/", pviews.delegation_delete, name="delegation_delete"),
 
     # DOCUMENTI
     path('documenti/', pviews.documents_view, name='documents'),
@@ -44,7 +44,6 @@ urlpatterns = [
 
     path("mie-deleghe/", pviews.my_delegations_view, name="my_delegations"),
     path('deleghe/<int:pk>/conferma/', pviews.delegation_confirm, name='delegation_confirm'),
-    path("deleghe/admin/", pviews.admin_deleghe_view, name="admin_deleghe"),
 # ...
 
 ]
