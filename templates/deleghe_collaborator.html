@@ -91,17 +91,32 @@
 <header>
   <div class="wrap">
     <div class="topnav">
-        <h1>ScuolaHub</h1>
-        <nav>
-            <a href="{% url 'dashboard' %}">Dashboard</a>
+
+        <div class="small">
+            <a href="{% url 'dashboard' %}" style="color:#cfe3ff;">← Torna alla Dashboard</a>
+        </div>
+
+        <nav style="display:flex; gap:12px; align-items:center;">
+
             {% if request.user.is_superuser %}
-                <a href="{% url 'deleghe' %}">Gestione Deleghe</a>
+                <a href="{% url 'deleghe' %}" style="color:#fff; font-weight:bold;">Gestione Deleghe</a>
             {% else %}
-                <a href="{% url 'my_delegations' %}">Mie Deleghe</a>
+                <a href="{% url 'my_delegations' %}" style="color:#fff; font-weight:bold;">Mie Deleghe</a>
             {% endif %}
-            <a href="{% url 'logout' %}">Logout</a>
+
+            <a href="{% url 'logout' %}" style="color:#fff;">Logout</a>
+
+            <span class="small muted" style="color:#cfe3ff; margin-left:10px;">
+                Utente: <b>{{ request.user.username }}</b>
+            </span>
         </nav>
+
     </div>
+
+    <h1 style="margin:8px 0 4px;">Gestione deleghe</h1>
+    <p class="muted" style="margin:0;font-size:14px; color:#ccc;">
+      Da questa sezione è possibile assegnare deleghe operative a collaboratori su specifici progetti.
+    </p>
   </div>
 </header>
 

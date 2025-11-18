@@ -82,27 +82,31 @@
   <div class="wrap">
     <div class="topnav">
 
-        <h1 style="font-size: 24px; margin: 0;">ScuolaHub</h1>
+        <div class="small">
+            <a href="{% url 'dashboard' %}" style="color:#cfe3ff;">← Torna alla Dashboard</a>
+        </div>
 
-        <nav style="display: flex; gap: 15px;">
-            <a href="{% url 'dashboard' %}" style="color: #fff; text-decoration: none;">Dashboard</a>
+        <nav style="display:flex; gap:12px; align-items:center;">
 
             {% if request.user.is_superuser %}
-                <a href="{% url 'deleghe' %}" style="color: #fff; font-weight: bold; text-decoration: underline;">Gestione Deleghe</a>
+                <a href="{% url 'deleghe' %}" style="color:#fff; font-weight:bold;">Gestione Deleghe</a>
             {% else %}
-                <a href="{% url 'my_delegations' %}" style="color: #fff; font-weight: bold; text-decoration: underline;">Mie Deleghe</a>
+                <a href="{% url 'my_delegations' %}" style="color:#fff; font-weight:bold;">Mie Deleghe</a>
             {% endif %}
 
-            <a href="{% url 'logout' %}" style="color: #fff; text-decoration: none;">Logout</a>
-        </nav>
-    </div>
-    {% if is_admin_view %}
-        <h1 style="margin:8px 0 4px; font-size: 20px;">Gestione deleghe</h1>
-        <p class="muted" style="margin:0;font-size:14px; color: #ccc;">
-            Da questa sezione è possibile assegnare deleghe operative a collaboratori su specifici progetti.
-        </p>
-    {% endif %}
+            <a href="{% url 'logout' %}" style="color:#fff;">Logout</a>
 
+            <span class="small muted" style="color:#cfe3ff; margin-left:10px;">
+                Utente: <b>{{ request.user.username }}</b>
+            </span>
+        </nav>
+
+    </div>
+
+    <h1 style="margin:8px 0 4px;">Gestione deleghe</h1>
+    <p class="muted" style="margin:0;font-size:14px; color:#ccc;">
+      Da questa sezione è possibile assegnare deleghe operative a collaboratori su specifici progetti.
+    </p>
   </div>
 </header>
 
