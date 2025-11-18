@@ -777,3 +777,37 @@ def delegation_delete(request, pk):
         delegation.delete()
         messages.success(request, "Delega eliminata con successo.")
     return redirect('deleghe')
+
+
+@login_required
+def my_delegations_view(request):
+    # Filtra solo le deleghe dove l'utente loggato è il collaboratore
+    my_deleghe = Delegation.objects.filter(collaborator=request.user).select_related('project')
+
+    # Prepara un template specifico o usa deleghe.html in modalità lettura
+    context = {
+        'deleghe': my_deleghe,
+        'is_collaborator_view': True,  # Variabile per disabilitare il form di creazione nel template
+    }
+
+    # Dovrai creare un template my_delegations.html o adattare deleghe.html
+    return render(request, 'my_delegations.html', context)
+
+
+# In projects/views.py
+
+@login_required
+def delegation_confirm(request, pk):
+    delegation = get_object_or_404(Delegation, pk=pk)
+
+    # Sicurezza: solo il collaboratore assegnato può confermare
+    if delegation.collaborator != request.user:
+        messages.error(request, "Non sei autorizzato a modificare questa delega.")
+        return redirect('my_delegations')
+
+    if request.method == 'POST':
+        delegation.status = "CONFIRMED"  # O "ACTIVE", a seconda della tua logica
+        delegation.save()
+        messages.success(request, f"Delega per {delegation.project.title} confermata.")
+
+    return redirect('my_delegations')

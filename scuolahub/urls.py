@@ -42,4 +42,8 @@ urlpatterns = [
     path('documenti/', pviews.documents_view, name='documents'),
     path('documenti/<int:pk>/elimina/', pviews.document_delete, name='document_delete'),
 
+    path("mie-deleghe/", pviews.my_delegations_view, name="my_delegations"),
+    path('deleghe/<int:pk>/conferma/', pviews.delegation_confirm, name='delegation_confirm'),
+# ...
+
 ]

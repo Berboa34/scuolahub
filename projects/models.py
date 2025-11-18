@@ -186,8 +186,12 @@ from django.conf import settings
 
 class Delegation(models.Model):
     STATUS_CHOICES = [
+        ("PENDING", "In attesa di conferma"),  # Nuovo stato
         ("ACTIVE", "Attiva"),
+        ("CONFIRMED", "Confermata"),
+        # Nuovo stato (usata se Active significa "non revocata" e Confirmed significa "accettata")
         ("REVOKED", "Revocata"),
+        ("REJECTED", "Rifiutata"),  # (Opzionale)
     ]
 
     project = models.ForeignKey(
@@ -209,7 +213,7 @@ class Delegation(models.Model):
     status = models.CharField(
         max_length=16,
         choices=STATUS_CHOICES,
-        default="ACTIVE",
+        default="PENDING",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
