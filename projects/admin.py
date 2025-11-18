@@ -44,19 +44,10 @@ class EventAdmin(admin.ModelAdmin):
 
 @admin.register(Delegation)
 class DelegationAdmin(admin.ModelAdmin):
-    list_display = (
-        "title",
-        "from_user",
-        "to_user",
-        "school",
-        "project",
-        "start_date",
-        "end_date",
-        "is_active",
-        "created_at",
-    )
-    list_filter = ("is_active", "school", "project")
-    search_fields = ("title", "from_user__username", "to_user__username", "to_user__email")
+    list_display = ("project", "collaborator", "role_label", "status", "created_at")
+    list_filter = ("status",)
+    search_fields = ("project__title", "collaborator__username", "role_label")
+    readonly_fields = ("created_at",)
 
 from .models import Document
 

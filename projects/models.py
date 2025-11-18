@@ -142,55 +142,6 @@ from django.conf import settings
 # ...
 # qui sopra hai già School, Project, Expense, SpendingLimit, Event, ecc.
 
-class Delegation(models.Model):
-    """
-    Delega assegnata da un utente (from_user) a un collaboratore (to_user),
-    eventualmente legata a una scuola e/o a un progetto specifico.
-    """
-    school = models.ForeignKey(
-        School,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        help_text="Scuola a cui si riferisce la delega (facoltativa).",
-    )
-    project = models.ForeignKey(
-        Project,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="Progetto specifico collegato alla delega (facoltativo).",
-    )
-
-    from_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="delegations_given",
-    )
-    to_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="delegations_received",
-    )
-
-    title = models.CharField(max_length=200, help_text="Oggetto / titolo della delega")
-    scope = models.TextField(
-        blank=True,
-        null=True,
-        help_text="Descrizione dell'ambito (es. gestione acquisti PNRR).",
-    )
-
-    start_date = models.DateField(null=True, blank=True)
-    end_date = models.DateField(null=True, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"{self.title} → {self.to_user}"
 
 
 class Document(models.Model):
@@ -229,3 +180,39 @@ class Document(models.Model):
         if self.project:
             return f"{self.title} ({self.project.title})"
         return self.title
+
+
+from django.conf import settings
+
+class Delegation(models.Model):
+    STATUS_CHOICES = [
+        ("ACTIVE", "Attiva"),
+        ("REVOKED", "Revocata"),
+    ]
+
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="delegations",
+    )
+    collaborator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,  # va bene, se elimini l'utente si eliminano anche le deleghe
+        related_name="delegations",
+        null=True,
+        blank=True,
+    )
+    role_label = models.CharField("Ruolo delegato", max_length=100, blank=True)
+    note = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default="ACTIVE",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.collaborator} → {self.project} ({self.get_status_display()})"
