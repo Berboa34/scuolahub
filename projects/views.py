@@ -17,6 +17,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import School, Document
 
 
+User = get_user_model()
 
 
 
@@ -693,3 +694,73 @@ def document_finalize(request, pk: int):
         doc.status = "FINAL"
         doc.save(update_fields=["status"])
     return redirect("documents")
+
+
+
+@login_required
+def deleghe_view(request):
+    """
+    Gestione deleghe:
+    - mostra deleghe esistenti
+    - permette di crearne di nuove
+    """
+    user = request.user
+    profile = getattr(user, "profile", None)
+    school = getattr(profile, "school", None)
+
+    # Progetti: se esiste la scuola sul profilo, filtriamo per quella
+    projects = Project.objects.all()
+    if school:
+        projects = projects.filter(school=school)
+
+    # Collaboratori: per ora TUTTI gli utenti dell'istanza
+    collaborators = User.objects.all().order_by("username")
+
+    # Elenco deleghe
+    deleghe_qs = Delegation.objects.select_related("project", "collaborator")
+    if school:
+        deleghe_qs = deleghe_qs.filter(project__school=school)
+
+    # Creazione nuova delega
+    if request.method == "POST" and request.POST.get("op") == "add_delegation":
+        project_id = request.POST.get("project_id")
+        collaborator_id = request.POST.get("collaborator_id")
+        role_label = (request.POST.get("role_label") or "").strip()
+        note = (request.POST.get("note") or "").strip()
+
+        if project_id and collaborator_id:
+            try:
+                project = Project.objects.get(pk=project_id)
+                collaborator = User.objects.get(pk=collaborator_id)
+                Delegation.objects.create(
+                    project=project,
+                    collaborator=collaborator,
+                    role_label=role_label,
+                    note=note,
+                    status="ACTIVE",
+                )
+            except (Project.DoesNotExist, User.DoesNotExist):
+                pass
+
+        return redirect("deleghe")
+
+    context = {
+        "school": school,
+        "projects": projects,
+        "collaborators": collaborators,
+        "deleghe": deleghe_qs,
+    }
+    return render(request, "deleghe.html", context)
+
+
+@login_required
+def delegation_delete(request, pk: int):
+    """
+    Elimina una delega.
+    Per ora qualunque utente autenticato può farlo.
+    """
+    delega = get_object_or_404(Delegation, pk=pk)
+    if request.method == "POST":
+        delega.delete()
+        return redirect("deleghe")
+    return redirect("deleghe")

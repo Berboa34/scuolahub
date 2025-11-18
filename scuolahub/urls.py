@@ -23,7 +23,6 @@ urlpatterns = [
     path('eventi/<int:pk>/elimina/', pviews.event_delete, name='event_delete'),
 
     path('documenti/', TemplateView.as_view(template_name='documents.html'), name='documents'),
-    path('deleghe/',   TemplateView.as_view(template_name='deleghe.html'),   name='deleghe'),
     path('impostazioni/', TemplateView.as_view(template_name='settings.html'), name='settings'),
 
     # Auth (login/logout)
@@ -35,9 +34,11 @@ urlpatterns = [
     path('limiti/<int:pk>/elimina/', pviews.limit_delete, name='limit_delete'),
     path('limiti/<int:pk>/modifica/', pviews.limit_update, name='limit_update'),
 
-    path("deleghe/<int:pk>/revoca/", pviews.delegation_revoke, name="delegation_revoke"),
 
-# DOCUMENTI
+    path("deleghe/", pviews.deleghe_view, name="deleghe"),
+    path("deleghe/<int:pk>/elimina/", pviews.delegation_delete, name="delegation_delete"),
+
+    # DOCUMENTI
     path('documenti/', pviews.documents_view, name='documents'),
     path('documenti/<int:pk>/elimina/', pviews.document_delete, name='document_delete'),
 
