@@ -781,33 +781,34 @@ def delegation_delete(request, pk):
 
 @login_required
 def my_delegations_view(request):
+    """
+        Mostra solo le deleghe assegnate all'utente loggato.
+        """
     # Filtra solo le deleghe dove l'utente loggato è il collaboratore
-    my_deleghe = Delegation.objects.filter(collaborator=request.user).select_related('project')
+    my_deleghe = Delegation.objects.filter(collaborator=request.user).select_related('project').order_by('-created_at')
 
-    # Prepara un template specifico o usa deleghe.html in modalità lettura
     context = {
         'deleghe': my_deleghe,
-        'is_collaborator_view': True,  # Variabile per disabilitare il form di creazione nel template
     }
 
-    # Dovrai creare un template my_delegations.html o adattare deleghe.html
-    return render(request, 'my_delegations.html', context)
+    # Useremo il template deleghe_collaborator.html
+    return render(request, 'deleghe_collaborator.html', context)
 
 
 # In projects/views.py
 
 @login_required
 def delegation_confirm(request, pk):
-    delegation = get_object_or_404(Delegation, pk=pk)
-
-    # Sicurezza: solo il collaboratore assegnato può confermare
-    if delegation.collaborator != request.user:
-        messages.error(request, "Non sei autorizzato a modificare questa delega.")
-        return redirect('my_delegations')
+    """
+        Permette al collaboratore di cambiare lo stato di una sua delega a CONFIRMED.
+        """
+    # Trova la delega E verifica che sia assegnata all'utente loggato
+    delegation = get_object_or_404(Delegation, pk=pk, collaborator=request.user)
 
     if request.method == 'POST':
-        delegation.status = "CONFIRMED"  # O "ACTIVE", a seconda della tua logica
+        # Nota: Devi aver aggiunto gli stati 'PENDING' e 'CONFIRMED' in models.py
+        delegation.status = "CONFIRMED"
         delegation.save()
-        messages.success(request, f"Delega per {delegation.project.title} confermata.")
+        messages.success(request, f"Delega per {delegation.project.title} confermata con successo.")
 
-    return redirect('my_delegations')
+    return redirect('my_delegations')  # Reindirizza alla pagina delle proprie deleghe
