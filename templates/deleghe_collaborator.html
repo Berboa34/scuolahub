@@ -1,0 +1,172 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Mie Deleghe — ScuolaHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* ------------------------------------------------------------------ */
+    /* Copia qui tutto il CSS che avevi nel tuo file deleghe.html originale */
+    /* ------------------------------------------------------------------ */
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      margin:0;
+      background:#f3f4f6;
+      color:#111827;
+    }
+    a{color:#0b5cab;text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{background:#0b2a42;color:#fff}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .topnav{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .muted{color:#6b7280}
+    .card{
+      background:#fff;
+      border-radius:10px;
+      border:1px solid #e5e7eb;
+      padding:16px;
+      margin-top:16px;
+    }
+    .grid{display:grid;gap:12px}
+    .table-container{overflow-x:auto}
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+    }
+    th, td{
+      text-align:left;
+      padding:8px;
+      border-bottom:1px solid #e5e7eb;
+      vertical-align:top;
+    }
+    th{background:#f9fafb;font-weight:600}
+    .small{font-size:12px}
+
+    /* Stili per i pulsanti */
+    .btn{
+      padding:8px 12px;
+      border:none;
+      border-radius:6px;
+      cursor:pointer;
+      font-weight:600;
+      font-size:14px;
+      transition:background 0.2s;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .btn.success{
+      background:#10b981;
+      color:#fff;
+    }
+    .btn.success:hover{background:#059669}
+    .btn.small{font-size:12px;padding:6px 10px;}
+    .inline{display:inline-block;}
+
+    /* Stili per i badge (Stato Delega) */
+    .badge{
+        display:inline-block;
+        padding:4px 8px;
+        border-radius:9999px;
+        font-size:12px;
+        font-weight:700;
+    }
+    .badge.pending{background:#ffedd5;color:#f97316;}
+    .badge.confirmed{background:#dcfce7;color:#16a34a;}
+    .badge.active{background:#bfdbfe;color:#2563eb;}
+    .badge.revoked{background:#fee2e2;color:#ef4444;}
+    /* ------------------------------------------------------------------ */
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="topnav">
+        <h1>ScuolaHub</h1>
+        <nav>
+            <a href="{% url 'dashboard' %}">Dashboard</a>
+            {% if request.user.is_superuser %}
+                <a href="{% url 'deleghe' %}">Gestione Deleghe</a>
+            {% else %}
+                <a href="{% url 'my_delegations' %}">Mie Deleghe</a>
+            {% endif %}
+            <a href="{% url 'logout' %}">Logout</a>
+        </nav>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    {% if messages %}
+        <div class="card" style="padding:10px; margin-top:16px; border:1px solid #4ade80; background:#f0fdf4; color:#065f46;">
+            <ul style="list-style:none; padding:0; margin:0;">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+
+    <h2>Mie Deleghe</h2>
+
+    <section class="card">
+        <h3>Deleghe Assegnate a Te</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Progetto</th>
+                <th>Ruolo/Compito</th>
+                <th>Stato</th>
+                <th>Creata il</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in deleghe %}
+                <tr>
+                  <td>{{ d.project.title }}</td>
+                  <td>{{ d.role_label|default:"—" }}</td>
+                  <td>
+                    <span class="badge {{ d.status|lower }}">
+                        {{ d.get_status_display }}
+                    </span>
+                  </td>
+                  <td class="small">{{ d.created_at|date:"d/m/Y H:i" }}</td>
+                  <td class="small">
+                    {% if d.status == "PENDING" %}
+                        <form method="post" action="{% url 'delegation_confirm' d.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn success small">Conferma Delega</button>
+                        </form>
+                    {% else %}
+                        —
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="small muted">Non ci sono deleghe assegnate al tuo account in attesa di conferma.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+    </section>
+  </div>
+</main>
+
+</body>
+</html>
