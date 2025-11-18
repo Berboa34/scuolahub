@@ -3,104 +3,11 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>{% if is_admin_view %}Gestione Deleghe (Admin){% else %}Mie Deleghe{% endif %} — ScuolaHub</title>
+  <title>{% if is_admin_view %}Gestione deleghe (Admin){% else %}Mie Deleghe{% endif %} — ScuolaHub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    /* ------------------------------------------------------------------ */
-    /* CSS ORIGINALE (Per risolvere il problema di visualizzazione) */
-    /* ------------------------------------------------------------------ */
-    body{
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
-      margin:0;
-      background:#f3f4f6;
-      color:#111827;
-    }
-    a{color:#0b5cab;text-decoration:none}
-    a:hover{text-decoration:underline}
-    header{background:#0b2a42;color:#fff}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .topnav{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .muted{color:#6b7280}
-    .card{
-      background:#fff;
-      border-radius:10px;
-      border:1px solid #e5e7eb;
-      padding:16px;
-      margin-top:16px;
-    }
-    .grid{display:grid;gap:12px}
-    @media(min-width:900px){
-      .grid-2{grid-template-columns:1fr 2fr}
-    }
-    .table-container{overflow-x:auto}
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:14px;
-    }
-    th, td{
-      text-align:left;
-      padding:8px;
-      border-bottom:1px solid #e5e7eb;
-      vertical-align:top;
-    }
-    th{background:#f9fafb;font-weight:600}
-    .small{font-size:12px}
-    .input-group{margin-bottom:12px}
-    label{
-      display:block;
-      margin-bottom:4px;
-      font-size:14px;
-      font-weight:500;
-    }
-    input[type="text"], input[type="number"], select, textarea{
-      width:100%;
-      padding:8px;
-      border:1px solid #d1d5db;
-      border-radius:6px;
-      box-sizing:border-box;
-      font-size:14px;
-      font-family:inherit;
-    }
-    .btn{
-      padding:8px 12px;
-      border:none;
-      border-radius:6px;
-      cursor:pointer;
-      font-weight:600;
-      font-size:14px;
-      transition:background 0.2s;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .btn.primary{
-      background:#0b5cab;
-      color:#fff;
-    }
-    .btn.primary:hover{background:#0a4a8d}
-    .btn.danger{
-      background:#dc2626;
-      color:#fff;
-    }
-    .btn.danger:hover{background:#b91c1c}
-    .btn.success{
-      background:#10b981;
-      color:#fff;
-    }
-    .btn.success:hover{background:#059669}
-    .btn.small{font-size:12px;padding:6px 10px;}
-    .inline{display:inline-block;}
-
-    /* ------------------------------------------------------------------ */
-    /* STILI AGGIUNTIVI PER I BADGE DI STATO (nuovi) */
-    /* ------------------------------------------------------------------ */
+    /* ... (Mantenere qui i tuoi stili CSS esistenti) ... */
+    /* AGGIUNGI STILI PER I NUOVI BADGE DI STATO */
     .badge{
         display:inline-block;
         padding:4px 8px;
@@ -112,7 +19,7 @@
     .badge.confirmed{background:#dcfce7;color:#16a34a;}
     .badge.active{background:#bfdbfe;color:#2563eb;}
     .badge.revoked{background:#fee2e2;color:#ef4444;}
-
+    /* ... (Fine stili) ... */
   </style>
 </head>
 <body>
@@ -148,10 +55,9 @@
     {% endif %}
 
 
-    <h2>{% if is_admin_view %}Gestione Deleghe (Admin){% else %}Mie Deleghe{% endif %}</h2>
+    <h2>{% if is_admin_view %}Gestione Deleghe{% else %}Mie Deleghe{% endif %}</h2>
 
-    <div class="grid {% if is_admin_view %}grid-2{% endif %}">
-
+    <div class="grid grid-2">
       {% if is_admin_view %}
       <section class="card">
         <h3>Crea Nuova Delega</h3>
@@ -187,8 +93,6 @@
             <label for="id_note">Note Aggiuntive</label>
             <textarea name="note" id="id_note" rows="3" placeholder="Dettagli specifici della delega"></textarea>
           </div>
-
-          <input type="hidden" name="op" value="add_delegation">
 
           <button type="submit" class="btn primary">Assegna Delega</button>
         </form>
@@ -251,7 +155,7 @@
                     {% if is_admin_view %}
                         Nessuna delega presente.
                     {% else %}
-                        Non ci sono deleghe in attesa di conferma assegnate al tuo account.
+                        Nessuna delega in attesa di conferma.
                     {% endif %}
                   </td>
                 </tr>
