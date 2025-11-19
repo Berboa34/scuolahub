@@ -660,6 +660,8 @@ def documents_view(request):
     # Lista documenti
     documents_qs = Document.objects.select_related("project", "uploaded_by")
 
+    projects_qs = Project.objects.all().order_by("title")
+
     context = {
         "documents": documents_qs,
         "projects": projects_qs,
