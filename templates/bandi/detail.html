@@ -1,0 +1,145 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>{{ bando.title }} – Dettaglio bando</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      margin:0;
+      background:#f3f4f6;
+      color:#111827;
+    }
+    a{color:#0b5cab;text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{background:#0b2a42;color:#fff}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .topnav{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+    .muted{color:#6b7280}
+    .card{
+      background:#fff;
+      border-radius:10px;
+      border:1px solid #e5e7eb;
+      padding:16px;
+      margin-top:16px;
+    }
+    .badge{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:999px;
+      font-size:11px;
+      border:1px solid #e5e7eb;
+      background:#f9fafb;
+      color:#374151;
+    }
+    .status-OPEN{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
+    .status-CLOSED{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+    .status-IN_PREP{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+    .status-FUNDED{background:#ecfdf5;border-color:#6ee7b7;color:#047857}
+    .status-NOT_FUNDED{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+    .section-title{font-size:16px;font-weight:600;margin:16px 0 8px}
+    dl{margin:0}
+    dt{font-size:12px;text-transform:uppercase;color:#6b7280;margin-top:10px}
+    dd{margin:0 0 4px}
+    pre{
+      white-space:pre-wrap;
+      font-family:inherit;
+      font-size:14px;
+      background:#f9fafb;
+      border-radius:8px;
+      border:1px solid #e5e7eb;
+      padding:10px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="topnav">
+      <div class="muted" style="font-size:13px">
+        <a href="{% url 'bandi_list' %}" style="color:#cfe3ff;">← Torna all'elenco bandi</a>
+      </div>
+      <div class="muted" style="font-size:13px">
+        Utente: <b>{{ request.user.username }}</b>
+        {% if school %} · Scuola: <b>{{ school.name }}</b>{% endif %}
+      </div>
+    </div>
+    <h1 style="margin:8px 0 0;">{{ bando.title }}</h1>
+    <p class="muted" style="margin:4px 0 8px;font-size:14px">
+      Programma: <b>{{ bando.get_program_display }}</b>
+      {% if bando.internal_code %} · Cod. interno: {{ bando.internal_code }}{% endif %}
+      {% if bando.school %} · Scuola: {{ bando.school.name }}{% endif %}
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="card">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px">
+      <div>
+        <span class="badge status-{{ bando.status }}">
+          {{ bando.get_status_display }}
+        </span>
+      </div>
+      <div class="muted" style="font-size:13px">
+        Inserito: {{ bando.imported_at|date:"d/m/Y H:i" }} · Ultimo aggiornamento: {{ bando.last_update|date:"d/m/Y H:i" }}
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <dl>
+        <dt>Fonte</dt>
+        <dd>
+          {{ bando.source_name }}
+          {% if bando.source_url %}
+            · <a href="{{ bando.source_url }}" target="_blank">Apri bando ufficiale ↗</a>
+          {% endif %}
+        </dd>
+
+        <dt>Periodo</dt>
+        <dd>
+          {% if bando.publication_date %}Pubblicato il {{ bando.publication_date|date:"d/m/Y" }}{% else %}Data pubblicazione n.d.{% endif %}
+          {% if bando.deadline_date %} · Scadenza: <b>{{ bando.deadline_date|date:"d/m/Y" }}</b>{% endif %}
+        </dd>
+
+        <dt>Importo disponibile</dt>
+        <dd>
+          {% if bando.amount_available %}
+            € {{ bando.amount_available|floatformat:0|intcomma }}
+          {% else %}
+            <span class="muted">Non specificato</span>
+          {% endif %}
+        </dd>
+
+        <dt>Origine dati</dt>
+        <dd>
+          {{ bando.get_import_source_display }}
+        </dd>
+      </dl>
+    </div>
+
+    {% if bando.summary %}
+      <h2 class="section-title">Sintesi</h2>
+      <pre>{{ bando.summary }}</pre>
+    {% endif %}
+
+    {% if bando.requirements %}
+      <h2 class="section-title">Requisiti principali</h2>
+      <pre>{{ bando.requirements }}</pre>
+    {% endif %}
+
+    {% if bando.notes %}
+      <h2 class="section-title">Note interne</h2>
+      <pre>{{ bando.notes }}</pre>
+    {% endif %}
+  </div>
+
+</main>
+
+</body>
+</html>

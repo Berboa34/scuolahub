@@ -222,3 +222,96 @@ class Delegation(models.Model):
 
     def __str__(self):
         return f"{self.collaborator} → {self.project} ({self.get_status_display()})"
+
+class CallForProposal(models.Model):
+    """
+    Bando unificato: rappresenta bandi PNRR, FESR, FSE, Erasmus+, ecc.
+    indipendentemente dalla fonte originale.
+    """
+    PROGRAM_CHOICES = Project.PROGRAM_CHOICES
+    STATUS_CHOICES = [
+        ("DRAFT", "Bozza interna"),
+        ("OPEN", "Aperto"),
+        ("IN_PREP", "In preparazione progetto"),
+        ("CLOSED", "Scaduto"),
+        ("FUNDED", "Finanziato"),
+        ("NOT_FUNDED", "Non finanziato"),
+    ]
+    IMPORT_CHOICES = [
+        ("MANUAL", "Inserimento manuale"),
+        ("CSV", "Import da file"),
+        ("EMAIL", "Da email / newsletter"),
+        ("API", "Sincronizzato da API esterna"),
+    ]
+
+    # Facoltativo: se il bando è specifico per una scuola
+    school = models.ForeignKey(
+        School,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    title = models.CharField("Titolo bando", max_length=255)
+    program = models.CharField(
+        "Programma",
+        max_length=16,
+        choices=PROGRAM_CHOICES,
+        default="PNRR",
+    )
+    internal_code = models.CharField(
+        "Codice interno / riferimento",
+        max_length=50,
+        blank=True,
+        null=True,
+    )
+
+    source_name = models.CharField(
+        "Fonte",
+        max_length=100,
+        help_text="Es. MIM, Regione, Agenzia Erasmus+, Fondazione..."
+    )
+    source_url = models.URLField(
+        "Link al bando ufficiale",
+        blank=True,
+        null=True,
+    )
+
+    publication_date = models.DateField("Data pubblicazione", blank=True, null=True)
+    deadline_date = models.DateField("Scadenza", blank=True, null=True)
+
+    status = models.CharField(
+        "Stato",
+        max_length=12,
+        choices=STATUS_CHOICES,
+        default="OPEN",
+    )
+
+    amount_available = models.DecimalField(
+        "Importo disponibile (se noto)",
+        max_digits=14,
+        decimal_places=2,
+        blank=True,
+        null=True,
+    )
+
+    summary = models.TextField("Sintesi", blank=True, null=True)
+    requirements = models.TextField("Requisiti principali", blank=True, null=True)
+    notes = models.TextField("Note interne", blank=True, null=True)
+
+    import_source = models.CharField(
+        "Origine dati",
+        max_length=10,
+        choices=IMPORT_CHOICES,
+        default="MANUAL",
+    )
+    imported_at = models.DateTimeField("Inserito il", auto_now_add=True)
+    last_update = models.DateTimeField("Ultimo aggiornamento", auto_now=True)
+
+    class Meta:
+        ordering = ["-deadline_date", "title"]
+        verbose_name = "Bando"
+        verbose_name_plural = "Bandi"
+
+    def __str__(self):
+        return self.title

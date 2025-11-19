@@ -85,6 +85,7 @@
     <nav aria-label="Navigazione principale">
       <a href="{% url 'dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
       <a href="{% url 'projects_list' %}" class="{% if request.path|slice:':9' == '/progetti' %}active{% endif %}">Progetti</a>
+      <a href="{% url 'bandi_list' %}">Bandi</a>
       <a href="{% url 'calendar' %}" class="{% if request.path == '/calendario/' %}active{% endif %}">Calendario</a>
       <a href="{% url 'documents' %}" class="{% if request.path == '/documenti/' %}active{% endif %}">Documenti</a>
       <a href="{% url 'deleghe' %}" class="{% if request.path == '/deleghe/' %}active{% endif %}">Deleghe</a>
