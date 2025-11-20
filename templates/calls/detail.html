@@ -102,12 +102,12 @@
         <dd>{{ call.deadline|date:"d/m/Y" }}</dd>
       {% endif %}
 
-      {% if call.source or call.source_url %}
+      {% if call.source or call.link %}
         <dt>Fonte</dt>
         <dd>
-          {% if call.source_url %}
-            <a href="{{ call.source_url }}" target="_blank" rel="noopener">
-              {{ call.source|default:"Sito esterno" }}
+          {% if call.link %}
+            <a href="{{ call.link }}" target="_blank" rel="noopener">
+              {{ call.source|default:"Vai al bando ufficiale" }}
             </a>
           {% else %}
             {{ call.source }}
