@@ -45,9 +45,12 @@ urlpatterns = [
     path("mie-deleghe/", pviews.my_delegations_view, name="my_delegations"),
     path('deleghe/<int:pk>/conferma/', pviews.delegation_confirm, name='delegation_confirm'),
 
+    # Bandi / Call
     path('bandi/', pviews.bandi_list, name='bandi_list'),
+
     path('bandi/<int:pk>/', pviews.bando_detail, name='bando_detail'),
-    path("bandi/", pviews.calls_list, name="calls_list"),
+
+
 
 
 

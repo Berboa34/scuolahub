@@ -816,54 +816,6 @@ def delegation_confirm(request, pk):
 
 
 @login_required
-def bandi_list(request):
-    """
-    Lista unificata dei bandi (PNRR, FESR, FSE, Erasmus+, ecc.)
-    con filtri per programma, stato e ricerca testuale.
-    """
-    profile = getattr(request.user, "profile", None)
-    school = getattr(profile, "school", None)
-
-    qs = CallForProposal.objects.all()
-
-    # Se l'utente è associato a una scuola, mostriamo:
-    # - bandi senza scuola (generici)
-    # - bandi specifici della sua scuola
-    if school:
-        qs = qs.filter(
-            models.Q(school__isnull=True) | models.Q(school=school)
-        )
-
-    program = (request.GET.get("program") or "").strip()
-    status = (request.GET.get("status") or "").strip()
-    search = (request.GET.get("q") or "").strip()
-
-    if program:
-        qs = qs.filter(program=program)
-    if status:
-        qs = qs.filter(status=status)
-    if search:
-        qs = qs.filter(
-            models.Q(title__icontains=search)
-            | models.Q(source_name__icontains=search)
-            | models.Q(internal_code__icontains=search)
-        )
-
-    qs = qs.order_by("deadline_date", "title")
-
-    context = {
-        "bandi": qs,
-        "program": program,
-        "status": status,
-        "search": search,
-        "PROGRAM_CHOICES": Project.PROGRAM_CHOICES,
-        "STATUS_CHOICES": CallForProposal.STATUS_CHOICES,
-        "school": school,
-    }
-    return render(request, "bandi/list.html", context)
-
-
-@login_required
 def bando_detail(request, pk: int):
     """
     Dettaglio singolo bando.
@@ -884,13 +836,17 @@ def bando_detail(request, pk: int):
 
 from django.db.models import Q
 
+
+from django.db.models import Q
+from .models import Call
+
 @login_required
-def calls_list(request):
+def bandi_list(request):
     """
-    Elenco bandi (Call):
+    Elenco bandi/call:
     - filtro per programma
-    - filtro per stato (aperto/scaduto/...)
-    - ricerca testuale su titolo / sorgente / tag
+    - filtro per stato
+    - ricerca testuale su titolo / fonte / tag
     """
     qs = Call.objects.all().order_by("deadline", "title")
 
