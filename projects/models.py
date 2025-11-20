@@ -315,3 +315,36 @@ class CallForProposal(models.Model):
 
     def __str__(self):
         return self.title
+
+class Call(models.Model):
+    PROGRAM_CHOICES = [
+        ("PNRR", "PNRR"),
+        ("FESR", "FESR"),
+        ("FSE", "FSE"),
+        ("ERASMUS", "Erasmus+"),
+        ("ALTRO", "Altro"),
+    ]
+
+    STATUS_CHOICES = [
+        ("APERTO", "Aperto"),
+        ("SCADUTO", "Scaduto"),
+        ("IN_PROGRAMMAZIONE", "In programmazione"),
+    ]
+
+    title = models.CharField(max_length=255)
+    program = models.CharField(max_length=20, choices=PROGRAM_CHOICES)
+    source = models.CharField(max_length=255, help_text="Ministero, Regione, Fondazione, UE…")
+    deadline = models.DateField(blank=True, null=True)
+    budget = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="APERTO")
+    tags = models.CharField(max_length=255, blank=True, null=True)
+    link = models.URLField(blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-deadline", "title"]
+
+    def __str__(self):
+        return self.title

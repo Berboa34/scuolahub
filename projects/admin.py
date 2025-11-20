@@ -2,6 +2,7 @@
 from django.contrib import admin
 from .models import School, Project, Expense, SpendingLimit, Event
 from .models import Delegation
+from .models import Call
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
@@ -62,3 +63,11 @@ class DocumentAdmin(admin.ModelAdmin):
     list_filter = ("project", "uploaded_by", "is_final")
     search_fields = ("title", "project__title", "uploaded_by__username")
     readonly_fields = ("uploaded_at",)
+
+
+@admin.register(Call)
+class CallAdmin(admin.ModelAdmin):
+    list_display = ("title", "program", "status", "deadline", "budget")
+    list_filter = ("program", "status")
+    search_fields = ("title", "source", "tags")
+    ordering = ("-deadline",)
