@@ -16,7 +16,7 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import School, Document, CallForProposal
+from .models import School, Document, CallForProposal, Call
 
 
 User = get_user_model()
@@ -881,3 +881,40 @@ def bando_detail(request, pk: int):
         "bando": bando,
         "school": school,
     })
+
+from django.db.models import Q
+
+@login_required
+def calls_list(request):
+    """
+    Elenco bandi (Call):
+    - filtro per programma
+    - filtro per stato (aperto/scaduto/...)
+    - ricerca testuale su titolo / sorgente / tag
+    """
+    qs = Call.objects.all().order_by("deadline", "title")
+
+    program = request.GET.get("program") or ""
+    status = request.GET.get("status") or ""
+    q = (request.GET.get("q") or "").strip()
+
+    if program:
+        qs = qs.filter(program=program)
+    if status:
+        qs = qs.filter(status=status)
+    if q:
+        qs = qs.filter(
+            Q(title__icontains=q) |
+            Q(source__icontains=q) |
+            Q(tags__icontains=q)
+        )
+
+    context = {
+        "calls": qs,
+        "PROGRAM_CHOICES": Call.PROGRAM_CHOICES,
+        "STATUS_CHOICES": Call.STATUS_CHOICES,
+        "selected_program": program,
+        "selected_status": status,
+        "search_query": q,
+    }
+    return render(request, "calls/list.html", context)
