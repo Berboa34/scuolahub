@@ -3,8 +3,9 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>Bandi e Call — ScuolaHub</title>
+  <title>Elenco bandi — ScuolaHub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
     body{
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
@@ -16,13 +17,6 @@
     a:hover{text-decoration:underline}
     header{background:#0b2a42;color:#fff}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .topnav{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-    }
     .muted{color:#6b7280}
     .card{
       background:#fff;
@@ -31,6 +25,14 @@
       padding:16px;
       margin-top:16px;
     }
+    .topnav{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .small{font-size:13px}
     .filters{
       display:flex;
       flex-wrap:wrap;
@@ -38,11 +40,11 @@
       margin-bottom:12px;
       align-items:flex-end;
     }
-    select,input[type="text"]{
+    input[type="text"], select{
       padding:6px 8px;
       border-radius:8px;
-      border:1px solid #d1d5db;
-      font-size:14px;
+      border:1px solid #e5e7eb;
+      font-size:13px;
     }
     .btn{
       padding:7px 12px;
@@ -50,7 +52,7 @@
       border:1px solid #d1d5db;
       background:#fff;
       cursor:pointer;
-      font-size:14px;
+      font-size:13px;
     }
     .btn.primary{
       background:#0b5cab;
@@ -71,39 +73,27 @@
       text-align:left;
       background:#f9fafb;
       font-weight:600;
-    }
-    .status-pill{
-      display:inline-block;
-      padding:2px 6px;
-      border-radius:999px;
-      font-size:11px;
-      border:1px solid transparent;
-    }
-    .status-APERTO{
-      background:#ecfdf3;
-      color:#166534;
-      border-color:#bbf7d0;
-    }
-    .status-SCADUTO{
-      background:#fef2f2;
-      color:#b91c1c;
-      border-color:#fecaca;
-    }
-    .status-IN_PROGRAMMAZIONE{
-      background:#eff6ff;
-      color:#1d4ed8;
-      border-color:#bfdbfe;
+      font-size:13px;
     }
     .tag{
       display:inline-block;
-      background:#eff6ff;
-      border-radius:999px;
       padding:2px 6px;
+      border-radius:999px;
+      background:#eef2ff;
+      color:#3730a3;
       font-size:11px;
       margin-right:4px;
-      margin-bottom:2px;
+      margin-top:2px;
     }
-    .small{font-size:13px}
+    .badge-status{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:999px;
+      font-size:11px;
+    }
+    .status-open{background:#dcfce7;color:#166534;}
+    .status-closed{background:#fee2e2;color:#b91c1c;}
+    .status-draft{background:#e5e7eb;color:#374151;}
   </style>
 </head>
 <body>
@@ -118,55 +108,65 @@
         Utente: <b>{{ request.user.username }}</b>
       </div>
     </div>
-    <h1 style="margin:8px 0 0;">Bandi e Call attive</h1>
+    <h1 style="margin:8px 0 0;">Bandi e opportunità di finanziamento</h1>
     <p class="muted" style="margin:4px 0 0;font-size:14px">
-      Vista unificata di bandi provenienti da fonti diverse (Ministero, UE, Fondazioni…),
-      filtrabili per programma, stato e parole chiave.
+      Vista prototipale che aggrega bandi ministeriali, europei e altre opportunità
+      rilevanti per l’istituto. I dati sono inseriti manualmente a scopo dimostrativo.
     </p>
   </div>
 </header>
 
 <main class="wrap">
   <div class="card">
+    <h2 style="margin:0 0 10px 0;font-size:18px">Ricerca bandi</h2>
+
     <form method="get" class="filters">
       <div>
         <label class="small muted">Programma</label><br>
         <select name="program">
           <option value="">Tutti</option>
           {% for val,label in PROGRAM_CHOICES %}
-            <option value="{{ val }}" {% if selected_program == val %}selected{% endif %}>{{ label }}</option>
+            <option value="{{ val }}" {% if selected_program == val %}selected{% endif %}>
+              {{ label }}
+            </option>
           {% endfor %}
         </select>
       </div>
+
       <div>
         <label class="small muted">Stato</label><br>
         <select name="status">
           <option value="">Tutti</option>
           {% for val,label in STATUS_CHOICES %}
-            <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+            <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>
+              {{ label }}
+            </option>
           {% endfor %}
         </select>
       </div>
-      <div style="min-width:200px">
-        <label class="small muted">Cerca</label><br>
+
+      <div style="flex:1;min-width:160px;">
+        <label class="small muted">Testo libero</label><br>
         <input type="text" name="q" placeholder="Titolo, fonte, tag…"
-               value="{{ search_query }}">
+               value="{{ search_query|default:'' }}">
       </div>
+
       <div>
         <button class="btn primary" type="submit">Filtra</button>
-        <a class="btn" href="?">Azzera</a>
+        <a href="{% url 'bandi_list' %}" class="btn">Azzera</a>
       </div>
     </form>
 
-    <div style="overflow:auto">
+    <div style="overflow:auto;margin-top:8px">
       <table>
         <thead>
           <tr>
-            <th style="width:35%">Titolo</th>
-            <th style="width:20%">Programma / Fonte</th>
-            <th style="width:15%">Scadenza</th>
-            <th style="width:15%">Budget</th>
-            <th style="width:15%">Stato</th>
+            <th style="width:26%">Titolo</th>
+            <th style="width:15%">Programma</th>
+            <th style="width:14%">Scadenza</th>
+            <th style="width:18%">Fonte</th>
+            <th style="width:17%">Tag</th>
+            <th style="width:10%">Stato</th>
           </tr>
         </thead>
         <tbody>
@@ -174,49 +174,48 @@
             <tr>
               <td>
                 <div><b>{{ c.title }}</b></div>
-                {% if c.tags %}
-                  <div class="small" style="margin-top:4px">
-                    {% for t in c.tags.split(",") %}
-                      {% if t.strip %}
-                        <span class="tag">{{ t.strip }}</span>
-                      {% endif %}
-                    {% endfor %}
-                  </div>
-                {% endif %}
-                {% if c.link %}
-                  <div class="small" style="margin-top:4px">
-                    <a href="{{ c.link }}" target="_blank">Apri bando ↗</a>
-                  </div>
+                {% if c.description %}
+                  <div class="small muted">{{ c.description|truncatechars:120 }}</div>
                 {% endif %}
               </td>
-              <td class="small">
-                <div><b>{{ c.get_program_display }}</b></div>
-                <div class="muted">{{ c.source }}</div>
-              </td>
+              <td class="small">{{ c.get_program_display }}</td>
               <td class="small">
                 {% if c.deadline %}
                   {{ c.deadline|date:"d/m/Y" }}
                 {% else %}
-                  <span class="muted">—</span>
+                  —
                 {% endif %}
               </td>
               <td class="small">
-                {% if c.budget %}
-                  € {{ c.budget|floatformat:0|intcomma }}
+                {% if c.source_url %}
+                  <a href="{{ c.source_url }}" target="_blank" rel="noopener">
+                    {{ c.source|default:"Link esterno" }}
+                  </a>
+                {% else %}
+                  {{ c.source|default:"—" }}
+                {% endif %}
+              </td>
+              <td class="small">
+                {% if c.tags %}
+                  <span class="tag">{{ c.tags }}</span>
                 {% else %}
                   <span class="muted">—</span>
                 {% endif %}
               </td>
               <td class="small">
-                <span class="status-pill status-{{ c.status }}">
-                  {{ c.get_status_display }}
-                </span>
+                {% if c.status == "APERTO" %}
+                  <span class="badge-status status-open">Aperto</span>
+                {% elif c.status == "CHIUSO" %}
+                  <span class="badge-status status-closed">Chiuso</span>
+                {% else %}
+                  <span class="badge-status status-draft">{{ c.get_status_display }}</span>
+                {% endif %}
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="5" class="small muted">
-                Nessun bando trovato. Aggiungi bandi da <a href="/admin/">/admin</a>.
+              <td colspan="6" class="small muted">
+                Nessun bando trovato con i filtri correnti.
               </td>
             </tr>
           {% endfor %}
