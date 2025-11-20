@@ -817,24 +817,12 @@ def delegation_confirm(request, pk):
 
 @login_required
 def bando_detail(request, pk: int):
-    """
-    Dettaglio singolo bando.
-    """
-    profile = getattr(request.user, "profile", None)
-    school = getattr(profile, "school", None)
+    call = get_object_or_404(Call, pk=pk)
 
-    bando = get_object_or_404(CallForProposal, pk=pk)
-
-    # Se il bando è associato a una scuola specifica, blocco se non coincide
-    if school and bando.school_id and bando.school_id != school.id:
-        raise Http404("Bando non trovato")
-
-    return render(request, "bandi/detail.html", {
-        "bando": bando,
-        "school": school,
+    return render(request, "calls/detail.html", {
+        "call": call,
     })
 
-from django.db.models import Q
 
 
 from django.db.models import Q

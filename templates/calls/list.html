@@ -173,7 +173,11 @@
           {% for c in calls %}
             <tr>
               <td>
-                <div><b>{{ c.title }}</b></div>
+                <div>
+                  <a href="{% url 'bando_detail' c.pk %}">
+                    <b>{{ c.title }}</b>
+                  </a>
+                </div>
                 {% if c.description %}
                   <div class="small muted">{{ c.description|truncatechars:120 }}</div>
                 {% endif %}

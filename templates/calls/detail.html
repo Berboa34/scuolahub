@@ -1,0 +1,139 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>{{ call.title }} — Dettaglio bando</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      margin:0;
+      background:#f3f4f6;
+      color:#111827;
+    }
+    a{color:#0b5cab;text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{background:#0b2a42;color:#fff}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .muted{color:#6b7280}
+    .card{
+      background:#fff;
+      border-radius:10px;
+      border:1px solid #e5e7eb;
+      padding:16px;
+      margin-top:16px;
+    }
+    .topnav{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .small{font-size:13px}
+    .badge-status{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      font-size:11px;
+    }
+    .status-open{background:#dcfce7;color:#166534;}
+    .status-closed{background:#fee2e2;color:#b91c1c;}
+    .status-draft{background:#e5e7eb;color:#374151;}
+    dl{margin:0}
+    dt{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      color:#6b7280;
+      margin-top:10px;
+    }
+    dd{margin:0 0 4px 0;}
+    .tag{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:999px;
+      background:#eef2ff;
+      color:#3730a3;
+      font-size:11px;
+      margin-right:4px;
+      margin-top:2px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="topnav">
+      <div class="small">
+        <a href="{% url 'bandi_list' %}" style="color:#cfe3ff;">← Torna all’elenco bandi</a> ·
+        <a href="{% url 'dashboard' %}" style="color:#cfe3ff;">Dashboard</a>
+      </div>
+      <div class="small muted">
+        Utente: <b>{{ request.user.username }}</b>
+      </div>
+    </div>
+    <h1 style="margin:8px 0 4px;">{{ call.title }}</h1>
+    <p class="muted" style="margin:0;font-size:14px">
+      Programma:
+      <b>{{ call.get_program_display }}</b>
+      {% if call.status %}
+        ·
+        {% if call.status == "APERTO" %}
+          <span class="badge-status status-open">Aperto</span>
+        {% elif call.status == "CHIUSO" %}
+          <span class="badge-status status-closed">Chiuso</span>
+        {% else %}
+          <span class="badge-status status-draft">{{ call.get_status_display }}</span>
+        {% endif %}
+      {% endif %}
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="card">
+    <dl>
+      {% if call.deadline %}
+        <dt>Scadenza</dt>
+        <dd>{{ call.deadline|date:"d/m/Y" }}</dd>
+      {% endif %}
+
+      {% if call.source or call.source_url %}
+        <dt>Fonte</dt>
+        <dd>
+          {% if call.source_url %}
+            <a href="{{ call.source_url }}" target="_blank" rel="noopener">
+              {{ call.source|default:"Sito esterno" }}
+            </a>
+          {% else %}
+            {{ call.source }}
+          {% endif %}
+        </dd>
+      {% endif %}
+
+      {% if call.tags %}
+        <dt>Tag</dt>
+        <dd>
+          <span class="tag">{{ call.tags }}</span>
+        </dd>
+      {% endif %}
+
+      {% if call.description %}
+        <dt>Descrizione</dt>
+        <dd>{{ call.description|linebreaksbr }}</dd>
+      {% endif %}
+
+      {% if call.notes %}
+        <dt>Note interne</dt>
+        <dd class="muted small">{{ call.notes|linebreaksbr }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+</main>
+
+</body>
+</html>
