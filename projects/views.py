@@ -710,59 +710,101 @@ def is_superuser(user):
 # ----------------------------------------------------------------------
 
 @login_required
-@user_passes_test(is_superuser, login_url='/accounts/login/')  # Richiede accesso e che sia superuser
+@user_passes_test(is_superuser, login_url='/accounts/login/')  # solo superuser può vedere/creare deleghe
 def deleghe_view(request):
-    # Recupera il modello User (Collaboratori)
+    """
+    Vista gestione deleghe:
+    - Mostra elenco deleghe esistenti
+    - Permette di creare una nuova delega
+    - Invia una mail al collaboratore (se ha un indirizzo email)
+    """
     User = get_user_model()
 
-    # 1. RECUPERO DATI PER I DROPDOWN E LA TABELLA
-    # Passiamo al template l'elenco dei progetti e degli utenti (collaboratori)
+    # 1) Dati per i menu a tendina
     projects = Project.objects.all().order_by('title')
     collaborators = User.objects.filter(is_active=True).order_by('username')
 
-    # Pre-carica le deleghe attive per la tabella (colonna destra)
-    # select_related ottimizza il recupero dei titoli di progetto e nomi utente
-    deleghe = Delegation.objects.all().select_related('project', 'collaborator')
+    # 2) Elenco deleghe già presenti
+    deleghe = (
+        Delegation.objects
+        .all()
+        .select_related('project', 'collaborator')
+        .order_by('-id')
+    )
 
-    # 2. GESTIONE INVIO FORM (Nuova Delega)
+    # 3) Gestione invio form (creazione nuova delega)
     if request.method == 'POST' and request.POST.get('op') == 'add_delegation':
-        project_id = request.POST.get('project_id')
-        collaborator_id = request.POST.get('collaborator_id')
-        role_label = request.POST.get('role_label')
-        note = request.POST.get('note')
+        project_id = request.POST.get('project_id') or ""
+        collaborator_id = request.POST.get('collaborator_id') or ""
+        role_label = (request.POST.get('role_label') or "").strip()
+        note = (request.POST.get('note') or "").strip()
 
-        if project_id and collaborator_id:
+        # Controlli base
+        if not project_id or not collaborator_id:
+            messages.error(request, "Seleziona sia un progetto sia un collaboratore.")
+            return redirect('deleghe')
+
+        # Recupero oggetti dal DB
+        try:
+            project = Project.objects.get(pk=project_id)
+            collaborator = User.objects.get(pk=collaborator_id)
+        except (Project.DoesNotExist, User.DoesNotExist):
+            messages.error(request, "Progetto o collaboratore non valido.")
+            return redirect('deleghe')
+
+        # Creazione delega
+        delega = Delegation.objects.create(
+            project=project,
+            collaborator=collaborator,
+            role_label=role_label,
+            note=note,
+            status="ACTIVE",
+        )
+
+        # 4) Invio email al collaboratore (se ha email)
+        if collaborator.email:
             try:
-                # Recupera gli oggetti Project e User basandosi sugli ID
-                project = get_object_or_404(Project, pk=project_id)
-                collaborator = get_object_or_404(User, pk=collaborator_id)
-
-                # Crea la nuova istanza di Delega
-                Delegation.objects.create(
-                    project=project,
-                    collaborator=collaborator,
-                    role_label=role_label,
-                    note=note,
-                    status="ACTIVE"
+                send_mail(
+                    subject=f"Nuova delega su {project.title}",
+                    message=(
+                        f"Ciao {collaborator.get_username()},\n\n"
+                        f"ti è stata assegnata una nuova delega sulla piattaforma ScuolaHub.\n\n"
+                        f"Progetto: {project.title}\n"
+                        f"Ruolo/delega: {role_label or 'N/D'}\n"
+                        f"Note: {note or '—'}\n\n"
+                        f"Accedi alla piattaforma per vedere i dettagli.\n"
+                        f"ScuolaHub"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[collaborator.email],
+                    fail_silently=False,
                 )
-                messages.success(request,
-                                 f"Delega per {collaborator.username} su {project.title} salvata con successo.")
+                messages.success(
+                    request,
+                    f"Delega salvata e email inviata a {collaborator.email}."
+                )
             except Exception as e:
-                messages.error(request, f"Errore durante il salvataggio della delega: {e}")
+                messages.warning(
+                    request,
+                    f"Delega salvata, ma invio email non riuscito: {e}"
+                )
         else:
-            messages.error(request, "Si prega di selezionare un progetto e un collaboratore.")
+            messages.success(
+                request,
+                "Delega salvata (nessuna email inviata perché il collaboratore non ha un indirizzo email)."
+            )
 
-        # Redireziona dopo il POST per prevenire l'invio doppio del form
+        # Redirect per evitare doppio invio
         return redirect('deleghe')
 
-    # 3. RENDERIZZAZIONE DELLA PAGINA
+    # 5) Render pagina
     context = {
         'projects': projects,
         'collaborators': collaborators,
         'deleghe': deleghe,
     }
-
     return render(request, 'deleghe.html', context)
+
 
 
 # ----------------------------------------------------------------------
