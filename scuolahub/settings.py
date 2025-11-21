@@ -147,10 +147,19 @@ MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-unsafe-key")
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get("EMAIL_USER")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASSWORD")
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+import os
+
+# Se siamo su Render (variabile d'ambiente RENDER presente) → niente Gmail vero,
+# usiamo il backend "console", che non fa chiamate di rete.
+if os.environ.get("RENDER"):
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    # In locale puoi usare davvero Gmail se vuoi testare l'invio
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.gmail.com"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+
+    EMAIL_HOST_USER = os.environ.get("EMAIL_USER")
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
