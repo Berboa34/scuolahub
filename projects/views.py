@@ -8,6 +8,7 @@ import calendar
 from django.urls import reverse
 
 from django.contrib import messages
+from django.conf import settings
 
 from .models import Project, School, Expense, SpendingLimit, Event, Delegation
 
@@ -710,94 +711,67 @@ def is_superuser(user):
 # ----------------------------------------------------------------------
 
 @login_required
-@user_passes_test(is_superuser, login_url='/accounts/login/')  # solo superuser può vedere/creare deleghe
+@user_passes_test(is_superuser, login_url='/accounts/login/')
 def deleghe_view(request):
-    """
-    Vista gestione deleghe:
-    - Mostra elenco deleghe esistenti
-    - Permette di creare una nuova delega
-    - Invia una mail al collaboratore (se ha un indirizzo email)
-    """
     User = get_user_model()
 
-    # 1) Dati per i menu a tendina
     projects = Project.objects.all().order_by('title')
     collaborators = User.objects.filter(is_active=True).order_by('username')
+    deleghe = Delegation.objects.select_related('project', 'collaborator').all()
 
-    # 2) Elenco deleghe già presenti
-    deleghe = (
-        Delegation.objects
-        .all()
-        .select_related('project', 'collaborator')
-        .order_by('-id')
-    )
-
-    # 3) Gestione invio form (creazione nuova delega)
     if request.method == 'POST' and request.POST.get('op') == 'add_delegation':
-        project_id = request.POST.get('project_id') or ""
-        collaborator_id = request.POST.get('collaborator_id') or ""
-        role_label = (request.POST.get('role_label') or "").strip()
-        note = (request.POST.get('note') or "").strip()
+        project_id = request.POST.get('project_id')
+        collaborator_id = request.POST.get('collaborator_id')
+        role_label = request.POST.get('role_label')
+        note = request.POST.get('note')
 
-        # Controlli base
-        if not project_id or not collaborator_id:
-            messages.error(request, "Seleziona sia un progetto sia un collaboratore.")
-            return redirect('deleghe')
-
-        # Recupero oggetti dal DB
-        try:
-            project = Project.objects.get(pk=project_id)
-            collaborator = User.objects.get(pk=collaborator_id)
-        except (Project.DoesNotExist, User.DoesNotExist):
-            messages.error(request, "Progetto o collaboratore non valido.")
-            return redirect('deleghe')
-
-        # Creazione delega
-        delega = Delegation.objects.create(
-            project=project,
-            collaborator=collaborator,
-            role_label=role_label,
-            note=note,
-            status="ACTIVE",
-        )
-
-        # 4) Invio email al collaboratore (se ha email)
-        if collaborator.email:
+        if project_id and collaborator_id:
             try:
-                send_mail(
-                    subject=f"Nuova delega su {project.title}",
-                    message=(
-                        f"Ciao {collaborator.get_username()},\n\n"
-                        f"ti è stata assegnata una nuova delega sulla piattaforma ScuolaHub.\n\n"
-                        f"Progetto: {project.title}\n"
-                        f"Ruolo/delega: {role_label or 'N/D'}\n"
-                        f"Note: {note or '—'}\n\n"
-                        f"Accedi alla piattaforma per vedere i dettagli.\n"
-                        f"ScuolaHub"
-                    ),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[collaborator.email],
-                    fail_silently=False,
+                project = get_object_or_404(Project, pk=project_id)
+                collaborator = get_object_or_404(User, pk=collaborator_id)
+
+                Delegation.objects.create(
+                    project=project,
+                    collaborator=collaborator,
+                    role_label=role_label,
+                    note=note,
+                    status="ACTIVE",
                 )
+
+                # SOLO SE il collaboratore ha un indirizzo email
+                if collaborator.email:
+                    subject = f"Nuova delega sul progetto: {project.title}"
+                    message = (
+                        f"Ciao {collaborator.get_full_name() or collaborator.username},\n\n"
+                        f"ti è stata assegnata una nuova delega sul progetto:\n"
+                        f"  - Titolo: {project.title}\n"
+                        f"  - Ruolo: {role_label or 'Collaboratore'}\n"
+                        f"  - Note: {note or '—'}\n\n"
+                        "Accedi a ScuolaHub per maggiori dettagli."
+                    )
+
+                    # QUI se qualcosa va storto solleva un errore (fail_silently=False)
+                    send_mail(
+                        subject,
+                        message,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [collaborator.email],
+                        fail_silently=False,
+                    )
+
                 messages.success(
                     request,
-                    f"Delega salvata e email inviata a {collaborator.email}."
+                    f"Delega per {collaborator.username} su {project.title} salvata con successo."
                 )
-            except Exception as e:
-                messages.warning(
-                    request,
-                    f"Delega salvata, ma invio email non riuscito: {e}"
-                )
-        else:
-            messages.success(
-                request,
-                "Delega salvata (nessuna email inviata perché il collaboratore non ha un indirizzo email)."
-            )
 
-        # Redirect per evitare doppio invio
+            except Exception as e:
+                # Se c'è un problema con la mail lo vedi anche qui
+                messages.error(request, f"Errore durante il salvataggio o l'invio mail: {e}")
+        else:
+            messages.error(request, "Seleziona sia un progetto sia un collaboratore.")
+
         return redirect('deleghe')
 
-    # 5) Render pagina
     context = {
         'projects': projects,
         'collaborators': collaborators,
