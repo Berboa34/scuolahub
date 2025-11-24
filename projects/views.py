@@ -17,10 +17,11 @@ from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import School, Document, CallForProposal, Call
+from .models import School, Document, CallForProposal, Call, Notification
 
 
 User = get_user_model()
+
 
 
 
@@ -29,49 +30,48 @@ def dashboard(request):
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
 
-    # Query di base dei progetti
+    # Progetti della scuola (se associata) altrimenti tutti
     qs = Project.objects.all()
     if school:
         qs = qs.filter(school=school)
 
-    # --- Totali globali ---
-    # budget: somma dei budget dei progetti
-    totals_budget = qs.aggregate(b=Sum("budget"))["b"] or Decimal("0")
-
-    # spent: somma REALE delle Expense collegate ai progetti visibili
-    totals_spent = (
-        Expense.objects
-        .filter(project__in=qs)
-        .aggregate(s=Sum("amount"))["s"]
-        or Decimal("0")
+    # Totali budget/speso (speso effettivo = somma delle spese)
+    totals = qs.aggregate(
+        budget=Sum("budget"),
     )
+    totals["budget"] = totals["budget"] or 0
 
-    totals = {
-        "budget": totals_budget,
-        "spent": totals_spent,
+    # somma delle spese reali
+    total_spent = Expense.objects.filter(project__in=qs).aggregate(
+        s=Sum("amount")
+    )["s"] or 0
+    totals["spent"] = total_spent
+
+    # Progetti recenti (per la sezione "Progetti in evidenza")
+    latest = qs.order_by("-start_date", "-id")[:6]
+
+    # Bandi recenti (se usi il modello Call per i bandi)
+    try:
+        bandi = Call.objects.order_by("-published_at")[:5]
+    except Exception:
+        bandi = []
+
+    # 🔔 Notifiche NON lette per l'utente loggato
+    notifications = Notification.objects.filter(
+        user=request.user,
+        is_read=False,
+    )[:5]
+
+    context = {
+        "school": school,
+        "totals": totals,
+        "latest": latest,
+        "bandi": bandi,
+        "notifications": notifications,
+        "today": timezone.now().date(),
     }
+    return render(request, "dashboard.html", context)
 
-    # --- Progetti in evidenza (ultimi 6) con "speso" calcolato dalle Expense ---
-    latest = (
-        qs.annotate(
-            spent_from_expenses=Sum("expenses__amount")
-        )
-        .order_by("-start_date", "-id")[:6]
-    )
-
-    # Normalizziamo i None a 0
-    for p in latest:
-        p.spent_from_expenses = p.spent_from_expenses or Decimal("0")
-
-    return render(
-        request,
-        "dashboard.html",
-        {
-            "school": school,
-            "totals": totals,
-            "latest": latest,
-        },
-    )
 
 
 @login_required
@@ -701,36 +701,41 @@ def document_finalize(request, pk: int):
     return redirect("documents")
 
 
-# Funzione di supporto per verificare se l'utente è un superuser (Admin)
 def is_superuser(user):
-    return user.is_authenticated and user.is_superuser
+    return user.is_superuser
 
-
-# ----------------------------------------------------------------------
-# VISTA PRINCIPALE PER LA GESTIONE DELEGHE
-# ----------------------------------------------------------------------
 
 @login_required
 @user_passes_test(is_superuser, login_url='/accounts/login/')
 def deleghe_view(request):
+    """
+    Gestione deleghe:
+    - solo superuser può accedere
+    - crea una delega collegando un collaboratore a un progetto
+    - crea una NOTIFICA per il collaboratore (non per l'admin)
+    """
     User = get_user_model()
 
-    projects = Project.objects.all().order_by('title')
-    collaborators = User.objects.filter(is_active=True).order_by('username')
-    deleghe = Delegation.objects.select_related('project', 'collaborator').all()
+    # Progetti e collaboratori per i menu a tendina
+    projects = Project.objects.all().order_by("title")
+    collaborators = User.objects.filter(is_active=True).order_by("username")
 
-    if request.method == 'POST' and request.POST.get('op') == 'add_delegation':
-        project_id = request.POST.get('project_id')
-        collaborator_id = request.POST.get('collaborator_id')
-        role_label = request.POST.get('role_label')
-        note = request.POST.get('note')
+    # Deleghe esistenti (per la tabella sotto)
+    deleghe = Delegation.objects.select_related("project", "collaborator").order_by("-created_at")
+
+    # Gestione invio form
+    if request.method == "POST" and request.POST.get("op") == "add_delegation":
+        project_id = request.POST.get("project_id")
+        collaborator_id = request.POST.get("collaborator_id")
+        role_label = (request.POST.get("role_label") or "").strip()
+        note = (request.POST.get("note") or "").strip()
 
         if project_id and collaborator_id:
             try:
                 project = get_object_or_404(Project, pk=project_id)
                 collaborator = get_object_or_404(User, pk=collaborator_id)
 
-                Delegation.objects.create(
+                delega = Delegation.objects.create(
                     project=project,
                     collaborator=collaborator,
                     role_label=role_label,
@@ -738,46 +743,29 @@ def deleghe_view(request):
                     status="ACTIVE",
                 )
 
-                # SOLO SE il collaboratore ha un indirizzo email
-                if collaborator.email:
-                    subject = f"Nuova delega sul progetto: {project.title}"
-                    message = (
-                        f"Ciao {collaborator.get_full_name() or collaborator.username},\n\n"
-                        f"ti è stata assegnata una nuova delega sul progetto:\n"
-                        f"  - Titolo: {project.title}\n"
-                        f"  - Ruolo: {role_label or 'Collaboratore'}\n"
-                        f"  - Note: {note or '—'}\n\n"
-                        "Accedi a ScuolaHub per maggiori dettagli."
-                    )
-
-                    # QUI se qualcosa va storto solleva un errore (fail_silently=False)
-                    send_mail(
-                        subject,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [collaborator.email],
-                        fail_silently=False,
-                    )
+                # 🔔 NOTIFICA SOLO AL COLLABORATORE
+                Notification.objects.create(
+                    user=collaborator,
+                    message=f"Ti è stata assegnata una delega sul progetto '{project.title}'.",
+                )
 
                 messages.success(
                     request,
-                    f"Delega per {collaborator.username} su {project.title} salvata con successo."
+                    f"Delega per {collaborator.username} sul progetto “{project.title}” creata e notifica registrata."
                 )
-
             except Exception as e:
-                # Se c'è un problema con la mail lo vedi anche qui
-                messages.error(request, f"Errore durante il salvataggio o l'invio mail: {e}")
+                messages.error(request, f"Errore durante il salvataggio della delega: {e}")
         else:
-            messages.error(request, "Seleziona sia un progetto sia un collaboratore.")
+            messages.error(request, "Seleziona un progetto e un collaboratore.")
 
-        return redirect('deleghe')
+        return redirect("deleghe")
 
     context = {
-        'projects': projects,
-        'collaborators': collaborators,
-        'deleghe': deleghe,
+        "projects": projects,
+        "collaborators": collaborators,
+        "deleghe": deleghe,
     }
-    return render(request, 'deleghe.html', context)
+    return render(request, "deleghe.html", context)
 
 
 

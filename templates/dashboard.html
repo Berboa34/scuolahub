@@ -46,22 +46,20 @@
     .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
     .progress>i{display:block;height:100%;background:var(--primary)}
 
-    /* Calendar demo */
     .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
     .calendar .day{background:#fff;border:1px solid var(--line);border-radius:10px;min-height:90px;padding:8px}
     .calendar .event{font-size:.78rem;background:#eff6ff;border-left:3px solid var(--primary);margin:6px 0;padding:4px 6px;border-radius:6px}
     .hint{font-size:.9rem;color:var(--muted)}
-
-    /* Modal */
-    #modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25)}
-    #modal .panel{max-width:420px;margin:10% auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
   </style>
 </head>
 <body>
 
 {% if user.is_authenticated %}
   <div class="topbar">
-    <div><b>Benvenuto/a, {{ user.username }}</b>{% if school %} — <span class="muted">{{ school.name }}</span>{% endif %}</div>
+    <div>
+      <b>Benvenuto/a, {{ user.username }}</b>
+      {% if school %} — <span class="muted">{{ school.name }}</span>{% endif %}
+    </div>
     <div class="right">
       <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
@@ -81,20 +79,38 @@
       </div>
     </div>
 
-    <!-- NAV con URL Django -->
-    <nav aria-label="Navigazione principale">
+    <nav>
       <a href="{% url 'dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
-      <a href="{% url 'projects_list' %}" class="{% if request.path|slice:':9' == '/progetti' %}active{% endif %}">Progetti</a>
+      <a href="{% url 'projects_list' %}" class="{% if '/progetti' in request.path %}active{% endif %}">Progetti</a>
       <a href="{% url 'bandi_list' %}">Bandi</a>
-      <a href="{% url 'calendar' %}" class="{% if request.path == '/calendario/' %}active{% endif %}">Calendario</a>
-      <a href="{% url 'documents' %}" class="{% if request.path == '/documenti/' %}active{% endif %}">Documenti</a>
-      <a href="{% url 'deleghe' %}" class="{% if request.path == '/deleghe/' %}active{% endif %}">Deleghe</a>
-      <a href="{% url 'settings' %}" class="{% if request.path == '/impostazioni/' %}active{% endif %}">Impostazioni</a>
+      <a href="{% url 'calendar' %}" class="{% if '/calendario' in request.path %}active{% endif %}">Calendario</a>
+      <a href="{% url 'documents' %}" class="{% if '/documenti' in request.path %}active{% endif %}">Documenti</a>
+      <a href="{% url 'deleghe' %}" class="{% if '/deleghe' in request.path %}active{% endif %}">Deleghe</a>
+      <a href="{% url 'settings' %}" class="{% if '/impostazioni' in request.path %}active{% endif %}">Impostazioni</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
+
+  <!-- 🔔 NOTIFICHE -->
+  <section class="card" style="margin-bottom:20px;">
+    <h3 style="margin-top:0">Notifiche</h3>
+
+    {% if notifications %}
+      <ul style="list-style:none;padding-left:0;margin:0;">
+        {% for n in notifications %}
+          <li style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">
+            <div><b>{{ n.message }}</b></div>
+            <div class="muted small">Ricevuta il {{ n.created_at|date:"d/m/Y H:i" }}</div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted small" style="margin:0">Nessuna notifica recente.</p>
+    {% endif %}
+  </section>
+
   <!-- KPI -->
   <section class="grid cols-3">
     <div class="card kpi">
@@ -127,14 +143,16 @@
     </div>
   </section>
 
-  <!-- Progetti in evidenza (solo ultimi N dal DB, niente lista completa) -->
+  <!-- Progetti + Scadenze -->
   <section class="grid cols-2" style="margin-top:16px">
+
+    <!-- Progetti in evidenza -->
     <div class="card">
       <div style="display:flex;align-items:center;gap:8px">
         <h3 style="margin:0">Progetti in evidenza</h3>
         <span class="muted">ultimi inseriti</span>
         <div style="margin-left:auto">
-          <a class="btn" href="{% url 'projects_list' %}">Vai a tutti i progetti →</a>
+          <a class="btn" href="{% url 'projects_list' %}">Vai a tutti →</a>
         </div>
       </div>
 
@@ -146,17 +164,14 @@
           {% for p in latest %}
             <tr onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
               <td>{{ p.title }}</td>
-              <td>{{ p.get_program_display|default:p.program }}</td>
+              <td>{{ p.get_program_display }}</td>
               <td>{{ p.start_date }} – {{ p.end_date }}</td>
               <td>
-                <span class="status
-                  {% if p.status == 'ACTIVE' %}active
-                  {% elif p.status == 'DRAFT' %}draft
-                  {% else %}closed{% endif %}">
-                  {{ p.get_status_display|default:p.status }}
+                <span class="status active">
+                  {{ p.get_status_display }}
                 </span>
               </td>
-              <td>€ {{ p.budget|default:0|floatformat:0|intcomma }}</td>
+              <td>€ {{ p.budget|floatformat:0|intcomma }}</td>
               <td>€ {{ p.spent_from_expenses|floatformat:0|intcomma }}</td>
             </tr>
           {% empty %}
@@ -166,46 +181,23 @@
       </table>
     </div>
 
-    <!-- Calendario sintetico demo -->
+    <!-- Calendario sintetico -->
     <div class="card">
       <h3>Scadenze prossime</h3>
-      <div class="calendar" aria-label="Calendario sintetico">
-        <!-- puoi popolare via DB in futuro (Event); ora è demo -->
-        <div class="day" data-day="15"><b>15</b><div class="event">Rendicontazione PNRR</div></div>
-        <div class="day" data-day="16"><b>16</b><div class="event">Mandato fornitore</div></div>
-        <div class="day" data-day="17"><b>17</b></div>
-        <div class="day" data-day="18"><b>18</b><div class="event">Verbale commissione</div></div>
-        <div class="day" data-day="19"><b>19</b></div>
-        <div class="day" data-day="20"><b>20</b><div class="event">Ordine attrezzature</div></div>
-        <div class="day" data-day="21"><b>21</b></div>
+      <div class="calendar">
+        <div class="day"><b>15</b><div class="event">Rendicontazione PNRR</div></div>
+        <div class="day"><b>16</b><div class="event">Mandato fornitore</div></div>
+        <div class="day"><b>18</b><div class="event">Verbale commissione</div></div>
+        <div class="day"><b>20</b><div class="event">Ordine attrezzature</div></div>
       </div>
-      <p class="hint">Suggerimento: le scadenze deriveranno da milestone e cronoprogramma progetti.</p>
+      <p class="hint">Le scadenze deriveranno dagli eventi reali e dai cronoprogrammi.</p>
     </div>
+
   </section>
 </main>
 
 <footer class="wrap" style="color:var(--muted);padding:24px 0">
-  <span>© 2025 ScuolaHub</span>
+  © 2025 ScuolaHub
 </footer>
-
-<!-- Modal per calendario demo (facoltativo, già disabilitato di default)
-<div id="modal">
-  <div class="panel">
-    <h3 id="modal-title">Nuovo evento</h3>
-    <label>Titolo evento<br>
-      <input id="modal-input" class="input" placeholder="Es. Rendicontazione intermedia" style="width:100%">
-    </label>
-    <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end">
-      <button id="modal-cancel" class="btn">Annulla</button>
-      <button id="modal-save" class="btn primary">Salva</button>
-    </div>
-  </div>
-</div>
--->
-
-<script>
-  // Qui puoi aggiungere JS leggero in futuro (es. interazioni demo).
-  // Nessun router a hash. La nav usa link Django reali.
-</script>
 </body>
 </html>
