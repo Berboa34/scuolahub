@@ -14,15 +14,14 @@
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
     a{color:var(--primary);text-decoration:none}
+    a:hover{text-decoration:underline}
     .wrap{max-width:1200px;margin:0 auto;padding:16px}
 
-    /* Topbar user */
     .topbar{background:#f1f1f1;padding:10px;border-bottom:1px solid #ccc;display:flex;gap:12px;align-items:center}
     .topbar .right{margin-left:auto}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:0.9rem}
     .btn.primary{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
 
-    /* Header + nav */
     header{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:1px solid var(--line)}
     .brand{display:flex;gap:10px;align-items:center}
     .brand .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:inline-grid;place-items:center;color:#fff;font-weight:700}
@@ -30,7 +29,6 @@
     nav a{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:10px}
     nav a.active{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
 
-    /* Layout */
     main{padding:20px 0}
     .grid{display:grid;gap:16px}
     .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -43,23 +41,28 @@
     .tag{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--chip);color:#3730a3;font-size:.8rem}
     .status{font-size:.8rem;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid var(--line)}
     .status.active{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+    .status.draft{background:#fef9c3;color:#854d0e;border-color:#fcd34d}
+    .status.closed{background:#fee2e2;color:#991b1b;border-color:#fecaca}
     .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
     .progress>i{display:block;height:100%;background:var(--primary)}
-
-    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-    .calendar .day{background:#fff;border:1px solid var(--line);border-radius:10px;min-height:90px;padding:8px}
-    .calendar .event{font-size:.78rem;background:#eff6ff;border-left:3px solid var(--primary);margin:6px 0;padding:4px 6px;border-radius:6px}
     .hint{font-size:.9rem;color:var(--muted)}
+
+    .notif-list{list-style:none;margin:8px 0 0;padding:0}
+    .notif-item{padding:8px 10px;border-radius:10px;border:1px solid var(--line);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+    .notif-item.unread{background:#eff6ff;border-color:#bfdbfe}
+    .notif-item small{color:var(--muted);font-size:.75rem}
+
+    .event-list{list-style:none;margin:8px 0 0;padding:0}
+    .event-item{padding:8px 10px;border-radius:10px;border:1px solid var(--line);margin-bottom:6px}
+    .event-item-title{font-weight:600;font-size:.9rem}
+    .event-item small{color:var(--muted);font-size:.8rem}
   </style>
 </head>
 <body>
 
 {% if user.is_authenticated %}
   <div class="topbar">
-    <div>
-      <b>Benvenuto/a, {{ user.username }}</b>
-      {% if school %} — <span class="muted">{{ school.name }}</span>{% endif %}
-    </div>
+    <div><b>Benvenuto/a, {{ user.username }}</b>{% if school %} — <span class="muted">{{ school.name }}</span>{% endif %}</div>
     <div class="right">
       <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
@@ -79,38 +82,19 @@
       </div>
     </div>
 
-    <nav>
+    <nav aria-label="Navigazione principale">
       <a href="{% url 'dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
-      <a href="{% url 'projects_list' %}" class="{% if '/progetti' in request.path %}active{% endif %}">Progetti</a>
+      <a href="{% url 'projects_list' %}" class="{% if request.path|slice:':9' == '/progetti' %}active{% endif %}">Progetti</a>
       <a href="{% url 'bandi_list' %}">Bandi</a>
-      <a href="{% url 'calendar' %}" class="{% if '/calendario' in request.path %}active{% endif %}">Calendario</a>
-      <a href="{% url 'documents' %}" class="{% if '/documenti' in request.path %}active{% endif %}">Documenti</a>
-      <a href="{% url 'deleghe' %}" class="{% if '/deleghe' in request.path %}active{% endif %}">Deleghe</a>
-      <a href="{% url 'settings' %}" class="{% if '/impostazioni' in request.path %}active{% endif %}">Impostazioni</a>
+      <a href="{% url 'calendar' %}" class="{% if request.path == '/calendario/' %}active{% endif %}">Calendario</a>
+      <a href="{% url 'documents' %}" class="{% if request.path == '/documenti/' %}active{% endif %}">Documenti</a>
+      <a href="{% url 'deleghe' %}" class="{% if request.path == '/deleghe/' %}active{% endif %}">Deleghe</a>
+      <a href="{% url 'settings' %}" class="{% if request.path == '/impostazioni/' %}active{% endif %}">Impostazioni</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
-
-  <!-- 🔔 NOTIFICHE -->
-  <section class="card" style="margin-bottom:20px;">
-    <h3 style="margin-top:0">Notifiche</h3>
-
-    {% if notifications %}
-      <ul style="list-style:none;padding-left:0;margin:0;">
-        {% for n in notifications %}
-          <li style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)">
-            <div><b>{{ n.message }}</b></div>
-            <div class="muted small">Ricevuta il {{ n.created_at|date:"d/m/Y H:i" }}</div>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="muted small" style="margin:0">Nessuna notifica recente.</p>
-    {% endif %}
-  </section>
-
   <!-- KPI -->
   <section class="grid cols-3">
     <div class="card kpi">
@@ -118,7 +102,9 @@
         <div class="muted">Budget allocato</div>
         <b>€ {{ totals.budget|default:0|floatformat:0|intcomma }}</b>
       </div>
-      <span class="tag">{% if totals.budget %}+ aggiornato{% else %}—{% endif %}</span>
+      <span class="tag">
+        {% if totals.budget %}+ aggiornato{% else %}—{% endif %}
+      </span>
     </div>
 
     <div class="card kpi">
@@ -143,61 +129,126 @@
     </div>
   </section>
 
-  <!-- Progetti + Scadenze -->
+  <!-- Progetti + colonna destra -->
   <section class="grid cols-2" style="margin-top:16px">
-
     <!-- Progetti in evidenza -->
     <div class="card">
       <div style="display:flex;align-items:center;gap:8px">
         <h3 style="margin:0">Progetti in evidenza</h3>
         <span class="muted">ultimi inseriti</span>
         <div style="margin-left:auto">
-          <a class="btn" href="{% url 'projects_list' %}">Vai a tutti →</a>
+          <a class="btn" href="{% url 'projects_list' %}">Vai a tutti i progetti →</a>
         </div>
       </div>
 
-      <table style="margin-top:12px">
+      <table style="margin-top:12px;width:100%;border-collapse:collapse;font-size:0.9rem">
         <thead>
-          <tr><th>Titolo</th><th>Programma</th><th>Periodo</th><th>Stato</th><th>Budget</th><th>Speso</th></tr>
+          <tr>
+            <th style="text-align:left;padding:6px 4px">Titolo</th>
+            <th style="text-align:left;padding:6px 4px">Programma</th>
+            <th style="text-align:left;padding:6px 4px">Periodo</th>
+            <th style="text-align:left;padding:6px 4px">Stato</th>
+            <th style="text-align:right;padding:6px 4px">Budget</th>
+            <th style="text-align:right;padding:6px 4px">Speso</th>
+          </tr>
         </thead>
         <tbody>
           {% for p in latest %}
-            <tr onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer">
-              <td>{{ p.title }}</td>
-              <td>{{ p.get_program_display }}</td>
-              <td>{{ p.start_date }} – {{ p.end_date }}</td>
-              <td>
-                <span class="status active">
-                  {{ p.get_status_display }}
+            <tr onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer;border-top:1px solid var(--line)">
+              <td style="padding:6px 4px">{{ p.title }}</td>
+              <td style="padding:6px 4px">{{ p.get_program_display|default:p.program }}</td>
+              <td style="padding:6px 4px">
+                {% if p.start_date %}{{ p.start_date }}{% else %}?{% endif %}
+                –
+                {% if p.end_date %}{{ p.end_date }}{% else %}?{% endif %}
+              </td>
+              <td style="padding:6px 4px">
+                <span class="status
+                  {% if p.status == 'ACTIVE' %}active
+                  {% elif p.status == 'DRAFT' %}draft
+                  {% else %}closed{% endif %}">
+                  {{ p.get_status_display|default:p.status }}
                 </span>
               </td>
-              <td>€ {{ p.budget|floatformat:0|intcomma }}</td>
-              <td>€ {{ p.spent_from_expenses|floatformat:0|intcomma }}</td>
+              <td style="padding:6px 4px;text-align:right">€ {{ p.budget|default:0|floatformat:0|intcomma }}</td>
+              <td style="padding:6px 4px;text-align:right">€ {{ p.spent_from_expenses|floatformat:0|intcomma }}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="6" class="muted">Nessun progetto disponibile.</td></tr>
+            <tr><td colspan="6" class="muted" style="padding:8px 4px">Nessun progetto disponibile.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
-    <!-- Calendario sintetico -->
-    <div class="card">
-      <h3>Scadenze prossime</h3>
-      <div class="calendar">
-        <div class="day"><b>15</b><div class="event">Rendicontazione PNRR</div></div>
-        <div class="day"><b>16</b><div class="event">Mandato fornitore</div></div>
-        <div class="day"><b>18</b><div class="event">Verbale commissione</div></div>
-        <div class="day"><b>20</b><div class="event">Ordine attrezzature</div></div>
+    <!-- Colonna destra: notifiche + prossimi eventi -->
+    <div class="grid cols-1">
+      <!-- Notifiche -->
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px">
+          <h3 style="margin:0">Notifiche</h3>
+        </div>
+        {% if notifications %}
+          <ul class="notif-list">
+            {% for n in notifications %}
+              <li class="notif-item {% if not n.is_read %}unread{% endif %}">
+                <div style="flex:1 1 auto">
+                  <a href="{% url 'notification_read' n.id %}" style="font-size:0.9rem;display:block">
+                    {{ n.message }}
+                  </a>
+                  <small>{{ n.created_at|naturaltime }}</small>
+                </div>
+                {% if not n.is_read %}
+                  <span class="tag">Nuova</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted" style="margin-top:8px;font-size:0.9rem">
+            Nessuna notifica presente.
+          </p>
+        {% endif %}
       </div>
-      <p class="hint">Le scadenze deriveranno dagli eventi reali e dai cronoprogrammi.</p>
-    </div>
 
+      <!-- Prossimi eventi dal calendario -->
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px">
+          <h3 style="margin:0">Prossimi eventi</h3>
+          <div style="margin-left:auto">
+            <a class="btn" href="{% url 'calendar' %}">Apri calendario →</a>
+          </div>
+        </div>
+
+        {% if upcoming_events %}
+          <ul class="event-list">
+            {% for ev in upcoming_events %}
+              <li class="event-item">
+                <div class="event-item-title">{{ ev.title }}</div>
+                <small>
+                  {{ ev.date|date:"d/m/Y" }}
+                  {% if ev.project %}
+                    · Progetto: {{ ev.project.title }}
+                  {% endif %}
+                </small>
+                {% if ev.description %}
+                  <div style="margin-top:4px;font-size:0.85rem">{{ ev.description }}</div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted" style="margin-top:8px;font-size:0.9rem">
+            Nessun evento futuro registrato. Vai al calendario per aggiungerne uno.
+          </p>
+        {% endif %}
+      </div>
+    </div>
   </section>
 </main>
 
 <footer class="wrap" style="color:var(--muted);padding:24px 0">
-  © 2025 ScuolaHub
+  <span>© 2025 ScuolaHub</span>
 </footer>
+
 </body>
 </html>

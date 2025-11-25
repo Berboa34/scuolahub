@@ -27,50 +27,63 @@ User = get_user_model()
 
 @login_required
 def dashboard(request):
+    """
+    Dashboard:
+    - KPI budget/spesa calcolati sui progetti della scuola
+    - Progetti recenti con speso calcolato dalle Expense
+    - Notifiche per l'utente loggato
+    - Prossimi eventi di calendario per l'utente
+    """
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
 
-    # Progetti della scuola (se associata) altrimenti tutti
-    qs = Project.objects.all()
+    # --- PROGETTI DELLA SCUOLA
+    projects_qs = Project.objects.all()
     if school:
-        qs = qs.filter(school=school)
+        projects_qs = projects_qs.filter(school=school)
 
-    # Totali budget/speso (speso effettivo = somma delle spese)
-    totals = qs.aggregate(
-        budget=Sum("budget"),
+    # KPI: budget totale e spesa totale (somma delle Expense)
+    totals = {}
+    totals["budget"] = projects_qs.aggregate(b=Sum("budget"))["b"] or 0
+
+    expenses_qs = Expense.objects.filter(project__in=projects_qs)
+    totals["spent"] = expenses_qs.aggregate(s=Sum("amount"))["s"] or 0
+
+    # Progetti recenti (ultimi 6) con spesa calcolata dalle expense
+    latest = list(projects_qs.order_by("-start_date", "-id")[:6])
+
+    # Mappa project.id -> somma spese
+    sums_per_project = (
+        Expense.objects
+        .filter(project__in=latest)
+        .values("project_id")
+        .annotate(total=Sum("amount"))
     )
-    totals["budget"] = totals["budget"] or 0
+    sums_map = {row["project_id"]: row["total"] or 0 for row in sums_per_project}
 
-    # somma delle spese reali
-    total_spent = Expense.objects.filter(project__in=qs).aggregate(
-        s=Sum("amount")
-    )["s"] or 0
-    totals["spent"] = total_spent
+    for p in latest:
+        # attributo usato nel template
+        p.spent_from_expenses = sums_map.get(p.id, 0)
 
-    # Progetti recenti (per la sezione "Progetti in evidenza")
-    latest = qs.order_by("-start_date", "-id")[:6]
+    # --- NOTIFICHE PER L'UTENTE
+    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")[:5]
 
-    # Bandi recenti (se usi il modello Call per i bandi)
-    try:
-        bandi = Call.objects.order_by("-published_at")[:5]
-    except Exception:
-        bandi = []
-
-    # 🔔 Notifiche NON lette per l'utente loggato
-    notifications = Notification.objects.filter(
-        user=request.user,
-        is_read=False,
-    )[:5]
+    # --- PROSSIMI EVENTI (CALENDARIO)
+    today = timezone.localdate()
+    events_qs = Event.objects.filter(owner=request.user, date__gte=today)
+    if school:
+        events_qs = events_qs.filter(school=school)
+    upcoming_events = events_qs.order_by("date")[:5]
 
     context = {
         "school": school,
         "totals": totals,
         "latest": latest,
-        "bandi": bandi,
         "notifications": notifications,
-        "today": timezone.now().date(),
+        "upcoming_events": upcoming_events,
     }
     return render(request, "dashboard.html", context)
+
 
 
 
@@ -866,3 +879,22 @@ def bandi_list(request):
         "search_query": q,
     }
     return render(request, "calls/list.html", context)
+
+@login_required
+def notification_read(request, pk: int):
+    """
+    Marca una notifica come letta e rimanda l'utente da qualche parte.
+    Per ora: ritorno alla dashboard.
+    """
+    notif = get_object_or_404(Notification, pk=pk)
+
+    # sicurezza: solo il proprietario (o superuser) può toccarla
+    if notif.user != request.user and not request.user.is_superuser:
+        return redirect("dashboard")
+
+    if not notif.is_read:
+        notif.is_read = True
+        notif.save()
+
+    # in futuro potrai fare redirect ad una pagina specifica (es. progetto)
+    return redirect("dashboard")
