@@ -1,8 +1,8 @@
 # projects/admin.py
 from django.contrib import admin
-from .models import School, Project, Expense, SpendingLimit, Event
+from .models import School, Project, Expense, SpendingLimit, Event, Document
 from .models import Delegation
-from .models import Call
+from .models import Call, Notification
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
@@ -71,3 +71,10 @@ class CallAdmin(admin.ModelAdmin):
     list_filter = ("program", "status")
     search_fields = ("title", "source", "tags")
     ordering = ("-deadline",)
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("user", "message", "is_read", "created_at")
+    list_filter = ("is_read", "user")
+    search_fields = ("message", "user__username")
+    readonly_fields = ("created_at",)
