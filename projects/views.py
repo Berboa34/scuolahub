@@ -901,3 +901,69 @@ def notification_read(request, pk: int):
         "notification": notif,
     })
 
+
+@login_required
+def notification_detail(request, pk: int):
+    """
+    Dettaglio singola notifica.
+    Se è collegata a una delega e l’utente è il collaboratore,
+    può ACCETTARE o RIFIUTARE la delega.
+    """
+    notification = get_object_or_404(
+        Notification,
+        pk=pk,
+        user=request.user,  # sicurezza: ogni utente vede solo le proprie
+    )
+
+    # segna come letta se non lo è
+    if not notification.is_read:
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+
+    delegation = notification.delegation  # può essere None
+
+    if request.method == "POST" and delegation and delegation.collaborator_id == request.user.id:
+        action = request.POST.get("action")
+
+        if delegation.status != "PENDING":
+            messages.error(request, "Questa delega è già stata gestita.")
+            return redirect("dashboard")
+
+        if action == "accept":
+            delegation.status = "CONFIRMED"
+            delegation.save(update_fields=["status"])
+            messages.success(request, "Hai accettato la delega.")
+        elif action == "reject":
+            delegation.status = "REJECTED"
+            delegation.save(update_fields=["status"])
+            messages.success(request, "Hai rifiutato la delega.")
+        else:
+            messages.error(request, "Azione non valida.")
+
+        return redirect("dashboard")
+
+    return render(
+        request,
+        "notifications/detail.html",
+        {
+            "notification": notification,
+            "delegation": delegation,
+        },
+    )
+
+@login_required
+def accept_delegation(request, pk: int):
+    """
+    Il collaboratore accetta la delega.
+    """
+    delega = get_object_or_404(Delegation, pk=pk)
+
+    # sicurezza: solo il proprietario può accettare
+    if delega.collaborator != request.user:
+        return redirect("dashboard")
+
+    delega.accepted = True
+    delega.save()
+
+    messages.success(request, "Hai accettato la delega.")
+    return redirect("dashboard")

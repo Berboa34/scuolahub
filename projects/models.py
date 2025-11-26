@@ -186,42 +186,46 @@ from django.conf import settings
 
 class Delegation(models.Model):
     STATUS_CHOICES = [
-        ("PENDING", "In attesa di conferma"),  # Nuovo stato
-        ("ACTIVE", "Attiva"),
-        ("CONFIRMED", "Confermata"),
-        # Nuovo stato (usata se Active significa "non revocata" e Confirmed significa "accettata")
+        ("PENDING", "In attesa di conferma"),   # appena creata
+        ("ACTIVE", "Attiva"),                   # volendo per deleghe già operative
+        ("CONFIRMED", "Accettata dal delegato"),
         ("REVOKED", "Revocata"),
-        ("REJECTED", "Rifiutata"),  # (Opzionale)
+        ("REJECTED", "Rifiutata"),
     ]
 
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
         related_name="delegations",
-        null=True,  # <--- AGGIUNGI O RIPRISTINA QUESTO
-        blank=True,  # <--- AGGIUNGI O RIPRISTINA QUESTO
+        null=True,
+        blank=True,
     )
     collaborator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,  # va bene, se elimini l'utente si eliminano anche le deleghe
+        on_delete=models.CASCADE,
         related_name="delegations",
         null=True,
         blank=True,
     )
     role_label = models.CharField("Ruolo delegato", max_length=100, blank=True)
     note = models.TextField(blank=True)
+
     status = models.CharField(
         max_length=16,
         choices=STATUS_CHOICES,
-        default="PENDING",
+        default="PENDING",  # quando la crei parte come “in attesa”
     )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.collaborator} → {self.project} ({self.get_status_display()})"
+        if self.collaborator and self.project:
+            return f"{self.collaborator} → {self.project} ({self.get_status_display()})"
+        return f"Delega #{self.pk} ({self.get_status_display()})"
+
 
 class CallForProposal(models.Model):
     """
@@ -356,6 +360,13 @@ class Notification(models.Model):
         on_delete=models.CASCADE,
         related_name="notifications",
     )
+    delegation = models.ForeignKey(           # <--- NUOVO
+        "Delegation",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="notifications",
+    )
     message = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
@@ -366,20 +377,3 @@ class Notification(models.Model):
     def __str__(self):
         return f"Notifica per {self.user.username} - {self.message}"
 
-
-@login_required
-def accept_delegation(request, pk: int):
-    """
-    Il collaboratore accetta la delega.
-    """
-    delega = get_object_or_404(Delegation, pk=pk)
-
-    # sicurezza: solo il proprietario può accettare
-    if delega.collaborator != request.user:
-        return redirect("dashboard")
-
-    delega.accepted = True
-    delega.save()
-
-    messages.success(request, "Hai accettato la delega.")
-    return redirect("dashboard")

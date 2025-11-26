@@ -1,0 +1,98 @@
+{% load humanize %}
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Dettaglio notifica — ScuolaHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      margin:0;
+      background:#f3f4f6;
+      color:#111827;
+    }
+    a{color:#2563eb;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:800px;margin:0 auto;padding:16px}
+    .card{
+      background:#fff;border-radius:12px;border:1px solid #e5e7eb;
+      padding:16px;margin-top:16px;
+    }
+    .muted{color:#6b7280;font-size:14px}
+    .badge{
+      display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;
+      border:1px solid #e5e7eb;background:#f9fafb;
+    }
+    .badge.PENDING{background:#fef9c3;border-color:#facc15;color:#854d0e}
+    .badge.CONFIRMED{background:#dcfce7;border-color:#22c55e;color:#166534}
+    .badge.REJECTED{background:#fee2e2;border-color:#ef4444;color:#991b1b}
+    .badge.REVOKED{background:#e5e7eb;border-color:#9ca3af;color:#374151}
+    .row{margin-top:8px}
+    .btn{
+      display:inline-block;margin-top:8px;padding:8px 12px;border-radius:8px;
+      border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:14px;
+    }
+    .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+    .btn.danger{background:#dc2626;border-color:#b91c1c;color:#fff}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p><a href="{% url 'dashboard' %}">← Torna alla dashboard</a></p>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Notifica</h2>
+      <p class="muted">
+        Ricevuta il {{ notification.created_at|date:"d/m/Y H:i" }}
+      </p>
+      <p>{{ notification.message }}</p>
+
+      {% if delegation %}
+        <hr style="margin:16px 0;">
+        <h3 style="margin-top:0;">Dettaglio delega</h3>
+        <div class="row">
+          <span class="muted">Progetto:</span>
+          {% if delegation.project %}
+            <a href="{% url 'project_detail' delegation.project.id %}">
+              {{ delegation.project.title }}
+            </a>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </div>
+        <div class="row">
+          <span class="muted">Ruolo delegato:</span>
+          {{ delegation.role_label|default:"(non specificato)" }}
+        </div>
+        <div class="row">
+          <span class="muted">Note:</span>
+          {{ delegation.note|default:"(nessuna nota)" }}
+        </div>
+        <div class="row">
+          <span class="muted">Stato:</span>
+          <span class="badge {{ delegation.status }}">
+            {{ delegation.get_status_display }}
+          </span>
+        </div>
+
+        {% if user == delegation.collaborator and delegation.status == "PENDING" %}
+          <form method="post" style="margin-top:12px;">
+            {% csrf_token %}
+            <button class="btn primary" type="submit" name="action" value="accept">
+              ✅ Accetta delega
+            </button>
+            <button class="btn danger" type="submit" name="action" value="reject">
+              ❌ Rifiuta delega
+            </button>
+          </form>
+        {% endif %}
+      {% else %}
+        <p class="muted" style="margin-top:16px">
+          Questa notifica non è collegata a una delega specifica.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
