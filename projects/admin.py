@@ -78,3 +78,8 @@ class NotificationAdmin(admin.ModelAdmin):
     list_filter = ("is_read", "user")
     search_fields = ("message", "user__username")
     readonly_fields = ("created_at",)
+
+@admin.register(Delegation)
+class DelegationAdmin(admin.ModelAdmin):
+    list_display = ("project", "collaborator", "status", "accepted", "created_at")
+    list_filter = ("accepted", "status")

@@ -365,3 +365,21 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notifica per {self.user.username} - {self.message}"
+
+
+@login_required
+def accept_delegation(request, pk: int):
+    """
+    Il collaboratore accetta la delega.
+    """
+    delega = get_object_or_404(Delegation, pk=pk)
+
+    # sicurezza: solo il proprietario può accettare
+    if delega.collaborator != request.user:
+        return redirect("dashboard")
+
+    delega.accepted = True
+    delega.save()
+
+    messages.success(request, "Hai accettato la delega.")
+    return redirect("dashboard")
