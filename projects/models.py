@@ -186,9 +186,9 @@ from django.conf import settings
 
 class Delegation(models.Model):
     STATUS_CHOICES = [
-        ("PENDING", "In attesa di conferma"),   # appena creata
-        ("ACTIVE", "Attiva"),                   # volendo per deleghe già operative
-        ("CONFIRMED", "Accettata dal delegato"),
+        ("PENDING", "In attesa di conferma"),
+        ("ACTIVE", "Attiva"),
+        ("CONFIRMED", "Confermata"),
         ("REVOKED", "Revocata"),
         ("REJECTED", "Rifiutata"),
     ]
@@ -209,22 +209,19 @@ class Delegation(models.Model):
     )
     role_label = models.CharField("Ruolo delegato", max_length=100, blank=True)
     note = models.TextField(blank=True)
-
     status = models.CharField(
         max_length=16,
         choices=STATUS_CHOICES,
-        default="PENDING",  # quando la crei parte come “in attesa”
+        default="PENDING",
     )
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        if self.collaborator and self.project:
-            return f"{self.collaborator} → {self.project} ({self.get_status_display()})"
-        return f"Delega #{self.pk} ({self.get_status_display()})"
+        return f"{self.collaborator} → {self.project} ({self.get_status_display()})"
+
 
 
 class CallForProposal(models.Model):
@@ -360,9 +357,9 @@ class Notification(models.Model):
         on_delete=models.CASCADE,
         related_name="notifications",
     )
-    message = models.CharField(max_length=255)
+    message = models.TextField()
 
-    # 🔗 collegamento (opzionale) ad una delega
+    # 🔗 COLLEGAMENTO ALLA DELEGA (FONDAMENTALE)
     delegation = models.ForeignKey(
         "Delegation",
         on_delete=models.CASCADE,
@@ -378,6 +375,6 @@ class Notification(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.user} – {self.message[:40]}"
+        return f"Notif → {self.user} ({self.created_at:%Y-%m-%d})"
 
 

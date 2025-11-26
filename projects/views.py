@@ -801,18 +801,18 @@ def notification_read(request, pk: int):
 def notification_detail(request, pk: int):
     """
     Dettaglio di una notifica.
-    Permette di accettare/rifiutare la delega collegata, se presente.
+    Se è collegata a una Delegation, permette di accettare/rifiutare la delega.
     """
     notification = get_object_or_404(Notification, pk=pk, user=request.user)
 
-    # Segniamo come letta
+    # Segna come letta
     if not notification.is_read:
         notification.is_read = True
         notification.save(update_fields=["is_read"])
 
-    delegation = notification.delegation  # ← Collegamento DIRETTO
+    delegation = notification.delegation  # grazie al ForeignKey sul modello
 
-    # Se NON c’è delega collegata → messaggio chiaro
+    # Se non c'è delega collegata → messaggio
     if not delegation:
         return render(request, "notification_detail.html", {
             "notification": notification,
@@ -821,12 +821,11 @@ def notification_detail(request, pk: int):
             "can_reject": False,
         })
 
-    # Se c'è delega:
+    # Può accettare o rifiutare solo se la delega è ancora "PENDING"
     can_accept = delegation.status == "PENDING"
     can_reject = delegation.status == "PENDING"
 
-    # Gestione POST (accetta/rifiuta delega)
-    if request.method == "POST":
+    if request.method == "POST" and delegation:
         action = request.POST.get("action")
 
         if action == "accept" and can_accept:
@@ -847,6 +846,7 @@ def notification_detail(request, pk: int):
         "can_accept": can_accept,
         "can_reject": can_reject,
     })
+
 
 
 

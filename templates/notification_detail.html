@@ -11,23 +11,57 @@
       --primary:#2563eb;--line:#e5e7eb;--ok:#16a34a;--bad:#dc2626;--warn:#ca8a04;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
     a{color:var(--primary);text-decoration:none}
     a:hover{text-decoration:underline}
     .wrap{max-width:800px;margin:0 auto;padding:16px}
     header{background:#0b2a42;color:#fff;padding:12px 0;margin-bottom:16px}
     .crumbs{font-size:13px;margin-bottom:4px}
-    .card{background:var(--panel);border-radius:14px;border:1px solid var(--line);padding:16px;margin-bottom:16px}
+    .card{
+      background:var(--panel);
+      border-radius:14px;
+      border:1px solid var(--line);
+      padding:16px;
+      margin-bottom:16px;
+    }
     .muted{color:var(--muted);font-size:14px}
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#f9fafb}
+    .badge{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid var(--line);
+      background:#f9fafb;
+    }
     .badge.read{background:#ecfdf5;color:#166534;border-color:#bbf7d0}
     .badge.unread{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
-    .status-pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
+    .status-pill{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid var(--line);
+    }
     .status-pill.pending{background:#fef9c3;color:#854d0e;border-color:#facc15}
     .status-pill.confirmed{background:#ecfdf5;color:#166534;border-color:#22c55e}
     .status-pill.rejected{background:#fee2e2;color:#b91c1c;border-color:#f97373}
     .status-pill.revoked{background:#e5e7eb;color:#374151;border-color:#9ca3af}
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px}
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:8px 12px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#fff;
+      cursor:pointer;
+      font-size:14px;
+    }
     .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
     .btn.danger{background:#dc2626;color:#fff;border-color:#dc2626}
     .btn:disabled{opacity:.6;cursor:default}
@@ -77,8 +111,9 @@
 
       <h2 style="margin:0 0 6px 0;font-size:16px;">Dettagli delega collegata</h2>
 
+      <!-- Progetto -->
       <p class="muted" style="margin:0 0 6px 0;">
-        Progetto:
+        <span class="field-label">Progetto:</span><br>
         {% if delegation.project %}
           <a href="{% url 'project_detail' delegation.project.id %}">
             {{ delegation.project.title }}
@@ -88,16 +123,21 @@
         {% endif %}
       </p>
 
+      <!-- Ruolo -->
       <p class="muted" style="margin:0 0 6px 0;">
-        Ruolo: {{ delegation.role_label|default:"(non specificato)" }}
+        <span class="field-label">Ruolo delegato:</span><br>
+        {{ delegation.role_label|default:"(non specificato)" }}
       </p>
 
+      <!-- Nota -->
       <p class="muted" style="margin:0 0 10px 0;">
-        Nota: {{ delegation.note|default:"(nessuna nota aggiuntiva)" }}
+        <span class="field-label">Nota del dirigente:</span><br>
+        {{ delegation.note|default:"(nessuna nota aggiuntiva)" }}
       </p>
 
+      <!-- Stato -->
       <p style="margin:0 0 4px 0;">
-        Stato delega:
+        <span class="field-label">Stato delega:</span><br>
         {% if delegation.status == "PENDING" %}
           <span class="status-pill pending">In attesa di conferma</span>
         {% elif delegation.status == "CONFIRMED" %}
@@ -111,9 +151,13 @@
         {% endif %}
       </p>
 
-      {% if delegation.accepted %}
+      {% if delegation.status == "CONFIRMED" %}
         <p class="muted" style="margin:4px 0 0 0;">
           Hai già accettato questa delega.
+        </p>
+      {% elif delegation.status == "REJECTED" %}
+        <p class="muted" style="margin:4px 0 0 0;">
+          Hai rifiutato questa delega.
         </p>
       {% endif %}
 
