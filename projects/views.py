@@ -883,18 +883,21 @@ def bandi_list(request):
 @login_required
 def notification_read(request, pk: int):
     """
-    Marca una notifica come letta e rimanda l'utente da qualche parte.
-    Per ora: ritorno alla dashboard.
+    Mostra il dettaglio di una notifica e la segna come letta.
+    Solo il proprietario (o il superuser) può vederla.
     """
     notif = get_object_or_404(Notification, pk=pk)
 
-    # sicurezza: solo il proprietario (o superuser) può toccarla
+    # sicurezza: solo il proprietario o superuser
     if notif.user != request.user and not request.user.is_superuser:
         return redirect("dashboard")
 
+    # se non è ancora letta, segna come letta
     if not notif.is_read:
         notif.is_read = True
         notif.save()
 
-    # in futuro potrai fare redirect ad una pagina specifica (es. progetto)
-    return redirect("dashboard")
+    return render(request, "notification_detail.html", {
+        "notification": notif,
+    })
+
