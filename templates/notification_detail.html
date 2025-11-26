@@ -1,66 +1,154 @@
+{% load humanize %}
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dettaglio notifica – ScuolaHub</title>
+  <meta charset="utf-8">
+  <title>Dettaglio notifica — ScuolaHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     :root{
-      --bg:#f7f7fb;--panel:#ffffff;--ink:#1b1f24;--muted:#6b7280;
-      --primary:#2563eb;--primary-ink:#fff;--line:#e5e7eb;
+      --bg:#f3f4f6;--panel:#ffffff;--ink:#111827;--muted:#6b7280;
+      --primary:#2563eb;--line:#e5e7eb;--ok:#16a34a;--bad:#dc2626;--warn:#ca8a04;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--ink)}
     a{color:var(--primary);text-decoration:none}
     a:hover{text-decoration:underline}
     .wrap{max-width:800px;margin:0 auto;padding:16px}
-    header{background:#ffffff;border-bottom:1px solid var(--line)}
-    .topbar{background:#f3f4f6;padding:10px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-    .muted{color:var(--muted)}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:20px}
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:0.9rem}
-    .btn.primary{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:0.75rem;border:1px solid var(--line);background:#eff6ff;color:#1d4ed8}
+    header{background:#0b2a42;color:#fff;padding:12px 0;margin-bottom:16px}
+    .crumbs{font-size:13px;margin-bottom:4px}
+    .card{background:var(--panel);border-radius:14px;border:1px solid var(--line);padding:16px;margin-bottom:16px}
+    .muted{color:var(--muted);font-size:14px}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#f9fafb}
+    .badge.read{background:#ecfdf5;color:#166534;border-color:#bbf7d0}
+    .badge.unread{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+    .status-pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
+    .status-pill.pending{background:#fef9c3;color:#854d0e;border-color:#facc15}
+    .status-pill.confirmed{background:#ecfdf5;color:#166534;border-color:#22c55e}
+    .status-pill.rejected{background:#fee2e2;color:#b91c1c;border-color:#f97373}
+    .status-pill.revoked{background:#e5e7eb;color:#374151;border-color:#9ca3af}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px}
+    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .btn.danger{background:#dc2626;color:#fff;border-color:#dc2626}
+    .btn:disabled{opacity:.6;cursor:default}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .field-label{font-size:13px;color:var(--muted);margin-bottom:2px}
   </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div><strong>ScuolaHub</strong> · <span class="muted">Notifica</span></div>
-  <div>
-    <a class="btn" href="{% url 'dashboard' %}">← Torna alla dashboard</a>
+<header>
+  <div class="wrap">
+    <div class="crumbs">
+      <a href="{% url 'dashboard' %}" style="color:#cbd5f5">← Torna alla Dashboard</a>
+    </div>
+    <h1 style="margin:0;font-size:20px;">Dettaglio notifica</h1>
   </div>
-</div>
+</header>
 
 <main class="wrap">
-  <div class="card">
-    <h1 style="margin-top:0;font-size:1.3rem">Dettaglio notifica</h1>
 
-    <p class="muted" style="font-size:0.9rem;margin-top:4px">
-      Ricevuta il {{ notification.created_at|date:"d/m/Y H:i" }}
-      {% if notification.is_read %}
-        · <span class="badge">Letta</span>
-      {% else %}
-        · <span class="badge">Nuova</span>
-      {% endif %}
-    </p>
+  <!-- Box notifica -->
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div>
+        <div class="field-label">Ricevuta il</div>
+        <div>
+          <b>{{ notification.created_at|date:"d/m/Y H:i" }}</b>
+        </div>
+      </div>
+      <div>
+        {% if notification.is_read %}
+          <span class="badge read">Letta</span>
+        {% else %}
+          <span class="badge unread">Non letta</span>
+        {% endif %}
+      </div>
+    </div>
 
-    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
 
-    <p style="font-size:1rem;line-height:1.5">
+    <p style="margin:0 0 8px 0;">
       {{ notification.message }}
     </p>
 
-    <p class="muted" style="font-size:0.85rem;margin-top:18px">
-      In futuro qui potremo aggiungere azioni come “Accetta delega” o un link diretto
-      al progetto collegato.
-    </p>
+    {% if delegation %}
+      <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
 
-    <div style="margin-top:20px">
-      <a class="btn primary" href="{% url 'dashboard' %}">Torna alla dashboard</a>
-    </div>
-  </div>
+      <h2 style="margin:0 0 6px 0;font-size:16px;">Dettagli delega collegata</h2>
+
+      <p class="muted" style="margin:0 0 6px 0;">
+        Progetto:
+        {% if delegation.project %}
+          <a href="{% url 'project_detail' delegation.project.id %}">
+            {{ delegation.project.title }}
+          </a>
+        {% else %}
+          <i>(nessun progetto collegato)</i>
+        {% endif %}
+      </p>
+
+      <p class="muted" style="margin:0 0 6px 0;">
+        Ruolo: {{ delegation.role_label|default:"(non specificato)" }}
+      </p>
+
+      <p class="muted" style="margin:0 0 10px 0;">
+        Nota: {{ delegation.note|default:"(nessuna nota aggiuntiva)" }}
+      </p>
+
+      <p style="margin:0 0 4px 0;">
+        Stato delega:
+        {% if delegation.status == "PENDING" %}
+          <span class="status-pill pending">In attesa di conferma</span>
+        {% elif delegation.status == "CONFIRMED" %}
+          <span class="status-pill confirmed">Accettata</span>
+        {% elif delegation.status == "REJECTED" %}
+          <span class="status-pill rejected">Rifiutata</span>
+        {% elif delegation.status == "REVOKED" %}
+          <span class="status-pill revoked">Revocata</span>
+        {% else %}
+          <span class="status-pill">{{ delegation.get_status_display }}</span>
+        {% endif %}
+      </p>
+
+      {% if delegation.accepted %}
+        <p class="muted" style="margin:4px 0 0 0;">
+          Hai già accettato questa delega.
+        </p>
+      {% endif %}
+
+      {% if can_accept or can_reject %}
+        <form method="post" action="" class="btn-row">
+          {% csrf_token %}
+          {% if can_accept %}
+            <button class="btn primary" type="submit" name="action" value="accept">
+              ✅ Accetta delega
+            </button>
+          {% endif %}
+          {% if can_reject %}
+            <button class="btn danger" type="submit" name="action" value="reject"
+                    onclick="return confirm('Sei sicuro di voler rifiutare questa delega?');">
+              ❌ Rifiuta delega
+            </button>
+          {% endif %}
+        </form>
+      {% else %}
+        <p class="muted" style="margin-top:8px;">
+          Non sono disponibili ulteriori azioni su questa delega.
+        </p>
+      {% endif %}
+
+    {% else %}
+      <p class="muted" style="margin-top:12px;">
+        Questa notifica non è collegata ad una delega gestibile.
+      </p>
+    {% endif %}
+  </section>
+
+  <p class="muted" style="font-size:13px;">
+    Puoi sempre tornare alla dashboard per vedere progetti, scadenze e altre notifiche.
+  </p>
+
 </main>
-
 </body>
 </html>

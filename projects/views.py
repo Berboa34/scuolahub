@@ -905,51 +905,58 @@ def notification_read(request, pk: int):
 @login_required
 def notification_detail(request, pk: int):
     """
-    Dettaglio singola notifica.
-    Se è collegata a una delega e l’utente è il collaboratore,
-    può ACCETTARE o RIFIUTARE la delega.
+    Dettaglio di una notifica.
+    Se è collegata a una Delegation, permette al collaboratore di:
+    - Accettare la delega
+    - Rifiutare la delega
+    Aggiornando sia la Delegation che la notifica.
     """
-    notification = get_object_or_404(
-        Notification,
-        pk=pk,
-        user=request.user,  # sicurezza: ogni utente vede solo le proprie
-    )
+    notification = get_object_or_404(Notification, pk=pk, user=request.user)
 
-    # segna come letta se non lo è
+    # Segna come letta se non lo è già
     if not notification.is_read:
         notification.is_read = True
         notification.save(update_fields=["is_read"])
 
-    delegation = notification.delegation  # può essere None
+    # Potrebbe esserci (o no) una delega collegata
+    delegation = notification.delegation if hasattr(notification, "delegation") else None
 
-    if request.method == "POST" and delegation and delegation.collaborator_id == request.user.id:
+    # Possiamo accettare/rifiutare SOLO se c'è una delega
+    # e lo stato non è già definitivo
+    can_accept = False
+    can_reject = False
+    if delegation:
+        # Logica semplice: se non è già confermata/rifiutata/revocata
+        # e non è già accepted=True, permettiamo azione
+        if delegation.status in ("PENDING", "ACTIVE") and not delegation.accepted:
+            can_accept = True
+            can_reject = True
+
+    if request.method == "POST" and delegation:
         action = request.POST.get("action")
 
-        if delegation.status != "PENDING":
-            messages.error(request, "Questa delega è già stata gestita.")
-            return redirect("dashboard")
-
-        if action == "accept":
+        if action == "accept" and can_accept:
+            delegation.accepted = True
             delegation.status = "CONFIRMED"
-            delegation.save(update_fields=["status"])
+            delegation.save(update_fields=["accepted", "status"])
             messages.success(request, "Hai accettato la delega.")
-        elif action == "reject":
+        elif action == "reject" and can_reject:
+            delegation.accepted = False
             delegation.status = "REJECTED"
-            delegation.save(update_fields=["status"])
+            delegation.save(update_fields=["accepted", "status"])
             messages.success(request, "Hai rifiutato la delega.")
-        else:
-            messages.error(request, "Azione non valida.")
 
-        return redirect("dashboard")
+        # Dopo l’azione ricarichiamo la pagina (pattern POST-redirect-GET)
+        return redirect("notification_detail", pk=notification.pk)
 
-    return render(
-        request,
-        "notifications/detail.html",
-        {
-            "notification": notification,
-            "delegation": delegation,
-        },
-    )
+    context = {
+        "notification": notification,
+        "delegation": delegation,
+        "can_accept": can_accept,
+        "can_reject": can_reject,
+    }
+    return render(request, "notification_detail.html", context)
+
 
 @login_required
 def accept_delegation(request, pk: int):
