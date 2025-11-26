@@ -748,20 +748,18 @@ def deleghe_view(request):
                 project = get_object_or_404(Project, pk=project_id)
                 collaborator = get_object_or_404(User, pk=collaborator_id)
 
-                # 1) Creo la delega
                 delega = Delegation.objects.create(
                     project=project,
                     collaborator=collaborator,
                     role_label=role_label,
                     note=note,
-                    status="PENDING",  # o come preferisci
+                    status="ACTIVE",
                 )
 
-                # 2) Creo la NOTIFICA AGGANCIATA alla delega
+                # 🔔 NOTIFICA SOLO AL COLLABORATORE
                 Notification.objects.create(
                     user=collaborator,
                     message=f"Ti è stata assegnata una delega sul progetto '{project.title}'.",
-                    delegation=delega,  # ← QUI il collegamento
                 )
 
                 messages.success(
@@ -774,6 +772,14 @@ def deleghe_view(request):
             messages.error(request, "Seleziona un progetto e un collaboratore.")
 
         return redirect("deleghe")
+
+    context = {
+        "projects": projects,
+        "collaborators": collaborators,
+        "deleghe": deleghe,
+    }
+    return render(request, "deleghe.html", context)
+
 
 
 # ----------------------------------------------------------------------
@@ -950,7 +956,6 @@ def notification_detail(request, pk: int):
         "can_reject": can_reject,
     }
     return render(request, "notification_detail.html", context)
-
 
 
 @login_required
