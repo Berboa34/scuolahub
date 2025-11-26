@@ -187,26 +187,39 @@ from django.conf import settings
 class Delegation(models.Model):
     STATUS_CHOICES = [
         ("PENDING", "In attesa di conferma"),
-        ("CONFIRMED", "Accettata"),
+        ("CONFIRMED", "Confermata"),
         ("REJECTED", "Rifiutata"),
-        ("REVOKED", "Revocata"),
     ]
 
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True)
-    collaborator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    role_label = models.CharField(max_length=100, blank=True)
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="delegations",
+        null=True,
+        blank=True,
+    )
+    collaborator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="delegations",
+        null=True,
+        blank=True,
+    )
+    role_label = models.CharField("Ruolo delegato", max_length=100, blank=True)
     note = models.TextField(blank=True)
 
-    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="PENDING")
-
-    accepted = models.BooleanField(default=False)
-
+    status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default="PENDING",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.collaborator} → {self.project} ({self.get_status_display()})"
-
-
 
 
 class CallForProposal(models.Model):
@@ -344,7 +357,7 @@ class Notification(models.Model):
     )
     message = models.TextField()
 
-    # 🔗 COLLEGAMENTO ALLA DELEGA (FONDAMENTALE)
+    # 🔗 delega collegata (può essere vuota per altri tipi di notifica)
     delegation = models.ForeignKey(
         "Delegation",
         on_delete=models.CASCADE,
@@ -360,6 +373,9 @@ class Notification(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Notif → {self.user} ({self.created_at:%Y-%m-%d})"
+        txt = self.message
+        if len(txt) > 50:
+            txt = txt[:47] + "..."
+        return f"{self.user} – {txt}"
 
 

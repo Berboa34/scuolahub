@@ -74,8 +74,8 @@ class CallAdmin(admin.ModelAdmin):
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ("user", "message", "is_read", "created_at")
+    list_display = ("user", "message", "delegation", "is_read", "created_at")
     list_filter = ("is_read", "user")
-    search_fields = ("message", "user__username")
+    search_fields = ("message", "user__username", "delegation__project__title")
     readonly_fields = ("created_at",)
 

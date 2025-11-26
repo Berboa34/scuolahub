@@ -528,7 +528,6 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 
-# ... altre view sopra ...
 
 
 @login_required
@@ -616,21 +615,16 @@ def is_superuser(user):
 @user_passes_test(is_superuser, login_url='/accounts/login/')
 def deleghe_view(request):
     """
-    Gestione deleghe:
-    - solo superuser può accedere
+    Gestione deleghe (solo admin):
     - crea una delega collegando un collaboratore a un progetto
-    - crea una NOTIFICA per il collaboratore (non per l'admin)
+    - crea una NOTIFICA legata alla delega per il collaboratore
     """
     User = get_user_model()
 
-    # Progetti e collaboratori per i menu a tendina
     projects = Project.objects.all().order_by("title")
     collaborators = User.objects.filter(is_active=True).order_by("username")
-
-    # Deleghe esistenti (per la tabella sotto)
     deleghe = Delegation.objects.select_related("project", "collaborator").order_by("-created_at")
 
-    # Gestione invio form
     if request.method == "POST" and request.POST.get("op") == "add_delegation":
         project_id = request.POST.get("project_id")
         collaborator_id = request.POST.get("collaborator_id")
@@ -642,6 +636,7 @@ def deleghe_view(request):
                 project = get_object_or_404(Project, pk=project_id)
                 collaborator = get_object_or_404(User, pk=collaborator_id)
 
+                # 1) creo la DELEGA con stato PENDING e nota salvata
                 delega = Delegation.objects.create(
                     project=project,
                     collaborator=collaborator,
@@ -650,7 +645,7 @@ def deleghe_view(request):
                     status="PENDING",
                 )
 
-                # 🔔 NOTIFICA SOLO AL COLLABORATORE
+                # 2) creo la NOTIFICA AGGANCIATA alla delega
                 Notification.objects.create(
                     user=collaborator,
                     message=f"Ti è stata assegnata una delega sul progetto '{project.title}'.",
@@ -708,7 +703,7 @@ def my_delegations_view(request):
     return render(request, 'my_delegations.html', context)
 
 
-# In projects/views.py
+
 
 @login_required
 def delegation_confirm(request, pk):
@@ -801,7 +796,8 @@ def notification_read(request, pk: int):
 def notification_detail(request, pk: int):
     """
     Dettaglio di una notifica.
-    Se è collegata a una Delegation, permette di accettare/rifiutare la delega.
+    Se è collegata a una Delegation, permette al collaboratore di
+    accettare o rifiutare la delega.
     """
     notification = get_object_or_404(Notification, pk=pk, user=request.user)
 
@@ -810,20 +806,15 @@ def notification_detail(request, pk: int):
         notification.is_read = True
         notification.save(update_fields=["is_read"])
 
-    delegation = notification.delegation  # grazie al ForeignKey sul modello
+    # Delega collegata (può essere None)
+    delegation = notification.delegation
 
-    # Se non c'è delega collegata → messaggio
-    if not delegation:
-        return render(request, "notification_detail.html", {
-            "notification": notification,
-            "delegation": None,
-            "can_accept": False,
-            "can_reject": False,
-        })
+    can_accept = False
+    can_reject = False
 
-    # Può accettare o rifiutare solo se la delega è ancora "PENDING"
-    can_accept = delegation.status == "PENDING"
-    can_reject = delegation.status == "PENDING"
+    if delegation and delegation.status == "PENDING":
+        can_accept = True
+        can_reject = True
 
     if request.method == "POST" and delegation:
         action = request.POST.get("action")
@@ -846,6 +837,7 @@ def notification_detail(request, pk: int):
         "can_accept": can_accept,
         "can_reject": can_reject,
     })
+
 
 
 
