@@ -360,20 +360,24 @@ class Notification(models.Model):
         on_delete=models.CASCADE,
         related_name="notifications",
     )
-    delegation = models.ForeignKey(           # <--- NUOVO
+    message = models.CharField(max_length=255)
+
+    # 🔗 collegamento (opzionale) ad una delega
+    delegation = models.ForeignKey(
         "Delegation",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="notifications",
     )
-    message = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
+
     is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Notifica per {self.user.username} - {self.message}"
+        return f"{self.user} – {self.message[:40]}"
+
 
