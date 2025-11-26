@@ -187,40 +187,25 @@ from django.conf import settings
 class Delegation(models.Model):
     STATUS_CHOICES = [
         ("PENDING", "In attesa di conferma"),
-        ("ACTIVE", "Attiva"),
-        ("CONFIRMED", "Confermata"),
-        ("REVOKED", "Revocata"),
+        ("CONFIRMED", "Accettata"),
         ("REJECTED", "Rifiutata"),
+        ("REVOKED", "Revocata"),
     ]
 
-    project = models.ForeignKey(
-        Project,
-        on_delete=models.CASCADE,
-        related_name="delegations",
-        null=True,
-        blank=True,
-    )
-    collaborator = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="delegations",
-        null=True,
-        blank=True,
-    )
-    role_label = models.CharField("Ruolo delegato", max_length=100, blank=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True, blank=True)
+    collaborator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    role_label = models.CharField(max_length=100, blank=True)
     note = models.TextField(blank=True)
-    status = models.CharField(
-        max_length=16,
-        choices=STATUS_CHOICES,
-        default="PENDING",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        ordering = ["-created_at"]
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="PENDING")
+
+    accepted = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.collaborator} → {self.project} ({self.get_status_display()})"
+
 
 
 
