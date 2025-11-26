@@ -504,112 +504,6 @@ from .models import Project, Expense, SpendingLimit, Event, Delegation
 from django.utils import timezone
 
 
-@login_required
-def deleghe_view(request):
-    """
-    Gestione deleghe:
-    - mostra le deleghe collegate alla scuola dell'utente (se c'è)
-    - se l'utente NON ha una scuola (es. admin) mostra TUTTO
-    - permette di aggiungere una nuova delega
-    """
-    profile = getattr(request.user, "profile", None)
-    school = getattr(profile, "school", None)
-
-    # --- Base query: se la scuola è definita, filtro per scuola; altrimenti vedo tutto
-    if school:
-        delegations_qs = Delegation.objects.filter(school=school)
-        projects_qs = Project.objects.filter(school=school)
-        collaborators_qs = User.objects.filter(
-            is_active=True,
-            # se hai il profilo con la scuola:
-            profile__school=school
-        ).exclude(id=request.user.id)
-    else:
-        # admin o utenti senza scuola: vedono tutto
-        delegations_qs = Delegation.objects.all()
-        projects_qs = Project.objects.all()
-        collaborators_qs = User.objects.filter(is_active=True).exclude(id=request.user.id)
-
-    # --- Se POST: creazione nuova delega
-    if request.method == "POST":
-        title = (request.POST.get("title") or "").strip()
-        to_user_id = request.POST.get("to_user") or ""
-        project_id = request.POST.get("project") or ""
-        description = (request.POST.get("description") or "").strip()
-        start_date_str = request.POST.get("start_date") or ""
-        end_date_str = request.POST.get("end_date") or ""
-
-        if title and to_user_id and project_id:
-            try:
-                to_user = User.objects.get(pk=to_user_id)
-            except User.DoesNotExist:
-                to_user = None
-
-            try:
-                project = Project.objects.get(pk=project_id)
-            except Project.DoesNotExist:
-                project = None
-
-            if to_user and project:
-                # Se l'utente non ha school, provo a prendere quella del progetto
-                deleg_school = school or getattr(project, "school", None)
-
-                try:
-                    sd = date.fromisoformat(start_date_str) if start_date_str else None
-                except ValueError:
-                    sd = None
-
-                try:
-                    ed = date.fromisoformat(end_date_str) if end_date_str else None
-                except ValueError:
-                    ed = None
-
-                Delegation.objects.create(
-                    title=title,
-                    from_user=request.user,
-                    to_user=to_user,
-                    project=project,
-                    school=deleg_school,
-                    description=description,
-                    start_date=sd,
-                    end_date=ed,
-                    is_active=True,
-                )
-
-                return redirect("deleghe")
-
-    # --- Lista deleghe ordinate (più recenti in alto)
-    delegations = delegations_qs.select_related(
-        "from_user", "to_user", "project", "school"
-    ).order_by("-created_at")
-
-    context = {
-        "school": school,
-        "delegations": delegations,
-        "projects": projects_qs.order_by("title"),
-        "collaborators": collaborators_qs.order_by("username"),
-    }
-    return render(request, "deleghe.html", context)
-
-
-@login_required
-def delegation_revoke(request, pk: int):
-    """
-    Revoca una delega: la segniamo come non attiva.
-    (Non la cancelliamo dal DB, così rimane traccia storica.)
-    """
-    delega = get_object_or_404(Delegation, pk=pk)
-
-    # Per sicurezza, permetti la revoca solo a chi l'ha creata o a staff
-    if delega.from_user != request.user and not request.user.is_staff:
-        return redirect("deleghe")
-
-    if request.method == "POST":
-        delega.is_active = False
-        delega.save(update_fields=["is_active"])
-        return redirect("deleghe")
-
-    return redirect("deleghe")
 
 
 
@@ -760,6 +654,7 @@ def deleghe_view(request):
                 Notification.objects.create(
                     user=collaborator,
                     message=f"Ti è stata assegnata una delega sul progetto '{project.title}'.",
+                    delegation=delega,
                 )
 
                 messages.success(
@@ -906,56 +801,53 @@ def notification_read(request, pk: int):
 def notification_detail(request, pk: int):
     """
     Dettaglio di una notifica.
-    Se è collegata a una Delegation, permette al collaboratore di:
-    - Accettare la delega
-    - Rifiutare la delega
-    Aggiornando sia la Delegation che la notifica.
+    Permette di accettare/rifiutare la delega collegata, se presente.
     """
     notification = get_object_or_404(Notification, pk=pk, user=request.user)
 
-    # Segna come letta se non lo è già
+    # Segniamo come letta
     if not notification.is_read:
         notification.is_read = True
         notification.save(update_fields=["is_read"])
 
-    # Potrebbe esserci (o no) una delega collegata
-    delegation = notification.delegation if hasattr(notification, "delegation") else None
+    delegation = notification.delegation  # ← Collegamento DIRETTO
 
-    # Possiamo accettare/rifiutare SOLO se c'è una delega
-    # e lo stato non è già definitivo
-    can_accept = False
-    can_reject = False
-    if delegation:
-        # Logica semplice: se non è già confermata/rifiutata/revocata
-        # e non è già accepted=True, permettiamo azione
-        if delegation.status in ("PENDING", "ACTIVE") and not delegation.accepted:
-            can_accept = True
-            can_reject = True
+    # Se NON c’è delega collegata → messaggio chiaro
+    if not delegation:
+        return render(request, "notification_detail.html", {
+            "notification": notification,
+            "delegation": None,
+            "can_accept": False,
+            "can_reject": False,
+        })
 
-    if request.method == "POST" and delegation:
+    # Se c'è delega:
+    can_accept = delegation.status == "PENDING"
+    can_reject = delegation.status == "PENDING"
+
+    # Gestione POST (accetta/rifiuta delega)
+    if request.method == "POST":
         action = request.POST.get("action")
 
         if action == "accept" and can_accept:
-            delegation.accepted = True
             delegation.status = "CONFIRMED"
-            delegation.save(update_fields=["accepted", "status"])
+            delegation.save(update_fields=["status"])
             messages.success(request, "Hai accettato la delega.")
-        elif action == "reject" and can_reject:
-            delegation.accepted = False
+            return redirect("notification_detail", pk=notification.pk)
+
+        if action == "reject" and can_reject:
             delegation.status = "REJECTED"
-            delegation.save(update_fields=["accepted", "status"])
+            delegation.save(update_fields=["status"])
             messages.success(request, "Hai rifiutato la delega.")
+            return redirect("notification_detail", pk=notification.pk)
 
-        # Dopo l’azione ricarichiamo la pagina (pattern POST-redirect-GET)
-        return redirect("notification_detail", pk=notification.pk)
-
-    context = {
+    return render(request, "notification_detail.html", {
         "notification": notification,
         "delegation": delegation,
         "can_accept": can_accept,
         "can_reject": can_reject,
-    }
-    return render(request, "notification_detail.html", context)
+    })
+
 
 
 @login_required
