@@ -806,17 +806,31 @@ def notification_detail(request, pk: int):
         notification.is_read = True
         notification.save(update_fields=["is_read"])
 
-    # Delega collegata (può essere None)
+    # 1) Proviamo prima dal ForeignKey diretto
     delegation = notification.delegation
 
+    # 2) Se per qualche motivo è vuoto (vecchie notifiche),
+    #    proviamo a recuperare la delega più recente per questo utente.
+    if delegation is None:
+        delegation = (
+            Delegation.objects
+            .filter(collaborator=notification.user)
+            .order_by("-created_at")
+            .first()
+        )
+
+    # di default niente azioni
     can_accept = False
     can_reject = False
 
-    if delegation and delegation.status == "PENDING":
-        can_accept = True
-        can_reject = True
+    if delegation is not None:
+        # possiamo agire solo se la delega non è già definitiva
+        if delegation.status in ("PENDING", "ACTIVE"):
+            can_accept = True
+            can_reject = True
 
-    if request.method == "POST" and delegation:
+    # GESTIONE POST (click su Accetta / Rifiuta)
+    if request.method == "POST" and delegation is not None:
         action = request.POST.get("action")
 
         if action == "accept" and can_accept:
@@ -831,13 +845,13 @@ def notification_detail(request, pk: int):
             messages.success(request, "Hai rifiutato la delega.")
             return redirect("notification_detail", pk=notification.pk)
 
+    # Render template
     return render(request, "notification_detail.html", {
         "notification": notification,
         "delegation": delegation,
         "can_accept": can_accept,
         "can_reject": can_reject,
     })
-
 
 
 
