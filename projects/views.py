@@ -647,7 +647,7 @@ def deleghe_view(request):
                     collaborator=collaborator,
                     role_label=role_label,
                     note=note,
-                    status="ACTIVE",
+                    status="PENDING",
                 )
 
                 # 🔔 NOTIFICA SOLO AL COLLABORATORE
