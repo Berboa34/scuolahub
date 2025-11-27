@@ -11,7 +11,7 @@ from django.db import transaction
 from django.contrib import messages
 from django.conf import settings
 
-from .models import Project, School, Expense, SpendingLimit, Event, Delegation
+from .models import Project, School, Expense, SpendingLimit, Event, Delegation, Milestone
 
 from datetime import date, timedelta
 from django.contrib.auth import get_user_model

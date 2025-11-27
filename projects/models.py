@@ -462,3 +462,37 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Profilo di {self.user.username}"
+
+
+class Milestone(models.Model):
+    STATUS_CHOICES = [
+        ("PENDING", "In attesa"),
+        ("COMPLETED", "Completata"),
+        ("DELAYED", "In ritardo"),
+        ("CANCELED", "Annullata"),
+    ]
+
+    project = models.ForeignKey(
+        "Project",  # Collega alla classe Project
+        on_delete=models.CASCADE,
+        related_name="milestones",
+        verbose_name="Progetto"
+    )
+    title = models.CharField(max_length=200, verbose_name="Titolo Milestone")
+    description = models.TextField(blank=True, null=True, verbose_name="Descrizione")
+    due_date = models.DateField(verbose_name="Data di Scadenza")
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default="PENDING",
+        verbose_name="Stato"
+    )
+    completed_date = models.DateField(blank=True, null=True, verbose_name="Data di Completamento")
+
+    class Meta:
+        ordering = ["due_date"]
+        verbose_name = "Milestone"
+        verbose_name_plural = "Milestone"
+
+    def __str__(self):
+        return f"{self.project.title} - {self.title}"
