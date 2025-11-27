@@ -35,6 +35,8 @@
     }
     .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
     .btn.danger{background:#dc2626;border-color:#b91c1c;color:#fff}
+    /* Nuovo stile per il link calendario */
+    .btn.calendar{background:#4285F4;border-color:#4285F4;color:#fff;margin-right:8px;}
   </style>
 </head>
 <body>
@@ -76,6 +78,13 @@
           </span>
         </div>
 
+        {% if google_calendar_link %}
+          <div style="margin-top: 16px;">
+            <a href="{{ google_calendar_link }}" target="_blank" class="btn calendar">
+              🗓️ Aggiungi al mio Google Calendar
+            </a>
+          </div>
+        {% endif %}
         {% if user == delegation.collaborator and delegation.status == "PENDING" %}
           <form method="post" style="margin-top:12px;">
             {% csrf_token %}

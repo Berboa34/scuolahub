@@ -124,11 +124,12 @@ def projects_list(request):
 
 @login_required
 def project_detail(request, pk: int):
-    project = get_object_or_404(Project, pk=pk)
+    project = get_object_or_404(Project, pk=pk, school=school)
 
     # Se l’utente è legato a una scuola, impediamo accesso ad altre scuole
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
+    milestones = project.milestones.all()
     if school and project.school_id and project.school_id != school.id:
         raise Http404("Progetto non trovato")
 
@@ -279,7 +280,17 @@ def project_detail(request, pk: int):
         "limits_ctx": limits_ctx,
         "today": timezone.now().date().isoformat(),
     }
-    return render(request, "projects/detail.html", context)
+    return render(request, "projects/detail.html",{
+        "project": project,
+        "school": school,
+        "expense_breakdown": expense_breakdown,
+        "spending_limits": spending_limits,
+        "delegations": delegations,
+        # AGGIUNGI QUI LE MILESTONE
+        "milestones": milestones,
+        "category_choices": Expense.CATEGORY_CHOICES,
+        "base_choices": SpendingLimit.BASE_CHOICES,
+        "add_limit": add_limit,}, context)
 
 
 @login_required
