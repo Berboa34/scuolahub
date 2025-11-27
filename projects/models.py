@@ -441,3 +441,24 @@ class Milestone(models.Model):
 
     def __str__(self):
         return f"{self.project.title} - {self.title}"
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    # === IL CAMPO MANCANTE ===
+    school = models.ForeignKey(
+        School,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users',
+        verbose_name='Scuola di Appartenenza'
+    )
+
+    # =========================
+
+    # ... altri campi del profilo ...
+
+    def __str__(self):
+        return f"Profilo di {self.user.username}"
