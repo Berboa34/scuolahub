@@ -152,13 +152,22 @@ def project_detail(request, pk: int):
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
 
-    # Controllo di sicurezza: se l'utente non è legato a una scuola, non può procedere
-    if not school:
-        raise Http404("Accesso negato: Nessuna scuola associata all'utente.")
+    is_superuser = request.user.is_superuser
 
-        # --- 2. RECUPERO IL PROGETTO (OGGETTO PRINCIPALE) ---
-    # Ora 'school' è definito. Filtriamo per ID e scuola dell'utente.
-    project = get_object_or_404(Project, pk=pk, school=school)
+    # Caso 1: Se l'utente è un Superuser, può vedere QUALSIASI progetto.
+    if is_superuser:
+        # Nessun filtro sulla scuola.
+        project = get_object_or_404(Project, pk=pk)
+
+    # Caso 2: Se l'utente NON è Superuser E ha una scuola associata.
+    elif school:
+        # Filtro di sicurezza: solo progetti che appartengono alla sua scuola.
+        project = get_object_or_404(Project, pk=pk, school=school)
+
+    # Caso 3: Se l'utente NON è Superuser E NON ha una scuola associata.
+    else:
+        # Accesso negato.
+        raise Http404("Accesso negato: Nessuna scuola associata all'utente.")
 
     # --- 3. RECUPERO GLI OGGETTI SECONDARI ---
     # Ora 'project' è definito.
