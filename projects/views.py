@@ -624,7 +624,8 @@ def deleghe_view(request):
 
     projects = Project.objects.all().order_by("title")
     collaborators = User.objects.filter(is_active=True).order_by("username")
-    deleghe = Delegation.objects.select_related("project", "collaborator").order_by("-created_at")
+    #deleghe = Delegation.objects.select_related("project", "collaborator").order_by("-created_at")
+    deleghe = Delegation.objects.all().order_by("-created_at")
 
     if request.method == "POST" and request.POST.get("op") == "add_delegation":
         project_id = request.POST.get("project_id")
