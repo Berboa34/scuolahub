@@ -50,7 +50,7 @@ urlpatterns = [
 
     path('bandi/<int:pk>/', pviews.bando_detail, name='bando_detail'),
 
-    path('notifiche/<int:pk>/', pviews.notification_read, name='notification_read'),
+    path('notifiche/<int:pk>/', pviews.notification_detail, name='notification_detail'),
     path("deleghe/<int:pk>/accetta/", pviews.accept_delegation, name="accept_delegation"),
 
 

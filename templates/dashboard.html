@@ -192,7 +192,7 @@
             {% for n in notifications %}
               <li class="notif-item {% if not n.is_read %}unread{% endif %}">
                 <div style="flex:1 1 auto">
-                  <a href="{% url 'notification_read' n.id %}" style="font-size:0.9rem;display:block">
+                  <a href="{% url 'notification_detail' n.id %}" style="font-size:0.9rem;display:block">
                     {{ n.message }}
                   </a>
                   <small>{{ n.created_at|naturaltime }}</small>
