@@ -794,10 +794,8 @@ def notification_read(request, pk: int):
 
 
 
-from django.http import get_object_or_404, HttpResponseForbidden
+from django.http import HttpResponseForbidden
 
-
-# ... (altre importazioni) ...
 
 @login_required
 def notification_detail(request, pk: int):
