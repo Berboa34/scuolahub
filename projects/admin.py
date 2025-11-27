@@ -45,10 +45,17 @@ class EventAdmin(admin.ModelAdmin):
 
 @admin.register(Delegation)
 class DelegationAdmin(admin.ModelAdmin):
-    list_display = ("project", "collaborator", "role_label", "status", "created_at")
+    # Rimuovi "status" da list_display e usa il nuovo campo "display_status"
+    list_display = ("project", "collaborator", "role_label", "display_status", "created_at")
     list_filter = ("status",)
     search_fields = ("project__title", "collaborator__username", "role_label")
     readonly_fields = ("created_at",)
+
+    # Nuovo metodo per visualizzare lo stato (forzando il ricaricamento dell'etichetta)
+    def display_status(self, obj):
+        return obj.get_status_display()
+
+    display_status.short_description = "Stato"
 
 from .models import Document
 
