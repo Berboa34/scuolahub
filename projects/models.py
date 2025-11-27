@@ -189,6 +189,7 @@ class Delegation(models.Model):
         ("PENDING", "In attesa di conferma"),
         ("CONFIRMED", "Confermata"),
         ("REJECTED", "Rifiutata"),
+        ("REVOKED", "Revocata"),
     ]
 
     project = models.ForeignKey(
@@ -214,8 +215,16 @@ class Delegation(models.Model):
         null=True,
         blank=True,
     )
-    role_label = models.CharField("Ruolo delegato", max_length=100, blank=True)
-    note = models.TextField(blank=True)
+    role_label = models.CharField(
+        "Ruolo delegato",
+        max_length=100,
+        blank=True,
+        null=True  # <--- AGGIUNGI null=True
+    )
+    note = models.TextField(
+        blank=True,
+        null=True  # <--- AGGIUNGI null=True
+    )
 
     status = models.CharField(
         max_length=16,
