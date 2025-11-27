@@ -833,22 +833,22 @@ def notification_detail(request, pk: int):
     # 5. GESTIONE POST (Accetta/Rifiuta)
     if request.method == "POST" and delegation is not None:
         action = request.POST.get("action")
-        delegator = delegation.creator  # L'Admin che ha creato la delega
 
-        # ... (Logica Accetta/Rifiuta e creazione notifica all'Admin, come visto in precedenza) ...
-        # (Se non hai ancora messo la logica di notifica all'Admin, usa la versione più semplice qui sotto)
+        admin_recipient = delegation.creator
+        user_collaborator = request.user
+
+
 
         if action == "accept" and can_accept:
             delegation.status = "CONFIRMED"
             delegation.save(update_fields=["status"])
 
-            transaction.commit()
 
-            # 2. NOTIFICA ALL'ADMIN (IL CREATORE)
+            # 2. NOTIFICA ALL'ADMIN
             Notification.objects.create(
-                user=delegante,
-                message=f"✅ La delega per '{delegazione.project.title}' è stata **ACCETTATA** dal professore {user.username}.",
-                delegation=delegazione,
+                user=admin_recipient,  # Usa il nome pulito
+                message=f"✅ La delega per '{delegation.project.title}' è stata **ACCETTATA** dal professore {user_collaborator.username}.",
+                delegation=delegation,
             )
 
             messages.success(request, "Hai accettato la delega.")
@@ -859,13 +859,12 @@ def notification_detail(request, pk: int):
             delegation.status = "REJECTED"
             delegation.save(update_fields=["status"])
 
-            transaction.commit()
 
-            # 2. NOTIFICA ALL'ADMIN (IL CREATORE)
+            # 2. NOTIFICA ALL'ADMIN
             Notification.objects.create(
-                user=delegante,
-                message=f"❌ La delega per '{delegazione.project.title}' è stata **RIFIUTATA** dal professore {user.username}.",
-                delegation=delegazione,
+                user=admin_recipient,
+                message=f"❌ La delega per '{delegation.project.title}' è stata **RIFIUTATA** dal professore {user_collaborator.username}.",
+                delegation=delegation,
             )
 
             messages.success(request, "Hai rifiutato la delega.")
