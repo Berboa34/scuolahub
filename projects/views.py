@@ -122,16 +122,53 @@ def projects_list(request):
     })
 
 
+from decimal import Decimal, InvalidOperation
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, F, FloatField, Value, Case, When, Q
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render, redirect
+from django.utils import timezone
+import calendar
+from django.urls import reverse
+from django.db import transaction
+
+from django.contrib import messages
+from django.conf import settings
+
+# Assicurati di importare tutti i modelli necessari qui, inclusa Milestone
+from .models import Project, School, Expense, SpendingLimit, Event, Delegation, Milestone
+
+from datetime import date, timedelta
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .models import School, Document, CallForProposal, Call, Notification
+
+
 @login_required
 def project_detail(request, pk: int):
-    project = get_object_or_404(Project, pk=pk, school=school)
-
-    # Se l’utente è legato a una scuola, impediamo accesso ad altre scuole
+    # --- 1. RECUPERO IL PROFILO E LA SCUOLA DELL'UTENTE (CORREZIONE ORDINE) ---
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
+
+    # Controllo di sicurezza: se l'utente non è legato a una scuola, non può procedere
+    if not school:
+        raise Http404("Accesso negato: Nessuna scuola associata all'utente.")
+
+        # --- 2. RECUPERO IL PROGETTO (OGGETTO PRINCIPALE) ---
+    # Ora 'school' è definito. Filtriamo per ID e scuola dell'utente.
+    project = get_object_or_404(Project, pk=pk, school=school)
+
+    # --- 3. RECUPERO GLI OGGETTI SECONDARI ---
+    # Ora 'project' è definito.
     milestones = project.milestones.all()
-    if school and project.school_id and project.school_id != school.id:
-        raise Http404("Progetto non trovato")
+    delegations = project.delegations.all()
+
+    # Inizializzazioni per il contesto (simulazione delle variabili definite altrove)
+    add_limit = request.GET.get("add") == "limit"
+    add_expense = request.GET.get("add") == "expense"
+    expense_breakdown = None  # Dovrebbe essere calcolato più avanti
 
     # ---------------------------
     # A) Gestione POST (insert)
@@ -142,7 +179,7 @@ def project_detail(request, pk: int):
         if op == "add_expense":
             try:
                 date_str = request.POST.get("date") or timezone.now().date().isoformat()
-                date_val = date_str  # field è DateField, Django lo parse in automatico se è 'YYYY-MM-DD'
+                date_val = date_str
                 vendor = (request.POST.get("vendor") or "").strip() or None
                 category = request.POST.get("category") or "ALTRO"
                 amount_str = request.POST.get("amount") or "0"
@@ -171,7 +208,7 @@ def project_detail(request, pk: int):
         if op == "add_limit":
             try:
                 category = request.POST.get("category") or "MATERIALI"
-                base = request.POST.get("base") or "TOTAL_SPENT"   # <-- usa il campo 'base' (non 'basis')
+                base = request.POST.get("base") or "TOTAL_SPENT"
                 perc_str = request.POST.get("percentage") or "0"
                 try:
                     percentage = Decimal(perc_str)
@@ -199,7 +236,7 @@ def project_detail(request, pk: int):
         return HttpResponseBadRequest("Operazione non riconosciuta.")
 
     # ---------------------------
-    # B) Gestione GET (filtri)
+    # B) Gestione GET (filtri e calcoli)
     # ---------------------------
     exp_qs = project.expenses.all().order_by("-date", "-id")
 
@@ -233,7 +270,6 @@ def project_detail(request, pk: int):
 
     limits_ctx = []
     for lim in project.limits.all().order_by("category", "base", "id"):
-        # lim.base: "TOTAL_SPENT" | "TOTAL_BUDGET"
         if lim.base == "TOTAL_SPENT":
             base_total = total_spent
         else:  # "TOTAL_BUDGET"
@@ -250,7 +286,7 @@ def project_detail(request, pk: int):
                 pct_used = Decimal("100")
 
         limits_ctx.append({
-            "limit_id": lim.id,  # <<< AGGIUNTO: id vero dal model
+            "limit_id": lim.id,
             "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
             "base": lim.base,
@@ -266,31 +302,33 @@ def project_detail(request, pk: int):
             "note": getattr(lim, "note", None),
         })
 
+    # Assumo che 'spending_limits' è la stessa cosa di 'limits_ctx'
+    spending_limits = limits_ctx
+
+    # --- D) GESTIONE CONTESTO FINALE (Unione di tutte le variabili) ---
     context = {
         "project": project,
+        "school": school,
+        "milestones": milestones,  # Aggiunto
+        "delegations": delegations,  # Aggiunto
         "expenses": expenses,
         "filtered_total": filtered_total,
         "total_spent": total_spent,
         "progress_percent": progress_percent,
         "category_choices": Expense.CATEGORY_CHOICES,
-        "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
-                         ("TOTAL_BUDGET", "Percentuale sul budget totale")],
-        "add_expense": request.GET.get("add") == "expense",
-        "add_limit": request.GET.get("add") == "limit",
+        "base_choices": SpendingLimit.BASE_CHOICES,
+        "add_expense": add_expense,
+        "add_limit": add_limit,
         "limits_ctx": limits_ctx,
         "today": timezone.now().date().isoformat(),
-    }
-    return render(request, "projects/detail.html",{
-        "project": project,
-        "school": school,
+
+        # Variabili che l'utente aveva nel return finale (assumiamo siano definite)
         "expense_breakdown": expense_breakdown,
         "spending_limits": spending_limits,
-        "delegations": delegations,
-        # AGGIUNGI QUI LE MILESTONE
-        "milestones": milestones,
-        "category_choices": Expense.CATEGORY_CHOICES,
-        "base_choices": SpendingLimit.BASE_CHOICES,
-        "add_limit": add_limit,}, context)
+    }
+
+    # Il render finale passa un solo dizionario 'context'
+    return render(request, "projects/detail.html", context)
 
 
 @login_required
