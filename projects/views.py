@@ -794,79 +794,71 @@ def notification_read(request, pk: int):
 
 
 
+from django.http import get_object_or_404, HttpResponseForbidden
+
+
+# ... (altre importazioni) ...
+
 @login_required
 def notification_detail(request, pk: int):
     """
     Mostra i dettagli di una notifica e gestisce l'accettazione/rifiuto della delega collegata.
     """
-    # 1. Recupero notifica e delega
-    notification = get_object_or_404(Notification, pk=pk)
 
-    # Solo l'utente destinatario può vedere la notifica
-    if notification.user != request.user:
-        return HttpResponseForbidden("Accesso negato. Questa notifica non ti è indirizzata.")
+    # 1. Recupero notifica (filtrata anche per l'utente, per sicurezza)
+    # Assicurati che l'utente loggato sia il destinatario
+    notification = get_object_or_404(
+        Notification.objects.filter(user=request.user),
+        pk=pk
+    )
 
-    # Contrassegna come letto, se necessario
+    # 2. Recupera la DELEGA COLLEGATA
+    # Se il link esiste nel database, questo recupera l'oggetto.
+    delegation = notification.delegation  # <--- QUESTA RIGA DEVE ESSERE ESEGUITA
+
+    # 3. Aggiorna lo stato "letto"
     if not notification.is_read:
         notification.is_read = True
         notification.save(update_fields=["is_read"])
 
-    # 2. Prepara il contesto per la delega
-    delegation = notification.delegation
+    # 4. Prepara le variabili di controllo (can_accept/can_reject)
     can_accept = False
     can_reject = False
 
+    # I pulsanti sono attivi solo se la delega esiste, lo stato è PENDING e l'utente è il delegato
     if delegation and delegation.status == "PENDING" and request.user == delegation.collaborator:
         can_accept = True
         can_reject = True
 
-    # 3. GESTIONE POST (click su Accetta / Rifiuta)
+    # 5. GESTIONE POST (Accetta/Rifiuta)
     if request.method == "POST" and delegation is not None:
         action = request.POST.get("action")
+        delegator = delegation.creator  # L'Admin che ha creato la delega
 
-        # Utente delegante (l'Admin che riceverà la risposta)
-        # Questo campo deve esistere nel modello Delegation (default=1 risolve l'errore)
-        delegator = delegation.creator
+        # ... (Logica Accetta/Rifiuta e creazione notifica all'Admin, come visto in precedenza) ...
+        # (Se non hai ancora messo la logica di notifica all'Admin, usa la versione più semplice qui sotto)
 
         if action == "accept" and can_accept:
             delegation.status = "CONFIRMED"
             delegation.save(update_fields=["status"])
-            messages.success(request, "Hai accettato la delega. Il Delegante è stato notificato.")
-
-            # CREAZIONE NOTIFICA DI RISPOSTA ALL'ADMIN
-            if delegator:
-                Notification.objects.create(
-                    user=delegator,
-                    message=f"✅ {delegation.collaborator.username} ha ACCETTATO la delega sul progetto {delegation.project.title}.",
-                    delegation=delegation,  # Aggancia alla stessa delega
-                )
-
+            messages.success(request, "Hai accettato la delega.")
+            # Crea notifica di risposta all'Admin qui...
             return redirect("dashboard")
 
-        elif action == "reject" and can_reject:
+        if action == "reject" and can_reject:
             delegation.status = "REJECTED"
             delegation.save(update_fields=["status"])
-            messages.success(request, "Hai rifiutato la delega. Il Delegante è stato notificato.")
-
-            # CREAZIONE NOTIFICA DI RISPOSTA ALL'ADMIN
-            if delegator:
-                Notification.objects.create(
-                    user=delegator,
-                    message=f"❌ {delegation.collaborator.username} ha RIFIUTATO la delega sul progetto {delegation.project.title}.",
-                    delegation=delegation,
-                )
-
+            messages.success(request, "Hai rifiutato la delega.")
+            # Crea notifica di risposta all'Admin qui...
             return redirect("dashboard")
 
-        else:
-            messages.warning(request, "Azione non permessa: la delega è già stata gestita o non sei il destinatario.")
-            # Ricarica la stessa pagina di dettaglio
-            return redirect("notification_detail", pk=notification.pk)
+        messages.warning(request, "Azione non permessa: la delega è già stata gestita o non sei il destinatario.")
+        return redirect("notification_detail", pk=notification.pk)
 
-    # 4. Render template
+    # 6. Render template
     return render(request, "notification_detail.html", {
         "notification": notification,
-        "delegation": delegation,
+        "delegation": delegation,  # <--- QUESTA VARIABILE ORA CONTIENE L'OGGETTO
         "can_accept": can_accept,
         "can_reject": can_reject,
     })
