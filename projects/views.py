@@ -844,6 +844,13 @@ def notification_detail(request, pk: int):
 
             transaction.commit()
 
+            # 2. NOTIFICA ALL'ADMIN (IL CREATORE)
+            Notification.objects.create(
+                user=delegante,
+                message=f"✅ La delega per '{delegazione.project.title}' è stata **ACCETTATA** dal professore {user.username}.",
+                delegation=delegazione,
+            )
+
             messages.success(request, "Hai accettato la delega.")
             # Crea notifica di risposta all'Admin qui...
             return redirect("dashboard")
@@ -853,6 +860,13 @@ def notification_detail(request, pk: int):
             delegation.save(update_fields=["status"])
 
             transaction.commit()
+
+            # 2. NOTIFICA ALL'ADMIN (IL CREATORE)
+            Notification.objects.create(
+                user=delegante,
+                message=f"❌ La delega per '{delegazione.project.title}' è stata **RIFIUTATA** dal professore {user.username}.",
+                delegation=delegazione,
+            )
 
             messages.success(request, "Hai rifiutato la delega.")
             # Crea notifica di risposta all'Admin qui...
