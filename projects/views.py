@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 import calendar
 from django.urls import reverse
+from django.db import transaction
 
 from django.contrib import messages
 from django.conf import settings
@@ -839,6 +840,9 @@ def notification_detail(request, pk: int):
         if action == "accept" and can_accept:
             delegation.status = "CONFIRMED"
             delegation.save(update_fields=["status"])
+
+            transaction.commit()
+
             messages.success(request, "Hai accettato la delega.")
             # Crea notifica di risposta all'Admin qui...
             return redirect("dashboard")
@@ -846,6 +850,9 @@ def notification_detail(request, pk: int):
         if action == "reject" and can_reject:
             delegation.status = "REJECTED"
             delegation.save(update_fields=["status"])
+
+            transaction.commit()
+
             messages.success(request, "Hai rifiutato la delega.")
             # Crea notifica di risposta all'Admin qui...
             return redirect("dashboard")
