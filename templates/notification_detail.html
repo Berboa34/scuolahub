@@ -6,6 +6,7 @@
   <title>Dettaglio notifica — ScuolaHub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
+    /* Stili CSS base (assunti dai tuoi file) */
     :root{
       --bg:#f3f4f6;--panel:#ffffff;--ink:#111827;--muted:#6b7280;
       --primary:#2563eb;--line:#e5e7eb;--ok:#16a34a;--bad:#dc2626;--warn:#ca8a04;
@@ -24,175 +25,107 @@
     .crumbs{font-size:13px;margin-bottom:4px}
     .card{
       background:var(--panel);
-      border-radius:14px;
+      border-radius:12px;
       border:1px solid var(--line);
       padding:16px;
-      margin-bottom:16px;
+      margin-top:16px;
     }
     .muted{color:var(--muted);font-size:14px}
     .badge{
-      display:inline-block;
-      padding:2px 8px;
-      border-radius:999px;
-      font-size:12px;
-      border:1px solid var(--line);
-      background:#f9fafb;
+      display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;
+      border:1px solid var(--line);background:var(--bg);font-weight:bold;
     }
-    .badge.read{background:#ecfdf5;color:#166534;border-color:#bbf7d0}
-    .badge.unread{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
-    .status-pill{
-      display:inline-block;
-      padding:3px 8px;
-      border-radius:999px;
-      font-size:12px;
-      border:1px solid var(--line);
-    }
-    .status-pill.pending{background:#fef9c3;color:#854d0e;border-color:#facc15}
-    .status-pill.confirmed{background:#ecfdf5;color:#166534;border-color:#22c55e}
-    .status-pill.rejected{background:#fee2e2;color:#b91c1c;border-color:#f97373}
-    .status-pill.revoked{background:#e5e7eb;color:#374151;border-color:#9ca3af}
+    .badge.PENDING{background:#fef9c3;border-color:#facc15;color:#854d09}
+    .badge.CONFIRMED{background:#dcfce7;border-color:#4ade80;color:#16a34a}
+    .badge.REJECTED{background:#fee2e2;border-color:#f87171;color:#dc2626}
+    .btn-row{display:flex;gap:10px;margin-top:16px}
     .btn{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:8px 12px;
-      border-radius:10px;
-      border:1px solid var(--line);
-      background:#fff;
-      cursor:pointer;
-      font-size:14px;
+      padding:8px 16px;border-radius:6px;font-weight:600;cursor:pointer;
+      border:1px solid var(--line);text-align:center;
     }
     .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-    .btn.danger{background:#dc2626;color:#fff;border-color:#dc2626}
-    .btn:disabled{opacity:.6;cursor:default}
-    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-    .field-label{font-size:13px;color:var(--muted);margin-bottom:2px}
+    .btn.danger{background:var(--bad);color:#fff;border-color:var(--bad)}
+    .row{display:flex;flex-direction:column;margin-bottom:12px}
   </style>
 </head>
 <body>
 
-<header>
-  <div class="wrap">
-    <div class="crumbs">
-      <a href="{% url 'dashboard' %}" style="color:#cbd5f5">← Torna alla Dashboard</a>
+  <header>
+    <div class="wrap">
+      <div class="crumbs"><a href="{% url 'dashboard' %}">Dashboard</a> / Dettaglio notifica</div>
+      <h2>{{ notification.message }}</h2>
     </div>
-    <h1 style="margin:0;font-size:20px;">Dettaglio notifica</h1>
-  </div>
-</header>
+  </header>
 
-<main class="wrap">
+  <main class="wrap">
 
-  <!-- Box notifica -->
-  <section class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <div>
-        <div class="field-label">Ricevuta il</div>
-        <div>
-          <b>{{ notification.created_at|date:"d/m/Y H:i" }}</b>
+    <div class="card">
+      <p class="muted">
+        Ricevuta il {{ notification.created_at|date:"d/m/Y" }} alle {{ notification.created_at|time:"H:i" }}.
+      </p>
+
+      {% if delegation %}
+        <h3 style="margin-top:24px;">Dettagli della Delega</h3>
+
+        <div class="card" style="padding:16px; margin-top:12px;">
+
+            <div class="row">
+                <span class="muted">Progetto:</span>
+                {% if delegation.project %}
+                    <a href="{% url 'project_detail' delegation.project.id %}">
+                        <b>{{ delegation.project.title }}</b>
+                    </a>
+                {% else %}
+                    <span class="muted">—</span>
+                {% endif %}
+            </div>
+
+            <div class="row">
+                <span class="muted">Ruolo delegato:</span>
+                <b>{{ delegation.role_label|default:"(non specificato)" }}</b>
+            </div>
+
+            <div class="row">
+                <span class="muted">Nota:</span>
+                <p style="margin:4px 0 0 0;">{{ delegation.note|default:"(nessuna nota)" }}</p>
+            </div>
+
+            <div class="row" style="margin-top:12px;">
+                <span class="muted">Stato delega:</span>
+                <span class="badge {{ delegation.status }}">
+                    {{ delegation.get_status_display }}
+                </span>
+            </div>
         </div>
-      </div>
-      <div>
-        {% if notification.is_read %}
-          <span class="badge read">Letta</span>
+
+        {% if can_accept or can_reject %}
+          <form method="post" action="" class="btn-row">
+            {% csrf_token %}
+            {% if can_accept %}
+              <button class="btn primary" type="submit" name="action" value="accept">
+                ✅ Accetta delega
+              </button>
+            {% endif %}
+            {% if can_reject %}
+              <button class="btn danger" type="submit" name="action" value="reject"
+                      onclick="return confirm('Sei sicuro di voler rifiutare questa delega?');">
+                ❌ Rifiuta delega
+              </button>
+            {% endif %}
+          </form>
         {% else %}
-          <span class="badge unread">Non letta</span>
+          <p class="muted" style="margin-top:8px;">
+            Non sono disponibili ulteriori azioni su questa delega (Stato: {{ delegation.get_status_display }}).
+          </p>
         {% endif %}
-      </div>
-    </div>
 
-    <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
-
-    <p style="margin:0 0 8px 0;">
-      {{ notification.message }}
-    </p>
-
-    {% if delegation %}
-      <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
-
-      <h2 style="margin:0 0 6px 0;font-size:16px;">Dettagli delega collegata</h2>
-
-      <!-- Progetto -->
-      <p class="muted" style="margin:0 0 6px 0;">
-        <span class="field-label">Progetto:</span><br>
-        {% if delegation.project %}
-          <a href="{% url 'project_detail' delegation.project.id %}">
-            {{ delegation.project.title }}
-          </a>
-        {% else %}
-          <i>(nessun progetto collegato)</i>
-        {% endif %}
-      </p>
-
-      <!-- Ruolo -->
-      <p class="muted" style="margin:0 0 6px 0;">
-        <span class="field-label">Ruolo delegato:</span><br>
-        {{ delegation.role_label|default:"(non specificato)" }}
-      </p>
-
-      <!-- Nota -->
-      <p class="muted" style="margin:0 0 10px 0;">
-        <span class="field-label">Nota del dirigente:</span><br>
-        {{ delegation.note|default:"(nessuna nota aggiuntiva)" }}
-      </p>
-
-      <!-- Stato -->
-      <p style="margin:0 0 4px 0;">
-        <span class="field-label">Stato delega:</span><br>
-        {% if delegation.status == "PENDING" %}
-          <span class="status-pill pending">In attesa di conferma</span>
-        {% elif delegation.status == "CONFIRMED" %}
-          <span class="status-pill confirmed">Accettata</span>
-        {% elif delegation.status == "REJECTED" %}
-          <span class="status-pill rejected">Rifiutata</span>
-        {% elif delegation.status == "REVOKED" %}
-          <span class="status-pill revoked">Revocata</span>
-        {% else %}
-          <span class="status-pill">{{ delegation.get_status_display }}</span>
-        {% endif %}
-      </p>
-
-      {% if delegation.status == "CONFIRMED" %}
-        <p class="muted" style="margin:4px 0 0 0;">
-          Hai già accettato questa delega.
-        </p>
-      {% elif delegation.status == "REJECTED" %}
-        <p class="muted" style="margin:4px 0 0 0;">
-          Hai rifiutato questa delega.
-        </p>
-      {% endif %}
-
-      {% if can_accept or can_reject %}
-        <form method="post" action="" class="btn-row">
-          {% csrf_token %}
-          {% if can_accept %}
-            <button class="btn primary" type="submit" name="action" value="accept">
-              ✅ Accetta delega
-            </button>
-          {% endif %}
-          {% if can_reject %}
-            <button class="btn danger" type="submit" name="action" value="reject"
-                    onclick="return confirm('Sei sicuro di voler rifiutare questa delega?');">
-              ❌ Rifiuta delega
-            </button>
-          {% endif %}
-        </form>
       {% else %}
-        <p class="muted" style="margin-top:8px;">
-          Non sono disponibili ulteriori azioni su questa delega.
+        <p class="muted" style="margin-top:12px;">
+          Questa notifica non è collegata ad alcuna delega.
         </p>
       {% endif %}
 
-    {% else %}
-      <p class="muted" style="margin-top:12px;">
-        Questa notifica non è collegata ad una delega gestibile.
-      </p>
-    {% endif %}
-  </section>
-
-  <p class="muted" style="font-size:13px;">
-    Puoi sempre tornare alla dashboard per vedere progetti, scadenze e altre notifiche.
-  </p>
-
-</main>
+    </div>
+  </main>
 </body>
 </html>
