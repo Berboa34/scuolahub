@@ -1,6 +1,6 @@
 # projects/admin.py
 from django.contrib import admin
-from .models import School, Project, Expense, SpendingLimit, Event, Document
+from .models import School, Project, Expense, SpendingLimit, Event, Document, Milestone
 from .models import Delegation
 from .models import Call, Notification
 
@@ -88,3 +88,9 @@ class NotificationAdmin(admin.ModelAdmin):
     search_fields = ("message", "user__username", "delegation__project__title")
     readonly_fields = ("created_at",)
 
+@admin.register(Milestone)
+class MilestoneAdmin(admin.ModelAdmin):
+    list_display = ('project', 'title', 'due_date', 'status', 'completed_date')
+    list_filter = ('status', 'project',)
+    search_fields = ('title', 'description')
+    date_hierarchy = 'due_date'
