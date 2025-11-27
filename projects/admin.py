@@ -45,17 +45,19 @@ class EventAdmin(admin.ModelAdmin):
 
 @admin.register(Delegation)
 class DelegationAdmin(admin.ModelAdmin):
-    # Rimuovi "status" da list_display e usa il nuovo campo "display_status"
-    list_display = ("project", "collaborator", "role_label", "display_status", "created_at")
+    # ATTENZIONE: abbiamo sostituito "status" con "display_status"
+    list_display = ("project", "collaborator", "role_label", "admin_status_display", "created_at")
     list_filter = ("status",)
     search_fields = ("project__title", "collaborator__username", "role_label")
     readonly_fields = ("created_at",)
 
-    # Nuovo metodo per visualizzare lo stato (forzando il ricaricamento dell'etichetta)
-    def display_status(self, obj):
+    # Questo metodo usa la funzione di Django per ottenere l'etichetta corretta
+    def admin_status_display(self, obj):
+        # La delega ha lo stato PENDING, e questo metodo DEVE mostrare
+        # l'etichetta di PENDING ("In attesa di conferma").
         return obj.get_status_display()
 
-    display_status.short_description = "Stato"
+    admin_status_display.short_description = "Stato Delega"
 
 from .models import Document
 

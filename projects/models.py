@@ -233,6 +233,17 @@ class Delegation(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        # QUESTO È IL CONTROLLO CRITICO:
+        # Se l'oggetto è NUOVO (pk è None)
+        if self.pk is None:
+            # Imposta lo stato su PENDING, indipendentemente da cosa ha cercato di fare
+            # un segnale o un save() precedente. Questo sovrascrive tutto.
+            self.status = 'PENDING'
+
+        # Poi esegue il salvataggio standard nel database
+        super().save(*args, **kwargs)
+
     class Meta:
         ordering = ["-created_at"]
 
