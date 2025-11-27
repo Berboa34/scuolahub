@@ -198,6 +198,15 @@ class Delegation(models.Model):
         null=True,
         blank=True,
     )
+
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="delegations_created",
+        verbose_name="Delegante",
+        default=1,  # <--- TEMPORANEO! Sostituisci 1 con l'ID di un Admin esistente.
+    )
+
     collaborator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
