@@ -145,61 +145,68 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import School, Document, CallForProposal, Call, Notification
 
+
 @login_required
 def project_detail(request, pk: int):
-    # --- 1. RECUPERO DEL PROFILO E GESTIONE SICUREZZA ---
+    project = get_object_or_404(Project, pk=pk)
+
+    # Se l’utente è legato a una scuola, impediamo accesso ad altre scuole
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
-    is_superuser = request.user.is_superuser
-    today = timezone.now().date()
-
-    # Logica di accesso e sicurezza
-    # Se Superuser, accede a qualsiasi progetto. Altrimenti, solo progetti della sua scuola.
-    if is_superuser:
-        project = get_object_or_404(Project, pk=pk)
-    elif school:
-        project = get_object_or_404(Project, pk=pk, school=school)
-    else:
-        raise Http404("Accesso negato: Nessuna scuola associata all'utente.")
+    if school and project.school_id and project.school_id != school.id:
+        raise Http404("Progetto non trovato")
 
     # ---------------------------
     # A) Gestione POST (insert)
     # ---------------------------
     if request.method == "POST":
         op = request.POST.get("op", "")
-
         # A.1) Aggiungi spesa
         if op == "add_expense":
             try:
-                date_str = request.POST.get("date") or today.isoformat()
+                date_str = request.POST.get("date") or timezone.now().date().isoformat()
+                date_val = date_str  # field è DateField, Django lo parse in automatico se è 'YYYY-MM-DD'
                 vendor = (request.POST.get("vendor") or "").strip() or None
                 category = request.POST.get("category") or "ALTRO"
                 amount_str = request.POST.get("amount") or "0"
-                amount = Decimal(amount_str)
+                try:
+                    amount = Decimal(amount_str)
+                except (InvalidOperation, TypeError):
+                    amount = Decimal("0")
                 document = (request.POST.get("document") or "").strip() or None
                 note = (request.POST.get("note") or "").strip() or None
 
                 Expense.objects.create(
-                    project=project, date=date_str, vendor=vendor,
-                    category=category, amount=amount, document=document, note=note,
+                    project=project,
+                    date=date_val,
+                    vendor=vendor,
+                    category=category,
+                    amount=amount,
+                    document=document,
+                    note=note,
                 )
-                messages.success(request, "Spesa aggiunta con successo.")
+                # Post/Redirect/Get
                 return redirect("project_detail", pk=project.pk)
             except Exception as e:
-                messages.error(request, f"Errore inserimento spesa: {e}")
-                return redirect(f"{reverse('project_detail', args=[project.pk])}?add=expense")
+                return HttpResponseBadRequest(f"Errore inserimento spesa: {e}")
 
         # A.2) Aggiungi limite
         if op == "add_limit":
             try:
                 category = request.POST.get("category") or "MATERIALI"
-                base = request.POST.get("base") or "TOTAL_SPENT"
+                base = request.POST.get("base") or "TOTAL_SPENT"   # <-- usa il campo 'base' (non 'basis')
                 perc_str = request.POST.get("percentage") or "0"
-                percentage = Decimal(perc_str)
+                try:
+                    percentage = Decimal(perc_str)
+                except (InvalidOperation, TypeError):
+                    percentage = Decimal("0")
                 note = (request.POST.get("note") or "").strip() or None
 
+                # unique_together = (project, category, base) — aggiorna se già esiste
                 lim, created = SpendingLimit.objects.get_or_create(
-                    project=project, category=category, base=base,
+                    project=project,
+                    category=category,
+                    base=base,
                     defaults={"percentage": percentage, "note": note},
                 )
                 if not created:
@@ -207,65 +214,54 @@ def project_detail(request, pk: int):
                     lim.note = note
                     lim.save(update_fields=["percentage", "note"])
 
-                messages.success(request, "Limite aggiornato con successo.")
                 return redirect("project_detail", pk=project.pk)
             except Exception as e:
-                messages.error(request, f"Errore inserimento limite: {e}")
-                return redirect(f"{reverse('project_detail', args=[project.pk])}?add=limit")
-
-        # A.3) Aggiungi Milestone (NUOVA LOGICA)
-        if op == "add_milestone":
-            try:
-                title = (request.POST.get("title") or "").strip()
-                due_date_str = request.POST.get("due_date")
-                status = request.POST.get("status") or "PENDING"
-                description = (request.POST.get("description") or "").strip() or None
-
-                if not title or not due_date_str:
-                    raise ValueError("Titolo e Data di Scadenza sono obbligatori.")
-
-                Milestone.objects.create(
-                    project=project, title=title, due_date=due_date_str, status=status, description=description,
-                )
-                messages.success(request, f"Milestone '{title}' aggiunta con successo.")
-                return redirect("project_detail", pk=project.pk)
-            except Exception as e:
-                messages.error(request, f"Errore inserimento milestone: {e}")
-                return redirect(f"{reverse('project_detail', args=[project.pk])}?add=milestone")
+                return HttpResponseBadRequest(f"Errore inserimento limite: {e}")
 
         # Se POST senza op valido
         return HttpResponseBadRequest("Operazione non riconosciuta.")
 
     # ---------------------------
-    # B) Gestione GET (filtri e calcoli)
+    # B) Gestione GET (filtri)
     # ---------------------------
-
-    # 1. Spese
     exp_qs = project.expenses.all().order_by("-date", "-id")
-    # Logica filtri (cat, vendor_q)
+
     cat = request.GET.get("category") or ""
-    if cat: exp_qs = exp_qs.filter(category=cat)
+    if cat:
+        exp_qs = exp_qs.filter(category=cat)
+
     vendor_q = request.GET.get("vendor") or ""
-    if vendor_q: exp_qs = exp_qs.filter(vendor__icontains=vendor_q)
+    if vendor_q:
+        exp_qs = exp_qs.filter(vendor__icontains=vendor_q)
 
     expenses = list(exp_qs)
     filtered_total = exp_qs.aggregate(total=Sum("amount"))["total"] or Decimal("0")
 
-    # Totale speso & KPI Budget
+    # Totale speso su tutte le spese del progetto
     total_spent = project.expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
+    # Avanzamento (speso vs budget)
     budget = project.budget or Decimal("0")
     progress_percent = Decimal("0")
     if budget > 0:
         progress_percent = (total_spent * Decimal("100")) / budget
-        if progress_percent > 100: progress_percent = Decimal("100")
+        if progress_percent > 100:
+            progress_percent = Decimal("100")
 
-    # 2. Limiti
+    # ---------------------------
+    # C) Limiti
+    # ---------------------------
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
     sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
 
     limits_ctx = []
     for lim in project.limits.all().order_by("category", "base", "id"):
-        base_total = total_spent if lim.base == "TOTAL_SPENT" else budget
+        # lim.base: "TOTAL_SPENT" | "TOTAL_BUDGET"
+        if lim.base == "TOTAL_SPENT":
+            base_total = total_spent
+        else:  # "TOTAL_BUDGET"
+            base_total = budget
+
         allowed_total = (lim.percentage / Decimal("100")) * base_total
         spent_in_cat = sums_by_cat.get(lim.category, Decimal("0"))
         remaining = allowed_total - spent_in_cat
@@ -273,15 +269,18 @@ def project_detail(request, pk: int):
         pct_used = Decimal("0")
         if allowed_total > 0:
             pct_used = (spent_in_cat * Decimal("100")) / allowed_total
-            if pct_used > 100: pct_used = Decimal("100")
+            if pct_used > 100:
+                pct_used = Decimal("100")
 
         limits_ctx.append({
-            "limit_id": lim.id,
+            "limit_id": lim.id,  # <<< AGGIUNTO: id vero dal model
             "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
             "base": lim.base,
-            "base_label": {"TOTAL_SPENT": "Percentuale sul totale speso",
-                           "TOTAL_BUDGET": "Percentuale sul budget totale"}.get(lim.base, lim.base),
+            "base_label": {
+                "TOTAL_SPENT": "Percentuale sul totale speso",
+                "TOTAL_BUDGET": "Percentuale sul budget totale"
+            }.get(lim.base, lim.base),
             "percentage": lim.percentage,
             "allowed_total": allowed_total,
             "spent_in_category": spent_in_cat,
@@ -290,41 +289,22 @@ def project_detail(request, pk: int):
             "note": getattr(lim, "note", None),
         })
 
-    # 3. Milestone
-    milestones = project.milestones.all().order_by('due_date')
-    total_milestones = milestones.count()
-    completed_milestones = milestones.filter(status='COMPLETED').count()
-
-    milestone_progress_percent = Decimal("0")
-    if total_milestones > 0:
-        milestone_progress_percent = (completed_milestones * Decimal("100")) / total_milestones
-
-    # --- D) GESTIONE CONTESTO FINALE ---
     context = {
         "project": project,
-        "school": school,
-
         "expenses": expenses,
         "filtered_total": filtered_total,
         "total_spent": total_spent,
         "progress_percent": progress_percent,
-        "limits_ctx": limits_ctx,
-
-        "milestones": milestones,
-        "milestone_progress_percent": milestone_progress_percent,
-
         "category_choices": Expense.CATEGORY_CHOICES,
         "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
                          ("TOTAL_BUDGET", "Percentuale sul budget totale")],
-
         "add_expense": request.GET.get("add") == "expense",
         "add_limit": request.GET.get("add") == "limit",
-        "add_milestone": request.GET.get("add") == "milestone",
-
-        "today": today.isoformat(),
+        "limits_ctx": limits_ctx,
+        "today": timezone.now().date().isoformat(),
     }
-    # La cartella corretta è 'bandi'
-    return render(request, "bandi/detail.html", context)
+    return render(request, "projects/detail.html", context)
+
 
 
 @login_required
