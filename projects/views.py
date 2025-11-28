@@ -146,26 +146,37 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import School, Document, CallForProposal, Call, Notification
 
 
-@login_required
 def project_detail(request, pk: int):
-    project = get_object_or_404(Project, pk=pk)
-
-    # Se l’utente è legato a una scuola, impediamo accesso ad altre scuole
+    # --- 1. RECUPERO DEL PROFILO E GESTIONE SICUREZZA ---
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
-    if school and project.school_id and project.school_id != school.id:
-        raise Http404("Progetto non trovato")
+    is_superuser = request.user.is_superuser
+    today = timezone.now().date()
+
+    # Logica di accesso e sicurezza
+    if is_superuser:
+        # Superuser vede QUALSIASI progetto
+        project = get_object_or_404(Project, pk=pk)
+    elif school:
+        # Utente legato a scuola vede solo progetti della sua scuola
+        project = get_object_or_404(Project, pk=pk, school=school)
+        if project.school_id and project.school_id != school.id:  # Questo controllo è ridondante con la riga sopra ma lo mantengo come fallback
+            raise Http404("Progetto non trovato o accesso negato.")
+    else:
+        # Accesso negato se non Superuser e senza scuola
+        raise Http404("Accesso negato: Nessuna scuola associata all'utente.")
 
     # ---------------------------
     # A) Gestione POST (insert)
     # ---------------------------
     if request.method == "POST":
         op = request.POST.get("op", "")
-        # A.1) Aggiungi spesa
+
+        # A.1) Aggiungi spesa (LOGICA ESISTENTE)
         if op == "add_expense":
             try:
                 date_str = request.POST.get("date") or timezone.now().date().isoformat()
-                date_val = date_str  # field è DateField, Django lo parse in automatico se è 'YYYY-MM-DD'
+                date_val = date_str
                 vendor = (request.POST.get("vendor") or "").strip() or None
                 category = request.POST.get("category") or "ALTRO"
                 amount_str = request.POST.get("amount") or "0"
@@ -177,24 +188,20 @@ def project_detail(request, pk: int):
                 note = (request.POST.get("note") or "").strip() or None
 
                 Expense.objects.create(
-                    project=project,
-                    date=date_val,
-                    vendor=vendor,
-                    category=category,
-                    amount=amount,
-                    document=document,
-                    note=note,
+                    project=project, date=date_val, vendor=vendor,
+                    category=category, amount=amount, document=document, note=note,
                 )
-                # Post/Redirect/Get
+                messages.success(request, "Spesa aggiunta con successo.")
                 return redirect("project_detail", pk=project.pk)
             except Exception as e:
-                return HttpResponseBadRequest(f"Errore inserimento spesa: {e}")
+                messages.error(request, f"Errore inserimento spesa: {e}")
+                return redirect(f"{reverse('project_detail', args=[project.pk])}?add=expense")
 
-        # A.2) Aggiungi limite
+        # A.2) Aggiungi limite (LOGICA ESISTENTE)
         if op == "add_limit":
             try:
                 category = request.POST.get("category") or "MATERIALI"
-                base = request.POST.get("base") or "TOTAL_SPENT"   # <-- usa il campo 'base' (non 'basis')
+                base = request.POST.get("base") or "TOTAL_SPENT"
                 perc_str = request.POST.get("percentage") or "0"
                 try:
                     percentage = Decimal(perc_str)
@@ -202,11 +209,8 @@ def project_detail(request, pk: int):
                     percentage = Decimal("0")
                 note = (request.POST.get("note") or "").strip() or None
 
-                # unique_together = (project, category, base) — aggiorna se già esiste
                 lim, created = SpendingLimit.objects.get_or_create(
-                    project=project,
-                    category=category,
-                    base=base,
+                    project=project, category=category, base=base,
                     defaults={"percentage": percentage, "note": note},
                 )
                 if not created:
@@ -214,16 +218,44 @@ def project_detail(request, pk: int):
                     lim.note = note
                     lim.save(update_fields=["percentage", "note"])
 
+                messages.success(request, "Limite aggiornato con successo.")
                 return redirect("project_detail", pk=project.pk)
             except Exception as e:
-                return HttpResponseBadRequest(f"Errore inserimento limite: {e}")
+                messages.error(request, f"Errore inserimento limite: {e}")
+                return redirect(f"{reverse('project_detail', args=[project.pk])}?add=limit")
+
+        # A.3) Aggiungi Milestone (NUOVA LOGICA)
+        if op == "add_milestone":
+            try:
+                title = (request.POST.get("title") or "").strip()
+                due_date_str = request.POST.get("due_date")
+                status = request.POST.get("status") or "PENDING"
+                description = (request.POST.get("description") or "").strip() or None
+
+                if not title or not due_date_str:
+                    raise ValueError("Titolo e Data di Scadenza sono obbligatori.")
+
+                Milestone.objects.create(
+                    project=project,
+                    title=title,
+                    due_date=due_date_str,
+                    status=status,
+                    description=description,
+                )
+                messages.success(request, f"Milestone '{title}' aggiunta con successo.")
+                return redirect("project_detail", pk=project.pk)
+            except Exception as e:
+                messages.error(request, f"Errore inserimento milestone: {e}")
+                return redirect(f"{reverse('project_detail', args=[project.pk])}?add=milestone")
 
         # Se POST senza op valido
         return HttpResponseBadRequest("Operazione non riconosciuta.")
 
     # ---------------------------
-    # B) Gestione GET (filtri)
+    # B) Gestione GET (filtri e calcoli)
     # ---------------------------
+
+    # 1. Spese (LOGICA ESISTENTE)
     exp_qs = project.expenses.all().order_by("-date", "-id")
 
     cat = request.GET.get("category") or ""
@@ -248,18 +280,15 @@ def project_detail(request, pk: int):
         if progress_percent > 100:
             progress_percent = Decimal("100")
 
-    # ---------------------------
-    # C) Limiti
-    # ---------------------------
+    # 2. Limiti (LOGICA ESISTENTE)
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
     sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
 
     limits_ctx = []
     for lim in project.limits.all().order_by("category", "base", "id"):
-        # lim.base: "TOTAL_SPENT" | "TOTAL_BUDGET"
         if lim.base == "TOTAL_SPENT":
             base_total = total_spent
-        else:  # "TOTAL_BUDGET"
+        else:
             base_total = budget
 
         allowed_total = (lim.percentage / Decimal("100")) * base_total
@@ -273,7 +302,7 @@ def project_detail(request, pk: int):
                 pct_used = Decimal("100")
 
         limits_ctx.append({
-            "limit_id": lim.id,  # <<< AGGIUNTO: id vero dal model
+            "limit_id": lim.id,
             "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
             "base": lim.base,
@@ -289,22 +318,46 @@ def project_detail(request, pk: int):
             "note": getattr(lim, "note", None),
         })
 
+    # 3. Milestone (NUOVO CALCOLO)
+    milestones = project.milestones.all().order_by('due_date')
+    total_milestones = milestones.count()
+    completed_milestones = milestones.filter(status='COMPLETED').count()
+
+    milestone_progress_percent = Decimal("0")
+    if total_milestones > 0:
+        milestone_progress_percent = (completed_milestones * Decimal("100")) / total_milestones
+
+    # --- D) GESTIONE CONTESTO FINALE ---
+
+    # Variabili GET per riaprire i form
+    add_expense = request.GET.get("add") == "expense"
+    add_limit = request.GET.get("add") == "limit"
+    add_milestone = request.GET.get("add") == "milestone"  # <-- NUOVO
+
     context = {
         "project": project,
+        "school": school,  # Passato per coerenza, anche se non strettamente necessario nel template
+
         "expenses": expenses,
         "filtered_total": filtered_total,
         "total_spent": total_spent,
         "progress_percent": progress_percent,
+        "limits_ctx": limits_ctx,
+
+        "milestones": milestones,  # <-- NUOVO
+        "milestone_progress_percent": milestone_progress_percent,  # <-- NUOVO
+
         "category_choices": Expense.CATEGORY_CHOICES,
         "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
                          ("TOTAL_BUDGET", "Percentuale sul budget totale")],
-        "add_expense": request.GET.get("add") == "expense",
-        "add_limit": request.GET.get("add") == "limit",
-        "limits_ctx": limits_ctx,
-        "today": timezone.now().date().isoformat(),
-    }
-    return render(request, "projects/detail.html", context)
 
+        "add_expense": add_expense,
+        "add_limit": add_limit,
+        "add_milestone": add_milestone,  # <-- NUOVO
+
+        "today": today.isoformat(),  # Usato per i form e per il controllo "delayed" nel template
+    }
+    return render(request, "bandi/detail.html", context)  # Ho modificato il nome del template in bandi/detail.html
 
 
 @login_required
