@@ -1,144 +1,242 @@
 {% load humanize %}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>{{ bando.title }} – Dettaglio bando</title>
+  <title>{{ project.title }} — Dettaglio Progetto</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <style>
+    /* ---------------------------------
+       STILI BASE (Forniti dall'utente)
+       --------------------------------- */
+    :root {
+        --br: #e5e7eb; /* Colore Bordo */
+        --ok: #22c55e; /* Colore Successo (verde) */
+        --bad: #ef4444; /* Colore Errore (rosso) */
+        --warn: #facc15; /* Colore Attenzione (giallo) */
+        --muted: #6b7280; /* Colore Testo Muto */
+    }
     body{
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
       margin:0;
       background:#f3f4f6;
       color:#111827;
     }
-    a{color:#0b5cab;text-decoration:none}
+    a{color:#2563eb;text-decoration:none}
     a:hover{text-decoration:underline}
-    header{background:#0b2a42;color:#fff}
-    .wrap{max-width:900px;margin:0 auto;padding:16px}
-    .topnav{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
-    .muted{color:#6b7280}
+    .wrap{max-width:800px;margin:0 auto;padding:16px}
     .card{
-      background:#fff;
-      border-radius:10px;
-      border:1px solid #e5e7eb;
-      padding:16px;
-      margin-top:16px;
+      background:#fff;border-radius:12px;border:1px solid var(--br);
+      padding:16px;margin-top:16px;
     }
-    .badge{
-      display:inline-block;
-      padding:2px 6px;
-      border-radius:999px;
-      font-size:11px;
-      border:1px solid #e5e7eb;
-      background:#f9fafb;
-      color:#374151;
+    .muted{color:var(--muted);font-size:14px}
+    .kpis{display:flex; justify-content: space-between;}
+    .kpi-item {text-align: center; border-right: 1px solid var(--br); padding: 0 10px;}
+    .kpi-item:last-child {border-right: none;}
+    .kpi-item h3 {margin: 0;}
+    .kpi-item p {margin: 0; font-size: 12px;}
+    .grid {display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;}
+    .grid.cols-2 {grid-template-columns: 1fr 1fr;}
+    .btn{
+      display:inline-block;margin-top:8px;padding:8px 12px;border-radius:8px;
+      border:1px solid #d1d5db;background:#fff;cursor:pointer;font-size:14px;
     }
-    .status-OPEN{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
-    .status-CLOSED{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
-    .status-IN_PREP{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
-    .status-FUNDED{background:#ecfdf5;border-color:#6ee7b7;color:#047857}
-    .status-NOT_FUNDED{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
-    .section-title{font-size:16px;font-weight:600;margin:16px 0 8px}
-    dl{margin:0}
-    dt{font-size:12px;text-transform:uppercase;color:#6b7280;margin-top:10px}
-    dd{margin:0 0 4px}
-    pre{
-      white-space:pre-wrap;
-      font-family:inherit;
-      font-size:14px;
-      background:#f9fafb;
-      border-radius:8px;
-      border:1px solid #e5e7eb;
-      padding:10px;
+    .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+    .form-group input, .form-group select {width: 100%; padding: 8px; border: 1px solid var(--br); border-radius: 4px; box-sizing: border-box; margin-top: 4px;}
+
+    /* ---------------------------------
+       STILI MILESTONE (Nuovi)
+       --------------------------------- */
+    .timeline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-top: 20px;
+      position: relative;
+      overflow-x: auto;
+      padding-bottom: 20px;
+      min-height: 100px;
+    }
+    .timeline-bar {
+      position: absolute;
+      top: 30px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--br);
+    }
+    .milestone-point {
+      flex: 1;
+      min-width: 150px;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+    .milestone-circle {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      margin: 0 auto 10px;
+      position: relative;
+      top: 25px;
+      border: 3px solid #fff;
+      transition: background-color 0.3s;
+    }
+    .milestone-point.completed .milestone-circle { background-color: var(--ok); }
+    .milestone-point.delayed .milestone-circle { background-color: var(--bad); }
+    .milestone-point.pending .milestone-circle { background-color: var(--warn); }
+
+    .milestone-date { font-size: 0.8em; color: var(--muted); margin-top: 35px; }
+    .milestone-title { font-weight: 600; margin-top: 5px; }
+
+    .progress-line {
+      position: absolute;
+      top: 30px;
+      left: 0;
+      height: 4px;
+      background: var(--ok);
+      width: 0%;
+      transition: width 0.5s;
     }
   </style>
 </head>
 <body>
-
-<header>
-  <div class="wrap">
-    <div class="topnav">
-      <div class="muted" style="font-size:13px">
-        <a href="{% url 'bandi_list' %}" style="color:#cfe3ff;">← Torna all'elenco bandi</a>
-      </div>
-      <div class="muted" style="font-size:13px">
-        Utente: <b>{{ request.user.username }}</b>
-        {% if school %} · Scuola: <b>{{ school.name }}</b>{% endif %}
-      </div>
-    </div>
-    <h1 style="margin:8px 0 0;">{{ bando.title }}</h1>
-    <p class="muted" style="margin:4px 0 8px;font-size:14px">
-      Programma: <b>{{ bando.get_program_display }}</b>
-      {% if bando.internal_code %} · Cod. interno: {{ bando.internal_code }}{% endif %}
-      {% if bando.school %} · Scuola: {{ bando.school.name }}{% endif %}
-    </p>
-  </div>
-</header>
-
 <main class="wrap">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="card" style="padding: 10px; background: {% if message.tags == 'success' %}#dcfce7{% elif message.tags == 'error' %}#fee2e2{% else %}#fef9c3{% endif %}; border-color: #ccc; margin-top: 10px;">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <p><a href="{% url 'projects_list' %}">← Torna all'elenco progetti</a></p>
+
+  <h1 style="margin-top:0;">{{ project.title }}</h1>
+  <p class="muted">Scuola: {{ school.name|default:"N/A" }} | Budget: €{{ project.budget|floatformat:2|intcomma }}</p>
 
   <div class="card">
-    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px">
-      <div>
-        <span class="badge status-{{ bando.status }}">
-          {{ bando.get_status_display }}
-        </span>
+    <div class="kpis">
+      <div class="kpi-item">
+        <h3>€{{ total_spent|floatformat:2|intcomma }}</h3>
+        <p>Totale Speso</p>
       </div>
-      <div class="muted" style="font-size:13px">
-        Inserito: {{ bando.imported_at|date:"d/m/Y H:i" }} · Ultimo aggiornamento: {{ bando.last_update|date:"d/m/Y H:i" }}
+      <div class="kpi-item">
+        <h3>€{{ project.budget|floatformat:2|intcomma }}</h3>
+        <p>Budget Totale</p>
       </div>
+      <div class="kpi-item" style="flex-grow: 1;">
+        <h3>{{ progress_percent|floatformat:0 }}%</h3>
+        <p>Avanzamento Speso/Budget</p>
+      </div>
+      {% if project.is_active %}
+      <div class="kpi-item" style="flex-grow: 1;">
+        <h3>Attivo</h3>
+        <p>Stato</p>
+      </div>
+      {% endif %}
     </div>
-
-    <div style="margin-top:12px">
-      <dl>
-        <dt>Fonte</dt>
-        <dd>
-          {{ bando.source_name }}
-          {% if bando.source_url %}
-            · <a href="{{ bando.source_url }}" target="_blank">Apri bando ufficiale ↗</a>
-          {% endif %}
-        </dd>
-
-        <dt>Periodo</dt>
-        <dd>
-          {% if bando.publication_date %}Pubblicato il {{ bando.publication_date|date:"d/m/Y" }}{% else %}Data pubblicazione n.d.{% endif %}
-          {% if bando.deadline_date %} · Scadenza: <b>{{ bando.deadline_date|date:"d/m/Y" }}</b>{% endif %}
-        </dd>
-
-        <dt>Importo disponibile</dt>
-        <dd>
-          {% if bando.amount_available %}
-            € {{ bando.amount_available|floatformat:0|intcomma }}
-          {% else %}
-            <span class="muted">Non specificato</span>
-          {% endif %}
-        </dd>
-
-        <dt>Origine dati</dt>
-        <dd>
-          {{ bando.get_import_source_display }}
-        </dd>
-      </dl>
-    </div>
-
-    {% if bando.summary %}
-      <h2 class="section-title">Sintesi</h2>
-      <pre>{{ bando.summary }}</pre>
-    {% endif %}
-
-    {% if bando.requirements %}
-      <h2 class="section-title">Requisiti principali</h2>
-      <pre>{{ bando.requirements }}</pre>
-    {% endif %}
-
-    {% if bando.notes %}
-      <h2 class="section-title">Note interne</h2>
-      <pre>{{ bando.notes }}</pre>
-    {% endif %}
   </div>
 
+  <section id="milestones" class="card" style="margin-top:16px">
+    <h2 class="section-title" style="margin-top:0;">Tappe Fondamentali (Milestone)</h2>
+
+    <details style="margin-top:16px; margin-bottom: 20px;" {% if add_milestone %}open{% endif %}>
+      <summary class="btn primary" style="background: var(--ok); border-color: var(--ok);">+ Aggiungi Milestone</summary>
+      <form method="post" action="" style="margin-top:12px" class="grid" >
+        {% csrf_token %}
+        <input type="hidden" name="op" value="add_milestone" />
+
+        <div class="form-group" style="grid-column:1/3;">
+          <label class="small muted">Titolo</label><br>
+          <input type="text" name="title" required placeholder="Es. Approvazione Piano Finanziario">
+        </div>
+
+        <div class="form-group">
+          <label class="small muted">Data di Scadenza</label><br>
+          <input type="date" name="due_date" value="{{ today }}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="small muted">Stato Iniziale</label><br>
+          <select name="status">
+            <option value="PENDING">In attesa (Default)</option>
+            <option value="COMPLETED">Completata</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="small muted">Descrizione (opzionale)</label><br>
+          <input type="text" name="description" placeholder="Dettagli sulla tappa">
+        </div>
+
+        <div style="grid-column:1/-1">
+          <button class="btn primary" type="submit">Salva Milestone</button>
+        </div>
+      </form>
+    </details>
+
+
+    {% if milestones %}
+      <div style="overflow:visible; padding-bottom: 30px;">
+        <div class="timeline">
+          <div class="timeline-bar"></div>
+
+          <div class="progress-line" style="width: {{ milestone_progress_percent|floatformat:0 }}%;"></div>
+
+          {% for m in milestones %}
+            {% with status_class=m.status|lower %}
+
+            <div class="milestone-point {{ status_class }} {% if m.due_date|date:"Y-m-d" < today and m.status == 'PENDING' %}delayed{% endif %}">
+              <div class="milestone-circle"></div>
+              <div class="milestone-date">{{ m.due_date|date:"d/m/Y" }}</div>
+              <div class="milestone-title">{{ m.title }}</div>
+            </div>
+
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+
+    {% else %}
+      <p class="muted small" style="margin-bottom:0;">Nessuna tappa fondamentale (milestone) definita per questo progetto. Utilizza il pulsante qui sopra per aggiungerne una.</p>
+    {% endif %}
+  </section>
+  <div class="grid cols-2" style="margin-top:16px">
+    <section class="card">
+      <h2>Spese</h2>
+      <a href="{% url 'project_detail' project.pk %}?add=expense" class="btn primary">+ Aggiungi Spesa</a>
+      <div style="margin-top:16px;">
+        <p class="muted">Elenco delle spese (da implementare)</p>
+        <p>Totale filtrato: €{{ filtered_total|floatformat:2|intcomma }}</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Limiti di Spesa</h2>
+      {% for lim in limits_ctx %}
+        <div style="border: 1px solid var(--br); padding: 8px; margin-top: 8px; border-radius: 4px;">
+          <p style="margin: 0; font-weight: 600;">{{ lim.category_label }}</p>
+          <p style="margin: 0; font-size: 12px; color: var(--muted);">
+            {{ lim.percentage|floatformat:0 }}% di {{ lim.base_label }} | Speso: €{{ lim.spent_in_category|floatformat:2|intcomma }}
+          </p>
+          </div>
+      {% empty %}
+         <p class="muted small">Nessun limite impostato.</p>
+      {% endfor %}
+
+      <details style="margin-top:16px" {% if add_limit %}open{% endif %}>
+        <summary class="btn">+ Aggiungi limite</summary>
+        <form method="post" action="" style="margin-top:12px" class="grid">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="add_limit">
+          <div style="grid-column:1/-1;">
+            <button class="btn primary" type="submit">Salva limite</button>
+          </div>
+        </form>
+      </details>
+    </section>
+  </div>
 </main>
 
 </body>
