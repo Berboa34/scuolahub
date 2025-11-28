@@ -63,7 +63,7 @@
       border:1px solid #e5e7eb;
       padding:10px;
     }
-    /* Aggiunta stili per KPI, Spese, Limiti */
+    /* Aggiunta stili necessari per la griglia e i KPI */
     .kpis{display:flex; justify-content: space-between;}
     .kpi-item {text-align: center; border-right: 1px solid var(--br); padding: 0 10px;}
     .kpi-item:last-child {border-right: none;}
@@ -79,7 +79,7 @@
     .form-group input, .form-group select {width: 100%; padding: 8px; border: 1px solid var(--br); border-radius: 4px; box-sizing: border-box; margin-top: 4px;}
 
     /* ---------------------------------
-       STILI MILESTONE
+       STILI MILESTONE (Solo sezioni da integrare)
        --------------------------------- */
     .timeline {
       display: flex;
@@ -195,7 +195,8 @@
 
         <dt>Importo disponibile</dt>
         <dd>
-          {% if project.budget %} € {{ project.budget|floatformat:0|intcomma }}
+          {% if project.budget %}
+            € {{ project.budget|floatformat:0|intcomma }}
           {% else %}
             <span class="muted">Non specificato</span>
           {% endif %}
@@ -223,6 +224,7 @@
       <pre>{{ project.notes }}</pre>
     {% endif %}
   </div>
+
 
   <div class="card">
     <div class="kpis">
@@ -333,7 +335,7 @@
             <p class="muted small">Nessuna spesa registrata.</p>
         {% endif %}
       </div>
-    </section>
+      </section>
 
     <section class="card">
       <h2>Limiti di Spesa</h2>
