@@ -145,7 +145,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import School, Document, CallForProposal, Call, Notification
 
-
+@login_required
 def project_detail(request, pk: int):
     # --- 1. RECUPERO DEL PROFILO E GESTIONE SICUREZZA ---
     profile = getattr(request.user, "profile", None)
