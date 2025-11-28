@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     /* ---------------------------------
-       STILI BASE (Forniti dall'utente)
+       STILI BASE E VARIABILI CSS
        --------------------------------- */
     :root {
         --br: #e5e7eb; /* Colore Bordo */
@@ -45,7 +45,7 @@
     .form-group input, .form-group select {width: 100%; padding: 8px; border: 1px solid var(--br); border-radius: 4px; box-sizing: border-box; margin-top: 4px;}
 
     /* ---------------------------------
-       STILI MILESTONE (Nuovi)
+       STILI MILESTONE
        --------------------------------- */
     .timeline {
       display: flex;
@@ -206,14 +206,28 @@
     <section class="card">
       <h2>Spese</h2>
       <a href="{% url 'project_detail' project.pk %}?add=expense" class="btn primary">+ Aggiungi Spesa</a>
+
       <div style="margin-top:16px;">
-        <p class="muted">Elenco delle spese (da implementare)</p>
-        <p>Totale filtrato: €{{ filtered_total|floatformat:2|intcomma }}</p>
+        {% if expenses %}
+            <p class="muted small">Elenco di {{ expenses|length }} spese:</p>
+            {% for expense in expenses %}
+            <div style="border-bottom: 1px dashed var(--br); padding: 5px 0;">
+                <span style="font-weight: 600;">€{{ expense.amount|floatformat:2|intcomma }}</span>
+                ({{ expense.category|default:"Generica" }}) -
+                <span class="muted small">{{ expense.date|date:"d/m/Y" }}</span>
+                <span style="float: right;" class="muted small">{{ expense.vendor|default:"-" }}</span>
+            </div>
+            {% endfor %}
+            <p style="margin-top: 10px;">Totale Speso: **€{{ total_spent|floatformat:2|intcomma }}**</p>
+        {% else %}
+            <p class="muted small">Nessuna spesa registrata.</p>
+        {% endif %}
       </div>
-    </section>
+      </section>
 
     <section class="card">
       <h2>Limiti di Spesa</h2>
+
       {% for lim in limits_ctx %}
         <div style="border: 1px solid var(--br); padding: 8px; margin-top: 8px; border-radius: 4px;">
           <p style="margin: 0; font-weight: 600;">{{ lim.category_label }}</p>
