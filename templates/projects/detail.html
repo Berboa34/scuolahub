@@ -6,417 +6,358 @@
   <title>{{ project.title }} — Dettaglio progetto</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root { --bg:#0b2a42; --light:#f5f7fb; --muted:#6b7280; --br:#e5e7eb; --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626; }
-    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
-    a{color:#0b5cab;text-decoration:none} a:hover{text-decoration:underline}
-    header{background:var(--bg);color:#fff}
+    :root {
+      --bg:#f7f7fb; --panel:#ffffff; --ink:#1b1f24; --muted:#6b7280;
+      --primary:#2563eb; --primary-ink:#fff; --ok:#16a34a; --warn:#ca8a04; --bad:#dc2626;
+      --line:#e5e7eb; --chip:#eef2ff;
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; background:var(--bg); color:var(--ink);}
+    a{color:var(--primary);text-decoration:none} a:hover{text-decoration:underline}
+    header{background:var(--bg);color:var(--ink); padding: 16px 0;}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
     .topnav{display:flex;gap:12px;align-items:center;justify-content:space-between}
-    .crumbs a{color:#cde1ff}
+    .crumbs a{color:var(--primary)}
     .grid{display:grid;gap:16px}
     @media(min-width:900px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
-    .card{background:#fff;border:1px solid var(--br);border-radius:10px;padding:16px}
-    .muted{color:var(--muted)}
-    .kpis{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr))}
-    .kpi{padding:12px;border:1px dashed var(--br);border-radius:8px;background:var(--light)}
-    .progress{height:10px;background:#e6edf6;border-radius:999px;overflow:hidden}
-    .bar{height:100%}
-    .bar.ok{background:var(--ok)} .bar.warn{background:var(--warn)} .bar.bad{background:var(--bad)}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px 10px;border-bottom:1px solid var(--br);vertical-align:top}
-    th{text-align:left;background:#f8fafc;font-weight:600}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    .btn{display:inline-block;padding:8px 12px;border-radius:8px;border:1px solid var(--br);background:#fff;cursor:pointer}
-    .btn.primary{background:#0b5cab;color:#fff;border-color:#0b5cab}
-    .btn.danger{background:#dc2626;color:#fff;border-color:#dc2626}
-    form.inline{display:inline}
-    .filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-    input[type="text"], select, input[type="date"], input[type="number"]{padding:8px;border-radius:8px;border:1px solid var(--br)}
-    .section-title{margin:0 0 10px 0;font-size:18px}
-    .small{font-size:13px}
-    .badge{display:inline-block;padding:2px 6px;border-radius:6px;background:#eef2ff;color:#334155;font-size:12px;border:1px solid #c7d2fe}
+    .card{background:var(--panel);border:1px solid var(--line);padding:20px;border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+    .progress-bar{background:var(--line);height:8px;border-radius:4px;overflow:hidden;margin-top:6px;position:relative}
+    .progress-fill{height:100%;background:var(--ok);width:0;transition:width 0.5s ease}
+    .btn{padding:8px 12px;border:1px solid var(--primary);border-radius:4px;color:var(--primary);background:#fff;cursor:pointer;font-size:0.9rem;text-decoration:none;display:inline-block}
+    .btn.primary{background:var(--primary);color:var(--primary-ink)}
+    .btn:hover{opacity:0.9;text-decoration:none}
 
-    /* ---------------------------------
-       STILI MILESTONE (NUOVI)
-       --------------------------------- */
-    .timeline {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding-top: 20px;
-      position: relative;
-      overflow-x: auto;
-      padding-bottom: 20px;
-      min-height: 100px;
-    }
-    .timeline-bar {
-      position: absolute;
-      top: 30px;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: var(--br);
-    }
-    .milestone-point {
-      flex: 1;
-      min-width: 150px;
-      text-align: center;
-      position: relative;
-      z-index: 10;
-    }
-    .milestone-circle {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      margin: 0 auto 10px;
-      position: relative;
-      top: 25px;
-      border: 3px solid #fff;
-      transition: background-color 0.3s;
-    }
-    .milestone-point.completed .milestone-circle { background-color: var(--ok); }
-    .milestone-point.delayed .milestone-circle { background-color: var(--bad); }
-    .milestone-point.pending .milestone-circle { background-color: var(--warn); }
+    /* Stili Aggiuntivi per la Timeline */
+    .timeline-container { position: relative; height: 60px; margin-bottom: 30px; min-width: 600px; }
+    .timeline-line { position: absolute; top: 50%; left: 0; right: 0; height: 4px; background: var(--line); }
+    .timeline-marker { position: absolute; top: 50%; transform: translate(-50%, -50%); z-index: 5; }
+    .marker-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.1); cursor: help; }
+    .marker-label { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; white-space: nowrap; }
+    .marker-label-top { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-weight: bold; white-space: nowrap; font-size: 0.85rem; }
 
-    .milestone-date { font-size: 0.8em; color: var(--muted); margin-top: 35px; }
-    .milestone-title { font-weight: 600; margin-top: 5px; }
+    .today-dot { background: var(--primary); width: 12px; height: 12px; }
+    .today-label { color: var(--primary); }
+    .milestone-ok { background: var(--ok); }
+    .milestone-warn { background: var(--warn); }
+    .milestone-bad { background: var(--bad); }
 
-    .progress-line {
-      position: absolute;
-      top: 30px;
-      left: 0;
-      height: 4px;
-      background: var(--ok);
-      width: 0%;
-      transition: width 0.5s;
-    }
   </style>
 </head>
 <body>
-{% if messages %}
-  {% for message in messages %}
-    <div class="wrap" style="padding-bottom: 0;">
-      <div class="card" style="padding: 10px; background: {% if message.tags == 'success' %}#dcfce7{% elif message.tags == 'error' %}#fee2e2{% else %}#fef9c3{% endif %}; border-color: #ccc; margin-top: 16px;">
-        {{ message }}
+
+  <header>
+    <div class="wrap">
+      <div class="topnav">
+        <div class="crumbs">
+          <a href="{% url 'dashboard' %}">Dashboard</a> /
+          <a href="{% url 'projects_list' %}">Progetti</a> /
+          <span>{{ project.title }}</span>
+        </div>
+        <div>
+          <a href="{% url 'dashboard' %}" class="btn">← Torna alla Dashboard</a>
+        </div>
       </div>
     </div>
-  {% endfor %}
-{% endif %}
-<header>
+  </header>
+
   <div class="wrap">
-    <div class="topnav">
-      <div class="crumbs small">
-        <a href="{% url 'dashboard' %}">← Torna alla Dashboard</a> ·
-        <a href="{% url 'projects_list' %}">Torna a Progetti</a>
-      </div>
-      <div class="small">
-        Utente: <b>{{ request.user.username }}</b>
-        {% if request.user.is_staff %}<span class="badge">staff</span>{% endif %}
-      </div>
+    {% if messages %}
+        {% for message in messages %}
+            <div style="padding: 10px; border-radius: 4px; margin-bottom: 16px;
+                        background: {% if message.tags == 'success' %}var(--ok){% elif message.tags == 'error' %}var(--bad){% else %}var(--warn){% endif %}1A;
+                        color: {% if message.tags == 'success' %}var(--ok){% elif message.tags == 'error' %}var(--bad){% else %}var(--warn){% endif %};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <h1>{{ project.title }} <small style="color:var(--muted); font-size:1rem;">({{ project.program }})</small></h1>
+    <p class="muted">
+      Budget: **€ {{ project.budget|intcomma }}** |
+      Inizio: {{ project.start_date|default:"N/D"|date:"d/m/Y" }} |
+      Fine: {{ project.end_date|default:"N/D"|date:"d/m/Y" }}
+    </p>
+
+    <div class="grid cols-2" style="margin-top: 16px;">
+        <div class="card">
+            <h3>Avanzamento Finanziario</h3>
+            <p>Speso Totale: **€ {{ total_spent|intcomma }}**</p>
+            <p>Spesa Filtrata: **€ {{ filtered_total|intcomma }}**</p>
+
+            <div class="progress-label">Avanzamento Spesa (vs Budget)</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width:{{ progress_percent|floatformat:2 }}%;"></div>
+            </div>
+            <small style="color:var(--primary)">{{ progress_percent|floatformat:2 }}%</small>
+        </div>
+
+        <div class="card">
+            <h3>Avanzamento Milestone</h3>
+            <p>Totale Milestone: **{{ milestones|length }}**</p>
+            <p>Completate: **{{ milestones|length|floatformat:0 }}**</p>
+
+            <div class="progress-label">Stato Scadenze (Completate)</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width:{{ milestone_progress_percent|floatformat:2 }}%; background: var(--warn);"></div>
+            </div>
+            <small style="color:var(--warn)">{{ milestone_progress_percent|floatformat:2 }}%</small>
+        </div>
     </div>
-    <h1 style="margin:8px 0 2px">{{ project.title }}</h1>
-    <div class="muted">
-      {% if project.school %}Scuola: <b>{{ project.school.name }}</b> · {% endif %}
-      Programma: <b>{{ project.program }}</b> ·
-      Stato: <b>{{ project.get_status_display }}</b>
-      {% if project.cup %} · CUP: {{ project.cup }}{% endif %}
-      {% if project.cig %} · CIG: {{ project.cig }}{% endif %}
+
+    <div class="card" style="margin-top: 24px; padding: 20px; overflow-x: auto;">
+        <h3>Cronologia Visiva Progetto ({{ project.program }})</h3>
+        {% if project_start and project_end %}
+            <div style="font-size: 0.85rem; margin-bottom: 18px; display: flex; justify-content: space-between;">
+                <span>Inizio: {{ project_start|date:"d/m/Y" }}</span>
+                <span>Fine: {{ project_end|date:"d/m/Y" }}</span>
+            </div>
+
+            <div class="timeline-container" style="min-width: 600px;">
+                <div class="timeline-line"></div>
+
+                {% if today_pos_percent is not None %}
+                    <div class="timeline-marker" style="left: {{ today_pos_percent }}%; z-index: 10;"
+                         title="Oggi: {{ today|date:"d/m/Y" }}">
+                        <div class="marker-dot today-dot" style="background: var(--primary);"></div>
+                        <small class="marker-label-top today-label">OGGI</small>
+                    </div>
+                {% endif %}
+
+                {% for ms in milestones %}
+                    {% if ms.pos_percent is not None %}
+                        {% with ms_status=ms.status %}
+                            {% if ms_status == 'COMPLETED' %}
+                                {% with ms_color='var(--ok)' ms_icon='✅' ms_class='milestone-ok' %}
+                            {% elif ms.due_date|date:"Y-m-d" < today and ms_status == 'PENDING' %}
+                                {% with ms_color='var(--bad)' ms_icon='❌' ms_class='milestone-bad' %}
+                            {% else %}
+                                {% with ms_color='var(--warn)' ms_icon='⏳' ms_class='milestone-warn' %}
+                            {% endif %}
+
+                            <div class="timeline-marker" style="left: {{ ms.pos_percent }}%; z-index: 5;"
+                                 title="{{ ms.title }} ({{ ms.due_date|date:"d/m/Y" }}) - Stato: {{ ms_status|lower }}">
+                                <div class="marker-dot {{ ms_class }}"></div>
+                                <small class="marker-label" style="color: {{ ms_color }};">{{ ms_icon }} {{ ms.due_date|date:"d/m" }}</small>
+                            </div>
+                            {% endwith %}
+                        {% endwith %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <p class="muted small" style="margin: 0; padding-top: 8px;">
+                Legenda: <span style="color: var(--primary);">● Oggi</span>, <span style="color: var(--ok);">● Completata</span>, <span style="color: var(--warn);">● In attesa</span>, <span style="color: var(--bad);">● In ritardo</span>.
+            </p>
+        {% else %}
+            <p class="muted">
+                Per visualizzare la cronologia temporale, è necessario definire le date di **Inizio** e **Fine** nel progetto.
+            </p>
+        {% endif %}
     </div>
-  </div>
-</header>
+    <h2 style="margin-top:24px">Milestone (Scadenze)</h2>
 
-<main class="wrap" style="padding:16px 16px 40px">
-  <div class="card">
-    <div class="kpis">
-      <div class="kpi">
-        <div class="muted small">Budget totale</div>
-        <div><b>€ {{ project.budget|floatformat:0|intcomma }}</b></div>
-      </div>
-      <div class="kpi">
-        <div class="muted small">Speso totale</div>
-        <div><b>€ {{ total_spent|floatformat:0|intcomma }}</b></div>
-      </div>
-      <div class="kpi">
-        <div class="muted small">Avanzamento</div>
-        <div class="progress" aria-hidden="true">
-          {% with p=progress_percent %}
-            {% if p >= 90 %}
-              <div class="bar bad" style="width: {{ p }}%"></div>
-            {% elif p >= 70 %}
-              <div class="bar warn" style="width: {{ p }}%"></div>
-            {% else %}
-              <div class="bar ok" style="width: {{ p }}%"></div>
-            {% endif %}
-          {% endwith %}
-        </div>
-        <div class="small muted">{{ progress_percent|floatformat:0 }}% del budget</div>
-      </div>
-    </div>
-  </div>
+    <details style="margin-top:16px" {% if add_milestone %}open{% endif %}>
+        <summary class="btn primary">+ Aggiungi Milestone</summary>
+        <form method="post" action="." style="margin-top:12px" class="grid cols-2">
+            {% csrf_token %}
+            <input type="hidden" name="op" value="add_milestone" />
 
-  <section id="milestones" class="card" style="margin-top:16px">
-    <h2 class="section-title">Tappe Fondamentali (Milestone)</h2>
+            <div>
+                <label class="small muted">Titolo</label><br>
+                <input type="text" name="title" required placeholder="Es. Selezione Fornitore">
+            </div>
 
-    <details style="margin-top:16px; margin-bottom: 20px;" {% if add_milestone %}open{% endif %}>
-      <summary class="btn primary" style="background: var(--ok); border-color: var(--ok);">+ Aggiungi Milestone</summary>
-      <form method="post" action="" style="margin-top:12px" class="grid">
-        {% csrf_token %}
-        <input type="hidden" name="op" value="add_milestone" />
+            <div>
+                <label class="small muted">Data di Scadenza</label><br>
+                <input type="date" name="due_date" required value="{{ today }}">
+            </div>
 
-        <div style="grid-column:1/3;">
-          <label class="small muted">Titolo</label><br>
-          <input type="text" name="title" required placeholder="Es. Approvazione Piano Finanziario">
-        </div>
+            <div style="grid-column:1/-1">
+                <label class="small muted">Descrizione</label><br>
+                <input type="text" name="description" placeholder="Descrizione o nota (Facoltativa)">
+            </div>
 
-        <div>
-          <label class="small muted">Data di Scadenza</label><br>
-          <input type="date" name="due_date" value="{{ today }}" required>
-        </div>
-
-        <div>
-          <label class="small muted">Stato Iniziale</label><br>
-          <select name="status">
-            <option value="PENDING">In attesa (Default)</option>
-            <option value="COMPLETED">Completata</option>
-          </select>
-        </div>
-
-        <div style="grid-column:1/-1">
-          <label class="small muted">Descrizione (opzionale)</label><br>
-          <input type="text" name="description" placeholder="Dettagli sulla tappa">
-        </div>
-
-        <div>
-          <button class="btn primary" type="submit">Salva Milestone</button>
-        </div>
-      </form>
+            <div style="grid-column:1/-1">
+                <button class="btn primary" type="submit">Salva Milestone</button>
+            </div>
+        </form>
     </details>
 
-
     {% if milestones %}
-      <div style="overflow:visible; padding-bottom: 30px;">
-        <div class="timeline">
-          <div class="timeline-bar"></div>
-
-          <div class="progress-line" style="width: {{ milestone_progress_percent|floatformat:0 }}%;"></div>
-
-          {% for m in milestones %}
-            {% with status_class=m.status|lower %}
-
-            <div class="milestone-point {{ status_class }} {% if m.due_date|date:"Y-m-d" < today and m.status == 'PENDING' %}delayed{% endif %}">
-              <div class="milestone-circle"></div>
-              <div class="milestone-date">{{ m.due_date|date:"d/m/Y" }}</div>
-              <div class="milestone-title">{{ m.title }}</div>
-            </div>
-
-            {% endwith %}
-          {% endfor %}
-        </div>
-      </div>
-
-    {% else %}
-      <p class="muted small" style="margin-bottom:0;">Nessuna tappa fondamentale (milestone) definita per questo progetto. Utilizza il pulsante qui sopra per aggiungerne una.</p>
-    {% endif %}
-  </section>
-  <div class="grid cols-2" style="margin-top:16px">
-    <section class="card">
-      <h2 class="section-title">Spese</h2>
-
-      <form method="get" class="filters" action="">
-        <select name="category">
-          <option value="">Tutte le categorie</option>
-          {% for val,label in category_choices %}
-            <option value="{{ val }}" {% if request.GET.category == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-
-        <input type="text" name="vendor" placeholder="Fornitore contiene…" value="{{ request.GET.vendor|default:'' }}" />
-
-        <button class="btn" type="submit">Filtra</button>
-        <a class="btn" href="?">Azzera</a>
-        <span class="muted small">Totale filtrato: <b>€ {{ filtered_total|floatformat:0|intcomma }}</b></span>
-      </form>
-
-      <div style="overflow:auto">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:110px">Data</th>
-              <th>Fornitore</th>
-              <th style="width:150px">Categoria</th>
-              <th style="width:130px">Importo</th>
-              <th style="width:120px">Documento</th>
-              <th>Note</th>
-              <th style="width:110px">Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for e in expenses %}
-              <tr>
-                <td class="small">{{ e.date|date:"d/m/Y" }}</td>
-                <td>{{ e.vendor|default:"—" }}</td>
-                <td class="small">{{ e.get_category_display }}</td>
-                <td><b>€ {{ e.amount|floatformat:2|intcomma }}</b></td>
-                <td class="small">{{ e.document|default:"—" }}</td>
-                <td class="small">{{ e.note|default:"" }}</td>
-                <td>
-                  <form class="inline" method="post" action="{% url 'expense_delete' e.id %}" onsubmit="return confirm('Eliminare questa spesa?');">
-                    {% csrf_token %}
-                    <button type="submit" class="btn danger">Elimina</button>
-                  </form>
-                </td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="7" class="muted small">Nessuna spesa trovata.</td></tr>
+        <ul style="list-style:none; padding:0; margin-top:16px">
+            {% for ms in milestones %}
+                <li style="border:1px solid var(--line); padding:12px; border-radius:4px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span style="font-weight:bold">{{ ms.title }}</span>
+                        <small style="color:var(--muted); margin-left:8px">({{ ms.description }})</small>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:16px">
+                        <small style="font-weight:bold; color:var(--ink)">
+                            Scadenza: {{ ms.due_date|date:"d/m/Y" }}
+                        </small>
+                        {% with status=ms.status %}
+                            {% if status == 'COMPLETED' %}
+                                <span style="color:var(--ok); font-weight:bold">✅ Completata</span>
+                            {% elif ms.due_date|date:"Y-m-d" < today and status == 'PENDING' %}
+                                <span style="color:var(--bad); font-weight:bold">❌ In ritardo</span>
+                            {% else %}
+                                <span style="color:var(--warn); font-weight:bold">⏳ In attesa</span>
+                            {% endif %}
+                        {% endwith %}
+                        </div>
+                </li>
             {% endfor %}
-          </tbody>
-        </table>
-      </div>
+        </ul>
+    {% else %}
+        <p class="muted" style="margin-top:16px">Nessuna milestone registrata per questo progetto.</p>
+    {% endif %}
 
-      <details style="margin-top:16px" {% if add_expense %}open{% endif %}>
-        <summary class="btn">+ Aggiungi spesa</summary>
-        <form method="post" action="" style="margin-top:12px" class="grid">
-          {% csrf_token %}
-          <input type="hidden" name="op" value="add_expense" />
-          <div>
-            <label class="small muted">Data</label><br>
-            <input type="date" name="date" value="{{ today }}">
-          </div>
-          <div>
-            <label class="small muted">Fornitore</label><br>
-            <input type="text" name="vendor" placeholder="Es. Fornitore Srl">
-          </div>
-          <div>
-            <label class="small muted">Categoria</label><br>
-            <select name="category">
-              {% for val,label in category_choices %}
-                <option value="{{ val }}">{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label class="small muted">Importo</label><br>
-            <input type="number" name="amount" step="0.01" min="0" placeholder="0.00">
-          </div>
-          <div>
-            <label class="small muted">Documento</label><br>
-            <input type="text" name="document" placeholder="Es. Fattura 15/2025">
-          </div>
-          <div style="grid-column:1/-1">
-            <label class="small muted">Note</label><br>
-            <input type="text" name="note" placeholder="Annotazioni (facoltative)">
-          </div>
-          <div>
-            <button class="btn primary" type="submit">Salva spesa</button>
-          </div>
+
+    <h2 style="margin-top:32px">Gestione Spese</h2>
+
+    <details style="margin-top:16px" {% if add_expense %}open{% endif %}>
+        <summary class="btn primary">+ Aggiungi Spesa</summary>
+        <form method="post" action="." style="margin-top:12px" class="grid cols-2">
+            {% csrf_token %}
+            <input type="hidden" name="op" value="add_expense" />
+            <div>
+                <label class="small muted">Data</label><br>
+                <input type="date" name="date" value="{{ today }}">
+            </div>
+            <div>
+                <label class="small muted">Importo (€)</label><br>
+                <input type="number" name="amount" step="0.01" min="0" required placeholder="Es. 1000.50">
+            </div>
+            <div>
+                <label class="small muted">Fornitore</label><br>
+                <input type="text" name="vendor" placeholder="Nome fornitore">
+            </div>
+            <div>
+                <label class="small muted">Categoria</label><br>
+                <select name="category">
+                    {% for val,label in category_choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="grid-column:1/-1">
+                <label class="small muted">Documento (Riferimento)</label><br>
+                <input type="text" name="document" placeholder="Es. Fattura 123/2024">
+            </div>
+            <div style="grid-column:1/-1">
+                <label class="small muted">Nota</label><br>
+                <input type="text" name="note" placeholder="Note facoltative">
+            </div>
+            <div>
+                <button class="btn primary" type="submit">Salva Spesa</button>
+            </div>
         </form>
-      </details>
-    </section>
+    </details>
 
-    <section class="card">
-      <h2 class="section-title">Limiti di spesa per categoria</h2>
-
-      <div class="small muted" style="margin-bottom:8px">
-        Base calcolo: “Percentuale sul totale speso” oppure “Percentuale sul budget totale”.
-      </div>
-
-      <div style="display:grid;gap:12px">
-        {% for L in limits_ctx %}
-          <div style="border:1px solid var(--br); border-radius:8px; padding:12px">
-            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
-              <div>
-                <b>{{ L.category_label }}</b>
-                <div class="small muted">{{ L.base_label }} — Limite: {{ L.percentage|floatformat:2 }}%</div>
-                {% if L.note %}<div class="small muted">Nota: {{ L.note }}</div>{% endif %}
-              </div>
-              <div class="small muted">
-                Consentito: <b>€ {{ L.allowed_total|floatformat:0|intcomma }}</b> ·
-                Speso: <b>€ {{ L.spent_in_category|floatformat:0|intcomma }}</b> ·
-                Residuo: <b>€ {{ L.remaining|floatformat:0|intcomma }}</b>
-              </div>
+    <h3 style="margin-top:24px">Elenco Spese</h3>
+    <form method="get" action="." style="margin-bottom:16px;">
+        <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: flex-end;">
+            <div>
+                <label class="small muted">Filtra per Categoria</label>
+                <select name="category">
+                    <option value="">Tutte</option>
+                    {% for val,label in category_choices %}
+                        <option value="{{ val }}" {% if val == request.GET.category %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
             </div>
-
-            <div class="progress" style="margin-top:8px">
-              {% with p=L.pct_used %}
-                {% if p >= 100 %}
-                  <div class="bar bad" style="width:100%"></div>
-                {% elif p >= 80 %}
-                  <div class="bar warn" style="width: {{ p }}%"></div>
-                {% else %}
-                  <div class="bar ok" style="width: {{ p }}%"></div>
-                {% endif %}
-              {% endwith %}
+            <div>
+                <label class="small muted">Cerca Fornitore</label>
+                <input type="text" name="vendor" value="{{ request.GET.vendor|default:'' }}" placeholder="Nome fornitore">
             </div>
-            <div class="small muted" style="margin-top:4px">
-              Utilizzo: <b>{{ L.pct_used|floatformat:0 }}%</b>
-            </div>
+            <button class="btn primary" type="submit">Filtra</button>
+            <a href="{% url 'project_detail' project.pk %}" class="btn" style="border:1px solid var(--line); color:var(--ink)">Reset</a>
+        </div>
+    </form>
 
-            <form method="post" action="{% url 'limit_update' L.limit_id %}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
-              {% csrf_token %}
-              <select name="category" required>
-                {% for val,label in category_choices %}
-                  <option value="{{ val }}" {% if val == L.category %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
+    {% if expenses %}
+        <ul style="list-style:none; padding:0; margin-top:16px">
+            {% for exp in expenses %}
+                <li style="border:1px solid var(--line); padding:12px; border-radius:4px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; background:#fff">
+                    <div>
+                        <span style="font-weight:bold">{{ exp.vendor|default:"N/D" }}</span>
+                        <small style="color:var(--muted); margin-left:8px">({{ dict(category_choices)|get:exp.category }})</small>
+                        <small style="display:block; font-size:0.85rem">Rif. Doc: {{ exp.document|default:"N/D" }}</small>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:16px">
+                        <small style="font-weight:bold; color:var(--ink)">{{ exp.date|date:"d/m/Y" }}</small>
+                        <span style="font-weight:bold; color:var(--bad)">€ {{ exp.amount|intcomma }}</span>
+                        </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted">Nessuna spesa trovata per questo progetto (o per i filtri attuali).</p>
+    {% endif %}
 
-              <select name="base" required>
-                {% for val,label in base_choices %}
-                  <option value="{{ val }}" {% if val == L.base %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
 
-              <input type="number" name="percentage" step="0.01" min="0" max="100" value="{{ L.percentage }}">
-              <input type="text" name="note" placeholder="Nota (opz.)" value="{{ L.note|default:'' }}">
-              <button class="btn" type="submit">Modifica</button>
-            </form>
+    <h2 style="margin-top:32px">Limiti di Spesa</h2>
 
-            <form method="post" action="{% url 'limit_delete' L.limit_id %}" onsubmit="return confirm('Eliminare questo limite?');" style="margin-top:6px;">
-              {% csrf_token %}
-              <button class="btn danger" type="submit">Elimina limite</button>
-            </form>
-          </div>
-        {% empty %}
-          <div class="muted small">Nessun limite impostato.</div>
-        {% endfor %}
-      </div>
-
-      <details style="margin-top:16px" {% if add_limit %}open{% endif %}>
+    <details style="margin-top:16px" {% if add_limit %}open{% endif %}>
         <summary class="btn">+ Aggiungi limite</summary>
-        <form method="post" action="" style="margin-top:12px" class="grid">
-          {% csrf_token %}
-          <input type="hidden" name="op" value="add_limit" />
-          <div>
-            <label class="small muted">Categoria</label><br>
-            <select name="category">
-              {% for val,label in category_choices %}
-                <option value="{{ val }}">{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label class="small muted">Base</label><br>
-            <select name="base">
-              {% for val,label in base_choices %}
-                <option value="{{ val }}">{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label class="small muted">% Limite</label><br>
-            <input type="number" name="percentage" step="0.01" min="0" placeholder="Es. 20.00">
-          </div>
-          <div style="grid-column:1/-1">
-            <label class="small muted">Nota</label><br>
-            <input type="text" name="note" placeholder="Facoltativa">
-          </div>
-          <div>
-            <button class="btn primary" type="submit">Salva limite</button>
-          </div>
+        <form method="post" action="." style="margin-top:12px" class="grid cols-2">
+            {% csrf_token %}
+            <input type="hidden" name="op" value="add_limit" />
+            <div>
+                <label class="small muted">Categoria</label><br>
+                <select name="category">
+                    {% for val,label in category_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="small muted">Base</label><br>
+                <select name="base">
+                    {% for val,label in base_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="small muted">% Limite</label><br>
+                <input type="number" name="percentage" step="0.01" min="0" placeholder="Es. 20.00" required>
+            </div>
+            <div style="grid-column:1/-1">
+                <label class="small muted">Nota</label><br>
+                <input type="text" name="note" placeholder="Facoltativa">
+            </div>
+            <div>
+                <button class="btn primary" type="submit">Salva/Aggiorna Limite</button>
+            </div>
         </form>
-      </details>
-    </section>
-  </div>
-</main>
+    </details>
 
+    <h3 style="margin-top:24px">Limiti Impostati</h3>
+    {% if limits_ctx %}
+        <ul style="list-style:none; padding:0; margin-top:16px">
+            {% for lim in limits_ctx %}
+                {% with over_limit=lim.remaining < 0 %}
+                    <li style="border:1px solid {% if over_limit %}var(--bad){% else %}var(--line){% endif %}; padding:12px; border-radius:4px; margin-bottom:8px; background:#fff">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <span style="font-weight:bold">{{ lim.category_label }}</span>
+                                <small style="color:var(--muted); margin-left:8px">({{ lim.percentage|floatformat:2 }}% di {{ lim.base_label|lower }})</small>
+                            </div>
+                            <div style="text-align:right">
+                                <span style="font-weight:bold">Speso: € {{ lim.spent_in_category|intcomma }}</span>
+                                <small style="display:block; color:{% if over_limit %}var(--bad){% else %}var(--ok){% endif %}">
+                                    Rimanente: € {{ lim.remaining|intcomma }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="progress-bar" style="height:6px; margin-top:8px;">
+                            <div class="progress-fill" style="width:{{ lim.pct_used|floatformat:2 }}%; background:{% if over_limit %}var(--bad){% elif lim.pct_used > 80 %}var(--warn){% else %}var(--ok){% endif %}"></div>
+                        </div>
+                        <small style="display:block; margin-top:4px;">Utilizzo: {{ lim.pct_used|floatformat:2 }}% (Massimo: € {{ lim.allowed_total|intcomma }})</small>
+                    </li>
+                {% endwith %}
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted">Nessun limite di spesa impostato.</p>
+    {% endif %}
+
+
+  </div>
 </body>
 </html>
