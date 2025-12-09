@@ -56,14 +56,29 @@
       border:1px solid #e5e7eb;
       padding:10px;
     }
-
+    /* Stili KPI */
+    .kpis{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    .kpi{padding:12px;border:1px dashed var(--line);border-radius:8px;background:var(--bg)}
+    .progress-bar{background:var(--line);height:8px;border-radius:4px;overflow:hidden;margin-top:6px;position:relative}
+    .progress-fill{height:100%;background:var(--ok);width:0;transition:width 0.5s ease}
+    /* Stili Griglia e Form */
+    .grid{display:grid;gap:16px}
+    @media(min-width:900px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
+    .btn{padding:8px 12px;border:1px solid var(--primary);border-radius:4px;color:var(--primary);background:#fff;cursor:pointer;font-size:0.9rem;text-decoration:none;display:inline-block}
+    .btn.primary{background:var(--primary);color:var(--primary-ink)}
+    .form-group input, .form-group select {width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 4px; box-sizing: border-box; margin-top: 4px;}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+    th{text-align:left;background:#f8fafc;font-weight:600}
+    .small{font-size:13px}
     /* Stili Timeline */
     .timeline-container {
     position: relative;
-    height: 40px; /* Spazio per i marker */
+    height: 40px;
     margin-top: 20px;
     margin-bottom: 10px;
-    padding: 0 5px; /* Spazio per evitare che i marker escano */
+    padding: 0 5px;
     }
     .timeline-bar {
         position: absolute;
@@ -76,26 +91,20 @@
     }
     .timeline-marker {
         position: absolute;
-        top: 13px; /* Allinea al centro della barra (15px) */
+        top: 13px;
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        border: 2px solid white; /* Bordo bianco per contrasto */
+        border: 2px solid white;
         transform: translateX(-50%);
         cursor: pointer;
         z-index: 10;
         transition: transform 0.2s;
     }
-    .timeline-marker:hover {
-        transform: translateX(-50%) scale(1.5);
-        z-index: 20;
-    }
-
-    /* Today Marker */
     .today-marker {
-        top: 0; /* Posiziona in alto */
+        top: 0;
         height: 30px;
-        width: 0; /* Larghezza zero, usa solo border-left */
+        width: 0;
         border-left: 2px dashed var(--ok);
         z-index: 5;
     }
@@ -109,7 +118,6 @@
         font-weight: bold;
         white-space: nowrap;
     }
-    .ms-marker-dot { width: 10px; height: 10px; border-radius: 50%; }
   </style>
 </head>
 <body>
@@ -143,80 +151,6 @@
       {% endfor %}
   {% endif %}
 
-  <div class="card" style="margin-top: 16px; padding: 20px;">
-      <h2 class="section-title" style="margin-top: 0;">Cronologia Milestone</h2>
-
-      {% if project_start and project_end %}
-          <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:12px;">
-              <span>Inizio: **{{ project_start|date:"d/m/Y" }}**</span>
-              <span>Fine: **{{ project_end|date:"d/m/Y" }}**</span>
-          </div>
-
-          <div class="timeline-container">
-              <div class="timeline-bar"></div>
-
-              {% if today_pos_percent is not None %}
-              <div class="timeline-marker today-marker" style="left: {{ today_pos_percent }}%;" title="Oggi: {{ today|date:'d/m/Y' }}">
-                  <div class="today-label">Oggi</div>
-              </div>
-              {% endif %}
-
-              {% for ms in milestones %}
-                  {% if ms.pos_percent is not None %}
-
-                      {% comment %}
-                      CORREZIONE CRITICA: L'intero blocco WITH/ENDWITH è contenuto nel ramo IF/ELIF/ELSE
-                      per evitare TemplateSyntaxError: expected 'endwith'.
-                      {% endcomment %}
-
-                      {% if ms.status == 'COMPLETED' %}
-                          {% with marker_color='var(--ok)' %}
-                              <a class="timeline-marker"
-                                 href="#milestone-{{ ms.pk }}"
-                                 style="left: {{ ms.pos_percent }}%;
-                                        background-color: {{ marker_color }};"
-                                 title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
-                              </a>
-                          {% endwith %}
-
-                      {% elif ms.due_date|date:"Y-m-d" < today and ms.status == 'PENDING' %}
-                          {% with marker_color='var(--bad)' %}
-                              <a class="timeline-marker"
-                                 href="#milestone-{{ ms.pk }}"
-                                 style="left: {{ ms.pos_percent }}%;
-                                        background-color: {{ marker_color }};"
-                                 title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
-                              </a>
-                          {% endwith %}
-
-                      {% else %}
-                          {% with marker_color='var(--warn)' %}
-                              <a class="timeline-marker"
-                                 href="#milestone-{{ ms.pk }}"
-                                 style="left: {{ ms.pos_percent }}%;
-                                        background-color: {{ marker_color }};"
-                                 title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
-                              </a>
-                          {% endwith %}
-                      {% endif %}
-
-                  {% endif %}
-              {% endfor %}
-          </div>
-          <p class="muted small" style="margin-top: 20px;">
-              Legenda: <span style="color: var(--ok);">Completata</span>, <span style="color: var(--warn);">In attesa/In corso</span>, <span style="color: var(--bad);">In ritardo</span>.
-          </p>
-      {% else %}
-          <p class="muted small">Imposta le date di Inizio e Fine progetto per visualizzare la timeline.</p>
-      {% endif %}
-
-      <div style="font-size: 0.9rem; margin-top: 16px; margin-bottom: 4px;">
-          Avanzamento Milestone: <strong style="color:var(--primary)">{{ milestone_progress_percent|floatformat:2 }}%</strong>
-          {% if total_milestones > 0 %}
-            ({{ completed_milestones }} di {{ total_milestones }} completate).
-          {% endif %}
-      </div>
-  </div>
   <div class="card">
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px">
       <div>
@@ -276,6 +210,184 @@
       <pre>{{ project.notes }}</pre>
     {% endif %}
   </div>
+
+  <div class="card" style="margin-top: 16px;">
+    <div class="kpis">
+      <div class="kpi">
+        <div class="muted small">Budget totale</div>
+        <div><b>€ {{ project.budget|floatformat:0|intcomma }}</b></div>
+      </div>
+      <div class="kpi">
+        <div class="muted small">Speso totale</div>
+        <div><b>€ {{ total_spent|floatformat:0|intcomma }}</b></div>
+      </div>
+      <div class="kpi">
+        <div class="muted small">Avanzamento</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:{{ progress_percent|floatformat:0 }}%;"></div>
+        </div>
+        <div class="small muted">{{ progress_percent|floatformat:0 }}% del budget</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 16px; padding: 20px;">
+      <h2 class="section-title" style="margin-top: 0;">Cronologia Milestone</h2>
+
+      {% if project_start and project_end %}
+          <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:12px;">
+              <span>Inizio: **{{ project_start|date:"d/m/Y" }}**</span>
+              <span>Fine: **{{ project.end_date|date:"d/m/Y" }}**</span>
+          </div>
+
+          <div class="timeline-container">
+              <div class="timeline-bar"></div>
+
+              {% if today_pos_percent is not None %}
+              <div class="timeline-marker today-marker" style="left: {{ today_pos_percent }}%;" title="Oggi: {{ today|date:'d/m/Y' }}">
+                  <div class="today-label">Oggi</div>
+              </div>
+              {% endif %}
+
+              {% for ms in milestones %}
+                  {% if ms.pos_percent is not None %}
+
+                      {% comment %} Sintassi corretta per evitare TemplateSyntaxError: expected 'endwith' {% endcomment %}
+                      {% if ms.status == 'COMPLETED' %}
+                          {% with marker_color='var(--ok)' %}
+                              <a class="timeline-marker"
+                                 href="#milestone-{{ ms.pk }}"
+                                 style="left: {{ ms.pos_percent }}%;
+                                        background-color: {{ marker_color }};"
+                                 title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
+                              </a>
+                          {% endwith %}
+
+                      {% elif ms.due_date|date:"Y-m-d" < today and ms.status == 'PENDING' %}
+                          {% with marker_color='var(--bad)' %}
+                              <a class="timeline-marker"
+                                 href="#milestone-{{ ms.pk }}"
+                                 style="left: {{ ms.pos_percent }}%;
+                                        background-color: {{ marker_color }};"
+                                 title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
+                              </a>
+                          {% endwith %}
+
+                      {% else %}
+                          {% with marker_color='var(--warn)' %}
+                              <a class="timeline-marker"
+                                 href="#milestone-{{ ms.pk }}"
+                                 style="left: {{ ms.pos_percent }}%;
+                                        background-color: {{ marker_color }};"
+                                 title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
+                              </a>
+                          {% endwith %}
+                      {% endif %}
+
+                  {% endif %}
+              {% endfor %}
+          </div>
+          <p class="muted small" style="margin-top: 20px;">
+              Legenda: <span style="color: var(--ok);">Completata</span>, <span style="color: var(--warn);">In attesa/In corso</span>, <span style="color: var(--bad);">In ritardo</span>.
+          </p>
+      {% else %}
+          <p class="muted small">Imposta le date di Inizio e Fine progetto per visualizzare la timeline.</p>
+      {% endif %}
+
+      <div style="font-size: 0.9rem; margin-top: 16px; margin-bottom: 4px;">
+          Avanzamento Milestone: <strong style="color:var(--primary)">{{ milestone_progress_percent|floatformat:2 }}%</strong>
+          {% if total_milestones > 0 %}
+            ({{ completed_milestones }} di {{ total_milestones }} completate).
+          {% endif %}
+      </div>
+  </div>
+  <div class="card" style="margin-top: 16px;">
+      <h2 class="section-title">Gestione Milestone e Scadenze</h2>
+
+      <details style="margin-top:16px" {% if add_milestone %}open{% endif %}>
+        <summary class="btn primary">+ Aggiungi Milestone</summary>
+        <form method="post" action="." style="margin-top:12px" class="grid" >
+            {% csrf_token %}
+            <input type="hidden" name="op" value="add_milestone" />
+
+            <div style="grid-column:1/3;">
+                <label class="small muted">Titolo</label><br>
+                <input type="text" name="title" required placeholder="Es. Selezione Fornitore">
+            </div>
+
+            <div>
+                <label class="small muted">Data di Scadenza</label><br>
+                <input type="date" name="due_date" required value="{{ today }}">
+            </div>
+
+            <div>
+                <label class="small muted">Stato Iniziale</label><br>
+                <select name="status">
+                    <option value="PENDING">In attesa (Default)</option>
+                    <option value="COMPLETED">Completata</option>
+                </select>
+            </div>
+
+            <div style="grid-column:1/-1">
+                <label class="small muted">Descrizione</label><br>
+                <input type="text" name="description" placeholder="Descrizione o nota (Facoltativa)">
+            </div>
+
+            <div style="grid-column:1/-1">
+                <button class="btn primary" type="submit">Salva Milestone</button>
+            </div>
+        </form>
+    </details>
+
+    <h3 class="section-title" style="margin-top:24px">Lista Milestone Dettagliata</h3>
+    {% if milestones %}
+        <ul style="list-style:none; padding:0; margin-top:16px">
+            {% for ms in milestones %}
+                <li style="border:1px solid var(--line); padding:12px; border-radius:4px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <div id="milestone-{{ ms.pk }}">
+                        <span style="font-weight:bold">{{ ms.title }}</span>
+                        <small style="color:var(--muted); margin-left:8px">({{ ms.description }})</small>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:16px">
+                        <small style="font-weight:bold; color:var(--ink)">
+                            Scadenza: {{ ms.due_date|date:"d/m/Y" }}
+                        </small>
+                        {% with status=ms.status %}
+                            {% if status == 'COMPLETED' %}
+                                <span style="color:var(--ok); font-weight:bold">✅ Completata</span>
+                            {% elif ms.due_date|date:"Y-m-d" < today and status == 'PENDING' %}
+                                <span style="color:var(--bad); font-weight:bold">❌ In ritardo</span>
+                            {% else %}
+                                <span style="color:var(--warn); font-weight:bold">⏳ In attesa</span>
+                            {% endif %}
+                        {% endwith %}
+                        </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted" style="margin-top:16px">Nessuna milestone registrata per questo progetto.</p>
+    {% endif %}
+
+  </div>
+
+
+  <div class="card" style="margin-top: 16px;">
+    <h2 class="section-title">Gestione Spese e Limiti</h2>
+    <p class="muted small">Le sezioni complete di Spese e Limiti di Spesa andrebbero integrate qui.</p>
+
+    <details style="margin-top:16px">
+        <summary class="btn primary">+ Aggiungi Spesa (Form Placeholder)</summary>
+        <form method="post" action="." style="margin-top:12px">
+            {% csrf_token %}
+            <input type="hidden" name="op" value="add_expense" />
+            <p>I campi del form Spesa andrebbero qui...</p>
+            <button class="btn primary" type="submit">Salva Spesa</button>
+        </form>
+    </details>
+
+  </div>
+
 
 </main>
 
