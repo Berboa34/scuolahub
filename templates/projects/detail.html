@@ -40,11 +40,9 @@
       background:#f9fafb;
       color:#374151;
     }
-    .status-OPEN{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
+    .status-DRAFT{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+    .status-ACTIVE{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
     .status-CLOSED{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
-    .status-IN_PREP{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
-    .status-FUNDED{background:#ecfdf5;border-color:#6ee7b7;color:#047857}
-    .status-NOT_FUNDED{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
     .section-title{font-size:16px;font-weight:600;margin:16px 0 8px}
     dl{margin:0}
     dt{font-size:12px;text-transform:uppercase;color:#6b7280;margin-top:10px}
@@ -59,7 +57,7 @@
       padding:10px;
     }
 
-    /* Stili Timeline (incollati dalla tua richiesta) */
+    /* Stili Timeline */
     .timeline-container {
     position: relative;
     height: 40px; /* Spazio per i marker */
@@ -111,7 +109,6 @@
         font-weight: bold;
         white-space: nowrap;
     }
-    /* Stili aggiuntivi per i marker delle milestone */
     .ms-marker-dot { width: 10px; height: 10px; border-radius: 50%; }
   </style>
 </head>
@@ -167,32 +164,58 @@
               {% for ms in milestones %}
                   {% if ms.pos_percent is not None %}
 
-                      {% comment %} Usiamo la logica condizionale per definire i colori dei marker {% endcomment %}
+                      {% comment %}
+                      CORREZIONE CRITICA: L'intero blocco WITH/ENDWITH è contenuto nel ramo IF/ELIF/ELSE
+                      per evitare TemplateSyntaxError: expected 'endwith'.
+                      {% endcomment %}
+
                       {% if ms.status == 'COMPLETED' %}
                           {% with marker_color='var(--ok)' %}
+                              <a class="timeline-marker"
+                                 href="#milestone-{{ ms.pk }}"
+                                 style="left: {{ ms.pos_percent }}%;
+                                        background-color: {{ marker_color }};"
+                                 title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
+                              </a>
+                          {% endwith %}
+
                       {% elif ms.due_date|date:"Y-m-d" < today and ms.status == 'PENDING' %}
                           {% with marker_color='var(--bad)' %}
+                              <a class="timeline-marker"
+                                 href="#milestone-{{ ms.pk }}"
+                                 style="left: {{ ms.pos_percent }}%;
+                                        background-color: {{ marker_color }};"
+                                 title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
+                              </a>
+                          {% endwith %}
+
                       {% else %}
                           {% with marker_color='var(--warn)' %}
+                              <a class="timeline-marker"
+                                 href="#milestone-{{ ms.pk }}"
+                                 style="left: {{ ms.pos_percent }}%;
+                                        background-color: {{ marker_color }};"
+                                 title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
+                              </a>
+                          {% endwith %}
                       {% endif %}
 
-                      <a class="timeline-marker"
-                         href="#milestone-{{ ms.pk }}"
-                         style="left: {{ ms.pos_percent }}%;
-                                background-color: {{ marker_color }};"
-                         title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
-                      </a>
-
-                      {% endwith %}
                   {% endif %}
               {% endfor %}
           </div>
           <p class="muted small" style="margin-top: 20px;">
-              Legenda: <span style="color: var(--primary);">Oggi</span>, <span style="color: var(--ok);">Completata</span>, <span style="color: var(--warn);">In attesa</span>, <span style="color: var(--bad);">In ritardo</span>.
+              Legenda: <span style="color: var(--ok);">Completata</span>, <span style="color: var(--warn);">In attesa/In corso</span>, <span style="color: var(--bad);">In ritardo</span>.
           </p>
       {% else %}
           <p class="muted small">Imposta le date di Inizio e Fine progetto per visualizzare la timeline.</p>
       {% endif %}
+
+      <div style="font-size: 0.9rem; margin-top: 16px; margin-bottom: 4px;">
+          Avanzamento Milestone: <strong style="color:var(--primary)">{{ milestone_progress_percent|floatformat:2 }}%</strong>
+          {% if total_milestones > 0 %}
+            ({{ completed_milestones }} di {{ total_milestones }} completate).
+          {% endif %}
+      </div>
   </div>
   <div class="card">
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px">
