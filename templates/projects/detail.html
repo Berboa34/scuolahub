@@ -3,10 +3,15 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>{{ bando.title }} – Dettaglio bando</title>
+  <title>{{ project.title }} – Dettaglio Progetto</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
+    :root {
+      --bg:#f7f7fb; --panel:#ffffff; --ink:#1b1f24; --muted:#6b7280;
+      --primary:#2563eb; --primary-ink:#fff; --ok:#16a34a; --warn:#ca8a04; --bad:#dc2626;
+      --line:#e5e7eb; --chip:#eef2ff;
+    }
     body{
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
       margin:0;
@@ -53,6 +58,61 @@
       border:1px solid #e5e7eb;
       padding:10px;
     }
+
+    /* Stili Timeline (incollati dalla tua richiesta) */
+    .timeline-container {
+    position: relative;
+    height: 40px; /* Spazio per i marker */
+    margin-top: 20px;
+    margin-bottom: 10px;
+    padding: 0 5px; /* Spazio per evitare che i marker escano */
+    }
+    .timeline-bar {
+        position: absolute;
+        top: 15px;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: #ccc;
+        border-radius: 2px;
+    }
+    .timeline-marker {
+        position: absolute;
+        top: 13px; /* Allinea al centro della barra (15px) */
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid white; /* Bordo bianco per contrasto */
+        transform: translateX(-50%);
+        cursor: pointer;
+        z-index: 10;
+        transition: transform 0.2s;
+    }
+    .timeline-marker:hover {
+        transform: translateX(-50%) scale(1.5);
+        z-index: 20;
+    }
+
+    /* Today Marker */
+    .today-marker {
+        top: 0; /* Posiziona in alto */
+        height: 30px;
+        width: 0; /* Larghezza zero, usa solo border-left */
+        border-left: 2px dashed var(--ok);
+        z-index: 5;
+    }
+    .today-label {
+        position: absolute;
+        top: 35px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.75rem;
+        color: var(--ok);
+        font-weight: bold;
+        white-space: nowrap;
+    }
+    /* Stili aggiuntivi per i marker delle milestone */
+    .ms-marker-dot { width: 10px; height: 10px; border-radius: 50%; }
   </style>
 </head>
 <body>
@@ -61,33 +121,88 @@
   <div class="wrap">
     <div class="topnav">
       <div class="muted" style="font-size:13px">
-        <a href="{% url 'bandi_list' %}" style="color:#cfe3ff;">← Torna all'elenco bandi</a>
+        <a href="{% url 'projects_list' %}" style="color:#cfe3ff;">← Torna all'elenco progetti</a>
       </div>
       <div class="muted" style="font-size:13px">
         Utente: <b>{{ request.user.username }}</b>
         {% if school %} · Scuola: <b>{{ school.name }}</b>{% endif %}
       </div>
     </div>
-    <h1 style="margin:8px 0 0;">{{ bando.title }}</h1>
+    <h1 style="margin:8px 0 0;">{{ project.title }}</h1>
     <p class="muted" style="margin:4px 0 8px;font-size:14px">
-      Programma: <b>{{ bando.get_program_display }}</b>
-      {% if bando.internal_code %} · Cod. interno: {{ bando.internal_code }}{% endif %}
-      {% if bando.school %} · Scuola: {{ bando.school.name }}{% endif %}
+      Programma: <b>{{ project.program }}</b>
+      {% if project.internal_code %} · Cod. interno: {{ project.internal_code }}{% endif %}
+      {% if project.school %} · Scuola: {{ project.school.name }}{% endif %}
     </p>
   </div>
 </header>
 
 <main class="wrap">
+  {% if messages %}
+      {% for message in messages %}
+          <div class="card" style="padding: 10px; background: {% if message.tags == 'success' %}#dcfce7{% elif message.tags == 'error' %}#fee2e2{% else %}#fef9c3{% endif %}; border-color: #ccc; margin-top: 16px;">
+              {{ message }}
+          </div>
+      {% endfor %}
+  {% endif %}
 
+  <div class="card" style="margin-top: 16px; padding: 20px;">
+      <h2 class="section-title" style="margin-top: 0;">Cronologia Milestone</h2>
+
+      {% if project_start and project_end %}
+          <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:12px;">
+              <span>Inizio: **{{ project_start|date:"d/m/Y" }}**</span>
+              <span>Fine: **{{ project_end|date:"d/m/Y" }}**</span>
+          </div>
+
+          <div class="timeline-container">
+              <div class="timeline-bar"></div>
+
+              {% if today_pos_percent is not None %}
+              <div class="timeline-marker today-marker" style="left: {{ today_pos_percent }}%;" title="Oggi: {{ today|date:'d/m/Y' }}">
+                  <div class="today-label">Oggi</div>
+              </div>
+              {% endif %}
+
+              {% for ms in milestones %}
+                  {% if ms.pos_percent is not None %}
+
+                      {% comment %} Usiamo la logica condizionale per definire i colori dei marker {% endcomment %}
+                      {% if ms.status == 'COMPLETED' %}
+                          {% with marker_color='var(--ok)' %}
+                      {% elif ms.due_date|date:"Y-m-d" < today and ms.status == 'PENDING' %}
+                          {% with marker_color='var(--bad)' %}
+                      {% else %}
+                          {% with marker_color='var(--warn)' %}
+                      {% endif %}
+
+                      <a class="timeline-marker"
+                         href="#milestone-{{ ms.pk }}"
+                         style="left: {{ ms.pos_percent }}%;
+                                background-color: {{ marker_color }};"
+                         title="{{ ms.title }} ({{ ms.status }}) | Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
+                      </a>
+
+                      {% endwith %}
+                  {% endif %}
+              {% endfor %}
+          </div>
+          <p class="muted small" style="margin-top: 20px;">
+              Legenda: <span style="color: var(--primary);">Oggi</span>, <span style="color: var(--ok);">Completata</span>, <span style="color: var(--warn);">In attesa</span>, <span style="color: var(--bad);">In ritardo</span>.
+          </p>
+      {% else %}
+          <p class="muted small">Imposta le date di Inizio e Fine progetto per visualizzare la timeline.</p>
+      {% endif %}
+  </div>
   <div class="card">
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px">
       <div>
-        <span class="badge status-{{ bando.status }}">
-          {{ bando.get_status_display }}
+        <span class="badge status-{{ project.status }}">
+          {{ project.get_status_display }}
         </span>
       </div>
       <div class="muted" style="font-size:13px">
-        Inserito: {{ bando.imported_at|date:"d/m/Y H:i" }} · Ultimo aggiornamento: {{ bando.last_update|date:"d/m/Y H:i" }}
+        Inserito: {{ project.imported_at|date:"d/m/Y H:i" }} · Ultimo aggiornamento: {{ project.last_update|date:"d/m/Y H:i" }}
       </div>
     </div>
 
@@ -95,22 +210,22 @@
       <dl>
         <dt>Fonte</dt>
         <dd>
-          {{ bando.source_name }}
-          {% if bando.source_url %}
-            · <a href="{{ bando.source_url }}" target="_blank">Apri bando ufficiale ↗</a>
+          {{ project.source_name }}
+          {% if project.source_url %}
+            · <a href="{{ project.source_url }}" target="_blank">Apri documento ufficiale ↗</a>
           {% endif %}
         </dd>
 
         <dt>Periodo</dt>
         <dd>
-          {% if bando.publication_date %}Pubblicato il {{ bando.publication_date|date:"d/m/Y" }}{% else %}Data pubblicazione n.d.{% endif %}
-          {% if bando.deadline_date %} · Scadenza: <b>{{ bando.deadline_date|date:"d/m/Y" }}</b>{% endif %}
+          {% if project.publication_date %}Pubblicato il {{ project.publication_date|date:"d/m/Y" }}{% else %}Data pubblicazione n.d.{% endif %}
+          {% if project.deadline_date %} · Scadenza: <b>{{ project.deadline_date|date:"d/m/Y" }}</b>{% endif %}
         </dd>
 
         <dt>Importo disponibile</dt>
         <dd>
-          {% if bando.amount_available %}
-            € {{ bando.amount_available|floatformat:0|intcomma }}
+          {% if project.budget %}
+            € {{ project.budget|floatformat:0|intcomma }}
           {% else %}
             <span class="muted">Non specificato</span>
           {% endif %}
@@ -118,24 +233,24 @@
 
         <dt>Origine dati</dt>
         <dd>
-          {{ bando.get_import_source_display }}
+          {{ project.get_import_source_display }}
         </dd>
       </dl>
     </div>
 
-    {% if bando.summary %}
+    {% if project.summary %}
       <h2 class="section-title">Sintesi</h2>
-      <pre>{{ bando.summary }}</pre>
+      <pre>{{ project.summary }}</pre>
     {% endif %}
 
-    {% if bando.requirements %}
+    {% if project.requirements %}
       <h2 class="section-title">Requisiti principali</h2>
-      <pre>{{ bando.requirements }}</pre>
+      <pre>{{ project.requirements }}</pre>
     {% endif %}
 
-    {% if bando.notes %}
+    {% if project.notes %}
       <h2 class="section-title">Note interne</h2>
-      <pre>{{ bando.notes }}</pre>
+      <pre>{{ project.notes }}</pre>
     {% endif %}
   </div>
 
