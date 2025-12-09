@@ -227,32 +227,68 @@
               {% for ms in global_milestones %}
                   {% if ms.status != 'COMPLETED' %}
 
-                      {% comment %} Blocchi logici corretti per evitare Invalid block tag {% endcomment %}
+                      {% comment %}
+                      CORREZIONE CRITICA:
+                      La logica if/elif/else contiene tutto il blocco WITH/ENDWITH e il codice di output,
+                      evitando TemplateSyntaxError: expected 'endwith'.
+                      {% endcomment %}
+
                       {% if ms.is_delayed %}
                           {% with status_color='var(--bad)' status_icon='❌' status_label='SCADUTA!' %}
+                              <li style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line);">
+                                  <div style="flex-grow: 1;">
+                                      <span style="font-weight: bold; color: {{ ms.color }};">{{ status_icon }} {{ ms.title }}</span>
+                                      <small style="margin-left: 8px; color: {{ status_color }};">
+                                          ({{ status_label }})
+                                      </small>
+                                      <div style="font-size: 0.85rem; margin-top: 2px;">
+                                          Progetto: <a href="{% url 'project_detail' ms.project_id %}" style="color:{{ ms.color}}">{{ ms.project_title }}</a>
+                                      </div>
+                                  </div>
+                                  <div style="font-weight: bold; font-size: 1rem; color: {{ status_color }}; white-space: nowrap;">
+                                      {{ ms.due_date|date:"d/m/Y" }}
+                                  </div>
+                              </li>
+                          {% endwith %}
+
                       {% elif ms.status == 'PENDING' %}
                           {% with status_color='var(--warn)' status_icon='⏳' status_label='In attesa' %}
+                              <li style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line);">
+                                  <div style="flex-grow: 1;">
+                                      <span style="font-weight: bold; color: {{ ms.color }};">{{ status_icon }} {{ ms.title }}</span>
+                                      <small style="margin-left: 8px; color: {{ status_color }};">
+                                          ({{ status_label }})
+                                      </small>
+                                      <div style="font-size: 0.85rem; margin-top: 2px;">
+                                          Progetto: <a href="{% url 'project_detail' ms.project_id %}" style="color:{{ ms.color}}">{{ ms.project_title }}</a>
+                                      </div>
+                                  </div>
+                                  <div style="font-weight: bold; font-size: 1rem; color: {{ status_color }}; white-space: nowrap;">
+                                      {{ ms.due_date|date:"d/m/Y" }}
+                                  </div>
+                              </li>
+                          {% endwith %}
+
                       {% else %}
                           {% with status_color='var(--primary)' status_icon='⏳' status_label='In corso' %}
+                              <li style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line);">
+                                  <div style="flex-grow: 1;">
+                                      <span style="font-weight: bold; color: {{ ms.color }};">{{ status_icon }} {{ ms.title }}</span>
+                                      <small style="margin-left: 8px; color: {{ status_color }};">
+                                          ({{ status_label }})
+                                      </small>
+                                      <div style="font-size: 0.85rem; margin-top: 2px;">
+                                          Progetto: <a href="{% url 'project_detail' ms.project_id %}" style="color:{{ ms.color}}">{{ ms.project_title }}</a>
+                                      </div>
+                                  </div>
+                                  <div style="font-weight: bold; font-size: 1rem; color: {{ status_color }}; white-space: nowrap;">
+                                      {{ ms.due_date|date:"d/m/Y" }}
+                                  </div>
+                              </li>
+                          {% endwith %}
                       {% endif %}
 
-                      <li style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line);">
-                          <div style="flex-grow: 1;">
-                              <span style="font-weight: bold; color: {{ ms.color }};">{{ status_icon }} {{ ms.title }}</span>
-                              <small style="margin-left: 8px; color: {{ status_color }};">
-                                  ({{ status_label }})
-                              </small>
 
-                              <div style="font-size: 0.85rem; margin-top: 2px;">
-                                  Progetto: <a href="{% url 'project_detail' ms.project_id %}" style="color:{{ ms.color}}">{{ ms.project_title }}</a>
-                              </div>
-                          </div>
-                          <div style="font-weight: bold; font-size: 1rem; color: {{ status_color }}; white-space: nowrap;">
-                              {{ ms.due_date|date:"d/m/Y" }}
-                          </div>
-                      </li>
-
-                      {% endwith %}
                   {% endif %}
               {% endfor %}
           </ul>
