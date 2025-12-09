@@ -63,7 +63,7 @@ def dashboard(request):
     ).order_by('-start_date')[:5]
 
     # Notifiche (per l'utente loggato)
-    notifications = request.user.notifications.filter(read=False).order_by('-created_at')[:5]
+    notifications = request.user.notifications.filter(is_read=False).order_by('-created_at')[:5]
 
     # Prossimi Eventi (filtrati per user o scuola)
     if school:
