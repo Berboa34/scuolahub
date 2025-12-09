@@ -118,6 +118,7 @@
         font-weight: bold;
         white-space: nowrap;
     }
+    .ms-marker-dot { width: 10px; height: 10px; border-radius: 50%; }
   </style>
 </head>
 <body>
@@ -222,7 +223,7 @@
         <div><b>€ {{ total_spent|floatformat:0|intcomma }}</b></div>
       </div>
       <div class="kpi">
-        <div class="muted small">Avanzamento</div>
+        <div class="muted small">Avanzamento Spesa</div>
         <div class="progress-bar">
           <div class="progress-fill" style="width:{{ progress_percent|floatformat:0 }}%;"></div>
         </div>
@@ -231,10 +232,11 @@
     </div>
   </div>
 
+
   <div class="card" style="margin-top: 16px; padding: 20px;">
       <h2 class="section-title" style="margin-top: 0;">Cronologia Milestone</h2>
 
-      {% if project_start and project_end %}
+      {% if project_start and project.end_date %}
           <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:12px;">
               <span>Inizio: **{{ project_start|date:"d/m/Y" }}**</span>
               <span>Fine: **{{ project.end_date|date:"d/m/Y" }}**</span>
@@ -263,7 +265,7 @@
                               </a>
                           {% endwith %}
 
-                      {% elif ms.due_date|date:"Y-m-d" < today and ms.status == 'PENDING' %}
+                      {% elif ms.due_date|date:"Y-m-d" < today|date:"Y-m-d" and ms.status == 'PENDING' %}
                           {% with marker_color='var(--bad)' %}
                               <a class="timeline-marker"
                                  href="#milestone-{{ ms.pk }}"
@@ -343,10 +345,10 @@
     {% if milestones %}
         <ul style="list-style:none; padding:0; margin-top:16px">
             {% for ms in milestones %}
-                <li style="border:1px solid var(--line); padding:12px; border-radius:4px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <div id="milestone-{{ ms.pk }}">
+                <li id="milestone-{{ ms.pk }}" style="border:1px solid var(--line); padding:12px; border-radius:4px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
                         <span style="font-weight:bold">{{ ms.title }}</span>
-                        <small style="color:var(--muted); margin-left:8px">({{ ms.description }})</small>
+                        {% if ms.description %}<small style="color:var(--muted); margin-left:8px">({{ ms.description }})</small>{% endif %}
                     </div>
                     <div style="display:flex; align-items:center; gap:16px">
                         <small style="font-weight:bold; color:var(--ink)">
@@ -355,7 +357,7 @@
                         {% with status=ms.status %}
                             {% if status == 'COMPLETED' %}
                                 <span style="color:var(--ok); font-weight:bold">✅ Completata</span>
-                            {% elif ms.due_date|date:"Y-m-d" < today and status == 'PENDING' %}
+                            {% elif ms.due_date|date:"Y-m-d" < today|date:"Y-m-d" and status == 'PENDING' %}
                                 <span style="color:var(--bad); font-weight:bold">❌ In ritardo</span>
                             {% else %}
                                 <span style="color:var(--warn); font-weight:bold">⏳ In attesa</span>
@@ -370,26 +372,191 @@
     {% endif %}
 
   </div>
-
-
   <div class="card" style="margin-top: 16px;">
-    <h2 class="section-title">Gestione Spese e Limiti</h2>
-    <p class="muted small">Le sezioni complete di Spese e Limiti di Spesa andrebbero integrate qui.</p>
+    <h2 class="section-title">Spese Registrate (Totale filtrato: € {{ filtered_total|floatformat:2|intcomma }})</h2>
 
-    <details style="margin-top:16px">
-        <summary class="btn primary">+ Aggiungi Spesa (Form Placeholder)</summary>
-        <form method="post" action="." style="margin-top:12px">
+    <form method="get" action="." class="filters">
+      <div class="form-group">
+        <label class="small muted" for="category-filter">Categoria</label>
+        <select name="category" id="category-filter" onchange="this.form.submit()">
+          <option value="">Tutte</option>
+          {% for val, label in category_choices %}
+            <option value="{{ val }}" {% if cat == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="small muted" for="vendor-filter">Fornitore</label>
+        <input type="search" name="vendor" id="vendor-filter" value="{{ vendor_q }}" placeholder="Cerca fornitore" onchange="this.form.submit()">
+      </div>
+      <a href="{% url 'project_detail' project.pk %}" class="btn" style="align-self: flex-end; margin-bottom: 2px;">Reset Filtri</a>
+    </form>
+
+
+    <details style="margin-top:16px" {% if add_expense %}open{% endif %}>
+        <summary class="btn primary">+ Aggiungi Spesa</summary>
+        <form method="post" action="." style="margin-top:12px" class="grid cols-2">
             {% csrf_token %}
             <input type="hidden" name="op" value="add_expense" />
-            <p>I campi del form Spesa andrebbero qui...</p>
-            <button class="btn primary" type="submit">Salva Spesa</button>
+
+            <div>
+                <label class="small muted">Data</label><br>
+                <input type="date" name="date" required value="{{ today }}">
+            </div>
+
+            <div>
+                <label class="small muted">Importo (€)</label><br>
+                <input type="number" name="amount" step="0.01" min="0" required placeholder="Es. 150.00">
+            </div>
+
+            <div>
+                <label class="small muted">Categoria</label><br>
+                <select name="category">
+                    {% for val,label in category_choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="small muted">Fornitore</label><br>
+                <input type="text" name="vendor" placeholder="Nome fornitore (Facoltativo)">
+            </div>
+
+            <div style="grid-column:1/-1">
+                <label class="small muted">Documento (ID/Riferimento)</label><br>
+                <input type="text" name="document" placeholder="Es. Fattura n. 123">
+            </div>
+
+            <div style="grid-column:1/-1">
+                <label class="small muted">Note</label><br>
+                <input type="text" name="note" placeholder="Note aggiuntive (Facoltativo)">
+            </div>
+
+            <div style="grid-column:1/-1">
+                <button class="btn primary" type="submit">Salva Spesa</button>
+            </div>
         </form>
     </details>
 
+    <h3 class="section-title" style="margin-top:24px">Dettaglio Spese</h3>
+    {% if expenses %}
+    <div style="overflow-x:auto">
+      <table style="min-width: 500px">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Categoria</th>
+            <th>Fornitore</th>
+            <th style="text-align:right">Importo</th>
+            <th>Doc.</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for exp in expenses %}
+          <tr>
+            <td>{{ exp.date|date:"d/m/Y" }}</td>
+            <td><span class="badge">{{ exp.get_category_display }}</span></td>
+            <td>{{ exp.vendor|default:"n.d." }}</td>
+            <td style="text-align:right">€ {{ exp.amount|floatformat:2|intcomma }}</td>
+            <td>{{ exp.document|default:"n.d." }}</td>
+            <td><small class="muted">{{ exp.note|default:"-" }}</small></td>
+          </tr>
+          {% endfor %}
+          <tr style="font-weight:bold; border-top:2px solid var(--ink)">
+            <td colspan="3">TOTALE FILTRATO</td>
+            <td style="text-align:right">€ {{ filtered_total|floatformat:2|intcomma }}</td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+        <p class="muted" style="margin-top:16px">Nessuna spesa registrata con i filtri attuali.</p>
+    {% endif %}
+
   </div>
+  <div class="card" style="margin-top: 16px;">
+    <h2 class="section-title">Limiti di Spesa per Categoria</h2>
 
+    <details style="margin-top:16px" {% if add_limit %}open{% endif %}>
+      <summary class="btn primary">+ Aggiungi/Aggiorna Limite</summary>
+      <form method="post" action="." style="margin-top:12px" class="grid cols-2">
+        {% csrf_token %}
+        <input type="hidden" name="op" value="add_limit" />
+        <div>
+          <label class="small muted">Categoria</label><br>
+          <select name="category">
+            {% for val,label in category_choices %}
+              <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="small muted">Base di Calcolo</label><br>
+          <select name="base">
+            {% for val,label in base_choices %}
+              <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="small muted">% Limite</label><br>
+          <input type="number" name="percentage" step="0.01" min="0" placeholder="Es. 20.00" required>
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="small muted">Nota</label><br>
+          <input type="text" name="note" placeholder="Descrizione o nota (Facoltativa)">
+        </div>
+        <div style="grid-column:1/-1">
+          <button class="btn primary" type="submit">Salva Limite</button>
+        </div>
+      </form>
+    </details>
 
-</main>
+    <h3 class="section-title" style="margin-top:24px">Dettaglio Limiti Imposti</h3>
+    {% if limits_ctx %}
+    <div style="overflow-x:auto">
+      <table style="min-width: 600px">
+        <thead>
+          <tr>
+            <th>Categoria</th>
+            <th>Limite</th>
+            <th style="text-align:right">Ammesso</th>
+            <th style="text-align:right">Speso</th>
+            <th style="text-align:right">Rimanente</th>
+            <th>% Utilizzo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lim in limits_ctx %}
+          <tr>
+            <td><span class="badge">{{ lim.category_label }}</span></td>
+            <td><small class="muted">{{ lim.percentage|floatformat:2 }}% su {{ lim.base_label|lower }}</small></td>
+            <td style="text-align:right">€ {{ lim.allowed_total|floatformat:2|intcomma }}</td>
+            <td style="text-align:right">€ {{ lim.spent_in_category|floatformat:2|intcomma }}</td>
+            <td style="text-align:right; font-weight:bold; color:{% if lim.remaining >= 0 %}var(--ok){% else %}var(--bad){% endif %}">
+              € {{ lim.remaining|floatformat:2|intcomma }}
+            </td>
+            <td>
+              <div class="progress-bar" style="height:6px; width:80px; margin:0">
+                <div class="progress-fill" style="width:{{ lim.pct_used|floatformat:0 }}%; background-color:{% if lim.pct_used <= 100 %}var(--warn){% else %}var(--bad){% endif %}"></div>
+              </div>
+              <small class="muted">{{ lim.pct_used|floatformat:0 }}%</small>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="muted" style="margin-top:16px">Nessun limite di spesa impostato.</p>
+    {% endif %}
+
+  </div>
+  </main>
 
 </body>
 </html>
