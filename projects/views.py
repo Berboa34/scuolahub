@@ -59,7 +59,7 @@ def dashboard(request):
 
     # Progetti recenti (limitati a 5) con calcolo dello speso per progetto
     projects = project_qs.annotate(
-        spent=Sum('expenses__amount')
+        calculated_spent=Sum('expenses__amount')
     ).order_by('-start_date')[:5]
 
     # Notifiche (per l'utente loggato)

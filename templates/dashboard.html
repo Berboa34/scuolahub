@@ -126,7 +126,7 @@
                   <a class="title" href="{% url 'project_detail' project.pk %}">{{ project.title }}</a>
                   <small class="muted" style="display:block">{{ project.program }} | Budget: € {{ project.budget|intcomma }}</small>
                 </div>
-                <span class="spent">Speso: € {{ project.spent|default:"0.00"|intcomma }}</span>
+                <span class="spent">Speso: € {{ project.calculated_spent|default:"0.00"|intcomma }}</span>
               </li>
             {% endfor %}
           </ul>
