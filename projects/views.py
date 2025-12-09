@@ -326,8 +326,8 @@ def project_detail(request, pk: int):
             for ms in milestones:
                 if ms.due_date:
                     ms_days_from_start = (ms.due_date - project_start).days
-                    # Clampa il risultato tra 0 e 100
-                    ms.pos_percent = min(100, max(0, (ms_days_from_from_start / total_days) * 100))
+                    # Correzione del nome: deve essere 'ms_days_from_start'
+                    ms.pos_percent = min(100, max(0, (ms_days_from_start / total_days) * 100))
                 else:
                     ms.pos_percent = None
         else:
