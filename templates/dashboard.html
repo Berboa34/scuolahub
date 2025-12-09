@@ -226,37 +226,38 @@
           <ul class="milestone-global-list" style="list-style: none; padding: 0;">
               {% for ms in global_milestones %}
                   {% if ms.status != 'COMPLETED' %}
-                      {% with ms_status=ms.status %}
-                          {% if ms.is_delayed %}
-                              {% with status_color='var(--bad)' status_icon='❌' status_label='SCADUTA!' %}
-                          {% elif ms_status == 'PENDING' %}
-                              {% with status_color='var(--warn)' status_icon='⏳' status_label='In attesa' %}
-                          {% else %}
-                              {% with status_color='var(--primary)' status_icon='⏳' status_label='In corso' %}
-                          {% endif %}
 
-                          <li style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line);">
-                              <div style="flex-grow: 1;">
-                                  <span style="font-weight: bold; color: {{ ms.color }};">{{ status_icon }} {{ ms.title }}</span>
-                                  <small style="margin-left: 8px; color: {{ status_color }};">
-                                      ({{ status_label }})
-                                  </small>
-
-                                  <div style="font-size: 0.85rem; margin-top: 2px;">
-                                      Progetto: <a href="{% url 'project_detail' ms.project_id %}" style="color:{{ ms.color}}">{{ ms.project_title }}</a>
-                                  </div>
-                              </div>
-                              <div style="font-weight: bold; font-size: 1rem; color: {{ status_color }}; white-space: nowrap;">
-                                  {{ ms.due_date|date:"d/m/Y" }}
-                              </div>
-                          </li>
-                          {% endwith %}
+                      {% comment %} Blocchi logici corretti per evitare Invalid block tag {% endcomment %}
+                      {% if ms.is_delayed %}
+                          {% with status_color='var(--bad)' status_icon='❌' status_label='SCADUTA!' %}
+                      {% elif ms.status == 'PENDING' %}
+                          {% with status_color='var(--warn)' status_icon='⏳' status_label='In attesa' %}
+                      {% else %}
+                          {% with status_color='var(--primary)' status_icon='⏳' status_label='In corso' %}
                       {% endif %}
-                  {% endwith %}
+
+                      <li style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line);">
+                          <div style="flex-grow: 1;">
+                              <span style="font-weight: bold; color: {{ ms.color }};">{{ status_icon }} {{ ms.title }}</span>
+                              <small style="margin-left: 8px; color: {{ status_color }};">
+                                  ({{ status_label }})
+                              </small>
+
+                              <div style="font-size: 0.85rem; margin-top: 2px;">
+                                  Progetto: <a href="{% url 'project_detail' ms.project_id %}" style="color:{{ ms.color}}">{{ ms.project_title }}</a>
+                              </div>
+                          </div>
+                          <div style="font-weight: bold; font-size: 1rem; color: {{ status_color }}; white-space: nowrap;">
+                              {{ ms.due_date|date:"d/m/Y" }}
+                          </div>
+                      </li>
+
+                      {% endwith %}
+                  {% endif %}
               {% endfor %}
           </ul>
 
-          {% if global_milestones|length == completed_milestones_count %}
+          {% if milestones_remaining == 0 %}
                <p class="muted" style="margin-top:8px;font-size:0.9rem;">Tutte le milestone attive sono state completate. 🎉</p>
           {% endif %}
 
