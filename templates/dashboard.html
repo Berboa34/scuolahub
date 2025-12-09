@@ -19,290 +19,236 @@
 
     .topbar{background:#f1f1f1;padding:10px;border-bottom:1px solid #ccc;display:flex;gap:12px;align-items:center}
     .topbar .right{margin-left:auto}
-    .btn{
-      padding:8px 12px;border:1px solid var(--primary);border-radius:4px;
-      color:var(--primary);background:#fff;cursor:pointer;font-size:0.9rem;
-      text-decoration:none;display:inline-block
-    }
-    .btn.primary{background:var(--primary);color:var(--primary-ink)}
-    .btn:hover{opacity:0.9;text-decoration:none}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:0.9rem}
+    .btn.primary{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
 
-    .grid{display:grid;gap:20px}
-    @media(min-width:900px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
+    header{position:sticky;top:0;z-index:9;background:var(--panel);border-bottom:1px solid var(--line)}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand .logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:inline-grid;place-items:center;color:#fff;font-weight:700}
+    nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    nav a{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:10px}
+    nav a.active{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
 
-    .card{
-      background:var(--panel);padding:20px;border-radius:8px;border:1px solid var(--line);
-      box-shadow:0 1px 3px rgba(0,0,0,0.05)
-    }
-    .progress-bar{
-      background:var(--line);height:8px;border-radius:4px;overflow:hidden;
-      margin-top:6px;position:relative
-    }
-    .progress-fill{
-      height:100%;background:var(--primary);width:0;transition:width 0.5s ease
-    }
-    .progress-label{
-      font-size:0.85rem;color:var(--muted);margin-top:4px
-    }
+    main{padding:20px 0}
+    .grid{display:grid;gap:16px}
+    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    @media (max-width:900px){.grid.cols-3{grid-template-columns:1fr}.grid.cols-2{grid-template-columns:1fr}}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+    .muted{color:var(--muted)}
+    .kpi{display:flex;align-items:center;justify-content:space-between}
+    .kpi b{font-size:1.4rem}
+    .tag{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--chip);color:#3730a3;font-size:.8rem}
+    .status{font-size:.8rem;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid var(--line)}
+    .status.active{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+    .status.draft{background:#fef9c3;color:#854d0e;border-color:#fcd34d}
+    .status.closed{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+    .progress{height:10px;background:#eef2ff;border-radius:8px;overflow:hidden}
+    .progress>i{display:block;height:100%;background:var(--primary)}
+    .hint{font-size:.9rem;color:var(--muted)}
 
-    .project-list li{
-      padding:10px 0;border-bottom:1px solid var(--line);
-      display:flex;justify-content:space-between;align-items:center
-    }
-    .project-list li:last-child{border-bottom:none}
-    .project-list .title{font-weight:bold}
-    .project-list .spent{font-weight:bold;color:var(--ink)}
+    .notif-list{list-style:none;margin:8px 0 0;padding:0}
+    .notif-item{padding:8px 10px;border-radius:10px;border:1px solid var(--line);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+    .notif-item.unread{background:#eff6ff;border-color:#bfdbfe}
+    .notif-item small{color:var(--muted);font-size:.75rem}
 
-    .notification-list{list-style:none;padding:0;margin-top:10px}
-    .notification-list li{
-      padding:10px 0;border-bottom:1px solid var(--line);
-      font-size:0.9rem
-    }
-    .notification-list li:last-child{border-bottom:none}
-
-    .event-list{list-style:none;padding:0;margin-top:10px}
-    .event-item{
-      padding:10px 0;border-bottom:1px solid var(--line);
-    }
-    .event-item:last-child{border-bottom:none}
-    .event-item-title{font-weight:bold;color:var(--primary)}
+    .event-list{list-style:none;margin:8px 0 0;padding:0}
+    .event-item{padding:8px 10px;border-radius:10px;border:1px solid var(--line);margin-bottom:6px}
+    .event-item-title{font-weight:600;font-size:.9rem}
+    .event-item small{color:var(--muted);font-size:.8rem}
   </style>
 </head>
 <body>
 
+{% if user.is_authenticated %}
   <div class="topbar">
-    <div style="font-weight:bold;font-size:1.1rem;color:var(--primary)">ScuolaHub</div>
-    <nav>
-      <a href="{% url 'dashboard' %}" class="btn primary">Dashboard</a>
-      <a href="{% url 'projects_list' %}" class="btn">Progetti</a>
-      <a href="{% url 'deleghe_view' %}" class="btn">Deleghe</a>
-      <a href="{% url 'calendar' %}" class="btn">Calendario</a>
-      <a href="{% url 'calls_list' %}" class="btn">Bandi</a>
-    </nav>
+    <div><b>Benvenuto/a, {{ user.username }}</b>{% if school %} — <span class="muted">{{ school.name }}</span>{% endif %}</div>
     <div class="right">
-      <small>Benvenuto, {{ user.username }} | <a href="{% url 'logout' %}">Esci</a></small>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="btn" type="submit">Esci</button>
+      </form>
     </div>
   </div>
+{% endif %}
 
+<header>
   <div class="wrap">
-    <h1>Dashboard</h1>
-    {% if school %}
-      <p class="muted">Gestione per: <strong style="color:var(--ink)">{{ school.name }}</strong></p>
-    {% elif is_superuser %}
-      <p class="muted">Modalità Superuser.</p>
-    {% else %}
-      <p class="muted" style="color:var(--bad)">Nessuna scuola associata. Funzionalità limitate.</p>
-    {% endif %}
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <strong>ScuolaHub</strong><br>
+        <span class="muted">Dashboard</span>
+      </div>
+    </div>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div style="padding: 10px; border-radius: 4px; margin-bottom: 16px;
-                        background: {% if message.tags == 'success' %}var(--ok){% elif message.tags == 'error' %}var(--bad){% else %}var(--warn){% endif %}1A;
-                        color: {% if message.tags == 'success' %}var(--ok){% elif message.tags == 'error' %}var(--bad){% else %}var(--warn){% endif %};">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
+    <nav aria-label="Navigazione principale">
+      <a href="{% url 'dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
+      <a href="{% url 'projects_list' %}" class="{% if request.path|slice:':9' == '/progetti' %}active{% endif %}">Progetti</a>
+      <a href="{% url 'bandi_list' %}">Bandi</a>
+      <a href="{% url 'calendar' %}" class="{% if request.path == '/calendario/' %}active{% endif %}">Calendario</a>
+      <a href="{% url 'documents' %}" class="{% if request.path == '/documenti/' %}active{% endif %}">Documenti</a>
+      <a href="{% url 'deleghe' %}" class="{% if request.path == '/deleghe/' %}active{% endif %}">Deleghe</a>
+      <a href="{% url 'settings' %}" class="{% if request.path == '/impostazioni/' %}active{% endif %}">Impostazioni</a>
+    </nav>
+  </div>
+</header>
 
+<main class="wrap">
+  <!-- KPI -->
+  <section class="grid cols-3">
+    <div class="card kpi">
+      <div>
+        <div class="muted">Budget allocato</div>
+        <b>€ {{ totals.budget|default:0|floatformat:0|intcomma }}</b>
+      </div>
+      <span class="tag">
+        {% if totals.budget %}+ aggiornato{% else %}—{% endif %}
+      </span>
+    </div>
 
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Riepilogo Finanziario (Aggregato)</h3>
-        <p>Budget Totale: **€ {{ total_budget|intcomma }}**</p>
-        <p>Speso Totale: **€ {{ total_spent|intcomma }}**</p>
+    <div class="card kpi">
+      <div>
+        <div class="muted">Spesa effettuata</div>
+        <b>€ {{ totals.spent|default:0|floatformat:0|intcomma }}</b>
+      </div>
+      <span class="tag">
+        {% if totals.budget and totals.budget > 0 %}
+          {% widthratio totals.spent totals.budget 100 as perc_spent %}
+          {{ perc_spent|floatformat:0 }}% del totale
+        {% else %}—{% endif %}
+      </span>
+    </div>
 
-        <div class="progress-label">Avanzamento Spesa (vs Budget)</div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width:{{ progress_percent|floatformat:2 }}%;"></div>
+    <div class="card kpi">
+      <div>
+        <div class="muted">Progetti recenti</div>
+        <b>{{ latest|length }}</b>
+      </div>
+      <span class="status active">In corso</span>
+    </div>
+  </section>
+
+  <!-- Progetti + colonna destra -->
+  <section class="grid cols-2" style="margin-top:16px">
+    <!-- Progetti in evidenza -->
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:8px">
+        <h3 style="margin:0">Progetti in evidenza</h3>
+        <span class="muted">ultimi inseriti</span>
+        <div style="margin-left:auto">
+          <a class="btn" href="{% url 'projects_list' %}">Vai a tutti i progetti →</a>
         </div>
-        <small style="color:var(--primary)">{{ progress_percent|floatformat:2 }}%</small>
+      </div>
 
-        <h4 style="margin-top:30px">Progetti Recenti</h4>
-        {% if projects %}
-          <ul class="project-list">
-            {% for project in projects %}
-              <li>
-                <div>
-                  <a class="title" href="{% url 'project_detail' project.pk %}">{{ project.title }}</a>
-                  <small class="muted" style="display:block">{{ project.program }} | Budget: € {{ project.budget|intcomma }}</small>
+      <table style="margin-top:12px;width:100%;border-collapse:collapse;font-size:0.9rem">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:6px 4px">Titolo</th>
+            <th style="text-align:left;padding:6px 4px">Programma</th>
+            <th style="text-align:left;padding:6px 4px">Periodo</th>
+            <th style="text-align:left;padding:6px 4px">Stato</th>
+            <th style="text-align:right;padding:6px 4px">Budget</th>
+            <th style="text-align:right;padding:6px 4px">Speso</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in latest %}
+            <tr onclick="location.href='{% url 'project_detail' p.id %}'" style="cursor:pointer;border-top:1px solid var(--line)">
+              <td style="padding:6px 4px">{{ p.title }}</td>
+              <td style="padding:6px 4px">{{ p.get_program_display|default:p.program }}</td>
+              <td style="padding:6px 4px">
+                {% if p.start_date %}{{ p.start_date }}{% else %}?{% endif %}
+                –
+                {% if p.end_date %}{{ p.end_date }}{% else %}?{% endif %}
+              </td>
+              <td style="padding:6px 4px">
+                <span class="status
+                  {% if p.status == 'ACTIVE' %}active
+                  {% elif p.status == 'DRAFT' %}draft
+                  {% else %}closed{% endif %}">
+                  {{ p.get_status_display|default:p.status }}
+                </span>
+              </td>
+              <td style="padding:6px 4px;text-align:right">€ {{ p.budget|default:0|floatformat:0|intcomma }}</td>
+              <td style="padding:6px 4px;text-align:right">€ {{ p.spent_from_expenses|floatformat:0|intcomma }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="muted" style="padding:8px 4px">Nessun progetto disponibile.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Colonna destra: notifiche + prossimi eventi -->
+    <div class="grid cols-1">
+      <!-- Notifiche -->
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px">
+          <h3 style="margin:0">Notifiche</h3>
+        </div>
+        {% if notifications %}
+          <ul class="notif-list">
+            {% for n in notifications %}
+              <li class="notif-item {% if not n.is_read %}unread{% endif %}">
+                <div style="flex:1 1 auto">
+                  <a href="{% url 'notification_detail' n.id %}" style="font-size:0.9rem;display:block">
+                    {{ n.message }}
+                  </a>
+                  <small>{{ n.created_at|naturaltime }}</small>
                 </div>
-                <span class="spent">Speso: € {{ project.calculated_spent|default:"0.00"|intcomma }}</span>
+                {% if not n.is_read %}
+                  <span class="tag">Nuova</span>
+                {% endif %}
               </li>
             {% endfor %}
           </ul>
-          <div style="margin-top:15px; text-align:right;">
-             <a href="{% url 'projects_list' %}" class="btn">Vedi tutti →</a>
-          </div>
         {% else %}
           <p class="muted" style="margin-top:8px;font-size:0.9rem">
-            Nessun progetto registrato.
+            Nessuna notifica presente.
           </p>
         {% endif %}
       </div>
 
-      <div>
-        <div class="card">
-          <h3 style="margin:0">Notifiche ({{ notifications|length }})</h3>
-          {% if notifications %}
-            <ul class="notification-list">
-              {% for n in notifications %}
-                <li>
-                  <a href="{% url 'notification_detail' n.pk %}">
-                    {{ n.message|safe }}
-                    <small style="color:var(--muted)">({{ n.created_at|date:"d M H:i" }})</small>
-                  </a>
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="muted" style="margin-top:8px;font-size:0.9rem">
-              Nessuna notifica presente.
-            </p>
-          {% endif %}
-        </div>
-
-        <div class="card" style="margin-top:24px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <h3 style="margin:0">Prossimi eventi</h3>
-            <div style="margin-left:auto">
-              <a class="btn" href="{% url 'calendar' %}">Apri calendario →</a>
-            </div>
+      <!-- Prossimi eventi dal calendario -->
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px">
+          <h3 style="margin:0">Prossimi eventi</h3>
+          <div style="margin-left:auto">
+            <a class="btn" href="{% url 'calendar' %}">Apri calendario →</a>
           </div>
-
-          {% if upcoming_events %}
-            <ul class="event-list">
-              {% for ev in upcoming_events %}
-                <li class="event-item">
-                  <div class="event-item-title">{{ ev.title }}</div>
-                  <small>
-                    {{ ev.date|date:"d/m/Y" }}
-                    {% if ev.project %}
-                      · Progetto: {{ ev.project.title }}
-                    {% endif %}
-                  </small>
-                  {% if ev.description %}
-                    <div style="margin-top:4px;font-size:0.85rem">{{ ev.description }}</div>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="muted" style="margin-top:8px;font-size:0.9rem">
-              Nessun evento futuro registrato. Vai al calendario per aggiungerne uno.
-            </p>
-          {% endif %}
         </div>
 
-      </div>
-    </div>
-
-    <div class="card" style="margin-top: 24px;">
-      <div style="display:flex;align-items:center;gap:8px">
-        <h3 style="margin:0">Milestone Globali della Scuola (Attive)</h3>
-        <div style="margin-left:auto">
-          <small class="muted">{{ today|date:"d/m/Y" }} - Oggi</small>
-        </div>
-      </div>
-
-      {% if total_milestones_count > 0 %}
-      <p style="font-size: 0.9rem; margin-top: 12px; margin-bottom: 4px;">
-          Progresso Generale: {{ completed_milestones_count }} di {{ total_milestones_count }} completate ({{ milestones_remaining }} rimaste).
-      </p>
-      {% endif %}
-
-      {% if project_legend %}
-          <p style="font-weight: bold; margin-top: 12px; margin-bottom: 4px; font-size: 0.9rem;">Legenda Progetti:</p>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
-              {% for item in project_legend %}
-                  <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; background: {{ item.color }}1A; color: {{ item.color }}; border: 1px solid {{ item.color }};">
-                      <span style="width: 8px; height: 8px; border-radius: 50%; background: {{ item.color }};"></span>
-                      {{ item.project_title }}
-                  </span>
-              {% endfor %}
-          </div>
-      {% endif %}
-
-      {% if global_milestones %}
-          <ul class="milestone-global-list" style="list-style: none; padding: 0;">
-              {% for ms in global_milestones %}
-                  {% if ms.status != 'COMPLETED' %}
-
-                      {% comment %}
-                      CORREZIONE CRITICA:
-                      La logica if/elif/else contiene tutto il blocco WITH/ENDWITH e il codice di output,
-                      evitando TemplateSyntaxError: expected 'endwith'.
-                      {% endcomment %}
-
-                      {% if ms.is_delayed %}
-                          {% with status_color='var(--bad)' status_icon='❌' status_label='SCADUTA!' %}
-                              <li style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line);">
-                                  <div style="flex-grow: 1;">
-                                      <span style="font-weight: bold; color: {{ ms.color }};">{{ status_icon }} {{ ms.title }}</span>
-                                      <small style="margin-left: 8px; color: {{ status_color }};">
-                                          ({{ status_label }})
-                                      </small>
-                                      <div style="font-size: 0.85rem; margin-top: 2px;">
-                                          Progetto: <a href="{% url 'project_detail' ms.project_id %}" style="color:{{ ms.color}}">{{ ms.project_title }}</a>
-                                      </div>
-                                  </div>
-                                  <div style="font-weight: bold; font-size: 1rem; color: {{ status_color }}; white-space: nowrap;">
-                                      {{ ms.due_date|date:"d/m/Y" }}
-                                  </div>
-                              </li>
-                          {% endwith %}
-
-                      {% elif ms.status == 'PENDING' %}
-                          {% with status_color='var(--warn)' status_icon='⏳' status_label='In attesa' %}
-                              <li style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line);">
-                                  <div style="flex-grow: 1;">
-                                      <span style="font-weight: bold; color: {{ ms.color }};">{{ status_icon }} {{ ms.title }}</span>
-                                      <small style="margin-left: 8px; color: {{ status_color }};">
-                                          ({{ status_label }})
-                                      </small>
-                                      <div style="font-size: 0.85rem; margin-top: 2px;">
-                                          Progetto: <a href="{% url 'project_detail' ms.project_id %}" style="color:{{ ms.color}}">{{ ms.project_title }}</a>
-                                      </div>
-                                  </div>
-                                  <div style="font-weight: bold; font-size: 1rem; color: {{ status_color }}; white-space: nowrap;">
-                                      {{ ms.due_date|date:"d/m/Y" }}
-                                  </div>
-                              </li>
-                          {% endwith %}
-
-                      {% else %}
-                          {% with status_color='var(--primary)' status_icon='⏳' status_label='In corso' %}
-                              <li style="display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line);">
-                                  <div style="flex-grow: 1;">
-                                      <span style="font-weight: bold; color: {{ ms.color }};">{{ status_icon }} {{ ms.title }}</span>
-                                      <small style="margin-left: 8px; color: {{ status_color }};">
-                                          ({{ status_label }})
-                                      </small>
-                                      <div style="font-size: 0.85rem; margin-top: 2px;">
-                                          Progetto: <a href="{% url 'project_detail' ms.project_id %}" style="color:{{ ms.color}}">{{ ms.project_title }}</a>
-                                      </div>
-                                  </div>
-                                  <div style="font-weight: bold; font-size: 1rem; color: {{ status_color }}; white-space: nowrap;">
-                                      {{ ms.due_date|date:"d/m/Y" }}
-                                  </div>
-                              </li>
-                          {% endwith %}
-                      {% endif %}
-
-
+        {% if upcoming_events %}
+          <ul class="event-list">
+            {% for ev in upcoming_events %}
+              <li class="event-item">
+                <div class="event-item-title">{{ ev.title }}</div>
+                <small>
+                  {{ ev.date|date:"d/m/Y" }}
+                  {% if ev.project %}
+                    · Progetto: {{ ev.project.title }}
                   {% endif %}
-              {% endfor %}
+                </small>
+                {% if ev.description %}
+                  <div style="margin-top:4px;font-size:0.85rem">{{ ev.description }}</div>
+                {% endif %}
+              </li>
+            {% endfor %}
           </ul>
-
-          {% if milestones_remaining == 0 %}
-               <p class="muted" style="margin-top:8px;font-size:0.9rem;">Tutte le milestone attive sono state completate. 🎉</p>
-          {% endif %}
-
-      {% else %}
-          <p class="muted" style="margin-top:8px;font-size:0.9rem;">
-              Nessuna milestone attiva registrata per i progetti della tua scuola.
+        {% else %}
+          <p class="muted" style="margin-top:8px;font-size:0.9rem">
+            Nessun evento futuro registrato. Vai al calendario per aggiungerne uno.
           </p>
-      {% endif %}
+        {% endif %}
+      </div>
     </div>
-    </div>
+  </section>
+</main>
+
+<footer class="wrap" style="color:var(--muted);padding:24px 0">
+  <span>© 2025 ScuolaHub</span>
+</footer>
+
 </body>
 </html>
