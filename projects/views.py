@@ -117,6 +117,15 @@ def dashboard(request):
     completed_milestones_count = all_milestones.filter(status='COMPLETED').count()
     total_milestones_count = all_milestones.count()
 
+    milestones_remaining = total_milestones_count - completed_milestones_count
+
+    context = {
+        # ...
+        "completed_milestones_count": completed_milestones_count,
+        "total_milestones_count": total_milestones_count,
+        "milestones_remaining": milestones_remaining,  # NUOVO
+    }
+
     context = {
         "is_superuser": is_superuser,
         "school": school,

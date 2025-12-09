@@ -206,7 +206,7 @@
 
       {% if total_milestones_count > 0 %}
       <p style="font-size: 0.9rem; margin-top: 12px; margin-bottom: 4px;">
-          Progresso Generale: {{ completed_milestones_count }} di {{ total_milestones_count }} completate ({{ total_milestones_count|sub:completed_milestones_count }} rimaste).
+          Progresso Generale: {{ completed_milestones_count }} di {{ total_milestones_count }} completate ({{ milestones_remaining }} rimaste).
       </p>
       {% endif %}
 
