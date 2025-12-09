@@ -2,362 +2,144 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <title>{{ project.title }} — Dettaglio progetto</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <title>{{ bando.title }} – Dettaglio bando</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    :root {
-      --bg:#f7f7fb; --panel:#ffffff; --ink:#1b1f24; --muted:#6b7280;
-      --primary:#2563eb; --primary-ink:#fff; --ok:#16a34a; --warn:#ca8a04; --bad:#dc2626;
-      --line:#e5e7eb; --chip:#eef2ff;
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      margin:0;
+      background:#f3f4f6;
+      color:#111827;
     }
-    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; background:var(--bg); color:var(--ink);}
-    a{color:var(--primary);text-decoration:none} a:hover{text-decoration:underline}
-    header{background:var(--bg);color:var(--ink); padding: 16px 0;}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .topnav{display:flex;gap:12px;align-items:center;justify-content:space-between}
-    .crumbs a{color:var(--primary)}
-    .grid{display:grid;gap:16px}
-    @media(min-width:900px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
-    .card{background:var(--panel);border:1px solid var(--line);padding:20px;border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05)}
-    .progress-bar{background:var(--line);height:8px;border-radius:4px;overflow:hidden;margin-top:6px;position:relative}
-    .progress-fill{height:100%;background:var(--ok);width:0;transition:width 0.5s ease}
-    .btn{padding:8px 12px;border:1px solid var(--primary);border-radius:4px;color:var(--primary);background:#fff;cursor:pointer;font-size:0.9rem;text-decoration:none;display:inline-block}
-    .btn.primary{background:var(--primary);color:var(--primary-ink)}
-    .btn:hover{opacity:0.9;text-decoration:none}
-
-    /* Stili Aggiuntivi per la Timeline */
-    .timeline-container { position: relative; height: 60px; margin-bottom: 30px; min-width: 600px; }
-    .timeline-line { position: absolute; top: 50%; left: 0; right: 0; height: 4px; background: var(--line); }
-    .timeline-marker { position: absolute; top: 50%; transform: translate(-50%, -50%); z-index: 5; }
-    .marker-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.1); cursor: help; }
-    .marker-label { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; white-space: nowrap; }
-    .marker-label-top { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-weight: bold; white-space: nowrap; font-size: 0.85rem; }
-
-    .today-dot { background: var(--primary); width: 12px; height: 12px; }
-    .today-label { color: var(--primary); }
-    .milestone-ok { background: var(--ok); }
-    .milestone-warn { background: var(--warn); }
-    .milestone-bad { background: var(--bad); }
-
+    a{color:#0b5cab;text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{background:#0b2a42;color:#fff}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .topnav{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+    .muted{color:#6b7280}
+    .card{
+      background:#fff;
+      border-radius:10px;
+      border:1px solid #e5e7eb;
+      padding:16px;
+      margin-top:16px;
+    }
+    .badge{
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:999px;
+      font-size:11px;
+      border:1px solid #e5e7eb;
+      background:#f9fafb;
+      color:#374151;
+    }
+    .status-OPEN{background:#ecfdf5;border-color:#bbf7d0;color:#166534}
+    .status-CLOSED{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+    .status-IN_PREP{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+    .status-FUNDED{background:#ecfdf5;border-color:#6ee7b7;color:#047857}
+    .status-NOT_FUNDED{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+    .section-title{font-size:16px;font-weight:600;margin:16px 0 8px}
+    dl{margin:0}
+    dt{font-size:12px;text-transform:uppercase;color:#6b7280;margin-top:10px}
+    dd{margin:0 0 4px}
+    pre{
+      white-space:pre-wrap;
+      font-family:inherit;
+      font-size:14px;
+      background:#f9fafb;
+      border-radius:8px;
+      border:1px solid #e5e7eb;
+      padding:10px;
+    }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="wrap">
-      <div class="topnav">
-        <div class="crumbs">
-          <a href="{% url 'dashboard' %}">Dashboard</a> /
-          <a href="{% url 'projects_list' %}">Progetti</a> /
-          <span>{{ project.title }}</span>
-        </div>
-        <div>
-          <a href="{% url 'dashboard' %}" class="btn">← Torna alla Dashboard</a>
-        </div>
+<header>
+  <div class="wrap">
+    <div class="topnav">
+      <div class="muted" style="font-size:13px">
+        <a href="{% url 'bandi_list' %}" style="color:#cfe3ff;">← Torna all'elenco bandi</a>
+      </div>
+      <div class="muted" style="font-size:13px">
+        Utente: <b>{{ request.user.username }}</b>
+        {% if school %} · Scuola: <b>{{ school.name }}</b>{% endif %}
       </div>
     </div>
-  </header>
-
-  <div class="wrap">
-    {% if messages %}
-        {% for message in messages %}
-            <div style="padding: 10px; border-radius: 4px; margin-bottom: 16px;
-                        background: {% if message.tags == 'success' %}var(--ok){% elif message.tags == 'error' %}var(--bad){% else %}var(--warn){% endif %}1A;
-                        color: {% if message.tags == 'success' %}var(--ok){% elif message.tags == 'error' %}var(--bad){% else %}var(--warn){% endif %};">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
-
-    <h1>{{ project.title }} <small style="color:var(--muted); font-size:1rem;">({{ project.program }})</small></h1>
-    <p class="muted">
-      Budget: **€ {{ project.budget|intcomma }}** |
-      Inizio: {{ project.start_date|default:"N/D"|date:"d/m/Y" }} |
-      Fine: {{ project.end_date|default:"N/D"|date:"d/m/Y" }}
+    <h1 style="margin:8px 0 0;">{{ bando.title }}</h1>
+    <p class="muted" style="margin:4px 0 8px;font-size:14px">
+      Programma: <b>{{ bando.get_program_display }}</b>
+      {% if bando.internal_code %} · Cod. interno: {{ bando.internal_code }}{% endif %}
+      {% if bando.school %} · Scuola: {{ bando.school.name }}{% endif %}
     </p>
-
-    <div class="grid cols-2" style="margin-top: 16px;">
-        <div class="card">
-            <h3>Avanzamento Finanziario</h3>
-            <p>Speso Totale: **€ {{ total_spent|intcomma }}**</p>
-            <p>Spesa Filtrata: **€ {{ filtered_total|intcomma }}**</p>
-
-            <div class="progress-label">Avanzamento Spesa (vs Budget)</div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width:{{ progress_percent|floatformat:2 }}%;"></div>
-            </div>
-            <small style="color:var(--primary)">{{ progress_percent|floatformat:2 }}%</small>
-        </div>
-
-        <div class="card">
-            <h3>Avanzamento Milestone</h3>
-            <p>Totale Milestone: **{{ milestones|length }}**</p>
-            <p>Completate: **{{ milestones|length|floatformat:0 }}**</p>
-
-            <div class="progress-label">Stato Scadenze (Completate)</div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width:{{ milestone_progress_percent|floatformat:2 }}%; background: var(--warn);"></div>
-            </div>
-            <small style="color:var(--warn)">{{ milestone_progress_percent|floatformat:2 }}%</small>
-        </div>
-    </div>
-
-    <div class="card" style="margin-top: 24px; padding: 20px; overflow-x: auto;">
-        <h3>Cronologia Visiva Progetto ({{ project.program }})</h3>
-        {% if project_start and project_end %}
-            <div style="font-size: 0.85rem; margin-bottom: 18px; display: flex; justify-content: space-between;">
-                <span>Inizio: {{ project_start|date:"d/m/Y" }}</span>
-                <span>Fine: {{ project_end|date:"d/m/Y" }}</span>
-            </div>
-
-            <div class="timeline-container" style="min-width: 600px;">
-                <div class="timeline-line"></div>
-
-                {% if today_pos_percent is not None %}
-                    <div class="timeline-marker" style="left: {{ today_pos_percent }}%; z-index: 10;"
-                         title="Oggi: {{ today|date:"d/m/Y" }}">
-                        <div class="marker-dot today-dot" style="background: var(--primary);"></div>
-                        <small class="marker-label-top today-label">OGGI</small>
-                    </div>
-                {% endif %}
-
-                {% for ms in milestones %}
-                    {% if ms.pos_percent is not None %}
-                        {% with ms_status=ms.status %}
-                            {% if ms_status == 'COMPLETED' %}
-                                {% with ms_color='var(--ok)' ms_icon='✅' ms_class='milestone-ok' %}
-                            {% elif ms.due_date|date:"Y-m-d" < today and ms_status == 'PENDING' %}
-                                {% with ms_color='var(--bad)' ms_icon='❌' ms_class='milestone-bad' %}
-                            {% else %}
-                                {% with ms_color='var(--warn)' ms_icon='⏳' ms_class='milestone-warn' %}
-                            {% endif %}
-
-                            <div class="timeline-marker" style="left: {{ ms.pos_percent }}%; z-index: 5;"
-                                 title="{{ ms.title }} ({{ ms.due_date|date:"d/m/Y" }}) - Stato: {{ ms_status|lower }}">
-                                <div class="marker-dot {{ ms_class }}"></div>
-                                <small class="marker-label" style="color: {{ ms_color }};">{{ ms_icon }} {{ ms.due_date|date:"d/m" }}</small>
-                            </div>
-                            {% endwith %}
-                        {% endwith %}
-                    {% endif %}
-                {% endfor %}
-            </div>
-            <p class="muted small" style="margin: 0; padding-top: 8px;">
-                Legenda: <span style="color: var(--primary);">● Oggi</span>, <span style="color: var(--ok);">● Completata</span>, <span style="color: var(--warn);">● In attesa</span>, <span style="color: var(--bad);">● In ritardo</span>.
-            </p>
-        {% else %}
-            <p class="muted">
-                Per visualizzare la cronologia temporale, è necessario definire le date di **Inizio** e **Fine** nel progetto.
-            </p>
-        {% endif %}
-    </div>
-    <h2 style="margin-top:24px">Milestone (Scadenze)</h2>
-
-    <details style="margin-top:16px" {% if add_milestone %}open{% endif %}>
-        <summary class="btn primary">+ Aggiungi Milestone</summary>
-        <form method="post" action="." style="margin-top:12px" class="grid cols-2">
-            {% csrf_token %}
-            <input type="hidden" name="op" value="add_milestone" />
-
-            <div>
-                <label class="small muted">Titolo</label><br>
-                <input type="text" name="title" required placeholder="Es. Selezione Fornitore">
-            </div>
-
-            <div>
-                <label class="small muted">Data di Scadenza</label><br>
-                <input type="date" name="due_date" required value="{{ today }}">
-            </div>
-
-            <div style="grid-column:1/-1">
-                <label class="small muted">Descrizione</label><br>
-                <input type="text" name="description" placeholder="Descrizione o nota (Facoltativa)">
-            </div>
-
-            <div style="grid-column:1/-1">
-                <button class="btn primary" type="submit">Salva Milestone</button>
-            </div>
-        </form>
-    </details>
-
-    {% if milestones %}
-        <ul style="list-style:none; padding:0; margin-top:16px">
-            {% for ms in milestones %}
-                <li style="border:1px solid var(--line); padding:12px; border-radius:4px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <span style="font-weight:bold">{{ ms.title }}</span>
-                        <small style="color:var(--muted); margin-left:8px">({{ ms.description }})</small>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:16px">
-                        <small style="font-weight:bold; color:var(--ink)">
-                            Scadenza: {{ ms.due_date|date:"d/m/Y" }}
-                        </small>
-                        {% with status=ms.status %}
-                            {% if status == 'COMPLETED' %}
-                                <span style="color:var(--ok); font-weight:bold">✅ Completata</span>
-                            {% elif ms.due_date|date:"Y-m-d" < today and status == 'PENDING' %}
-                                <span style="color:var(--bad); font-weight:bold">❌ In ritardo</span>
-                            {% else %}
-                                <span style="color:var(--warn); font-weight:bold">⏳ In attesa</span>
-                            {% endif %}
-                        {% endwith %}
-                        </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="muted" style="margin-top:16px">Nessuna milestone registrata per questo progetto.</p>
-    {% endif %}
-
-
-    <h2 style="margin-top:32px">Gestione Spese</h2>
-
-    <details style="margin-top:16px" {% if add_expense %}open{% endif %}>
-        <summary class="btn primary">+ Aggiungi Spesa</summary>
-        <form method="post" action="." style="margin-top:12px" class="grid cols-2">
-            {% csrf_token %}
-            <input type="hidden" name="op" value="add_expense" />
-            <div>
-                <label class="small muted">Data</label><br>
-                <input type="date" name="date" value="{{ today }}">
-            </div>
-            <div>
-                <label class="small muted">Importo (€)</label><br>
-                <input type="number" name="amount" step="0.01" min="0" required placeholder="Es. 1000.50">
-            </div>
-            <div>
-                <label class="small muted">Fornitore</label><br>
-                <input type="text" name="vendor" placeholder="Nome fornitore">
-            </div>
-            <div>
-                <label class="small muted">Categoria</label><br>
-                <select name="category">
-                    {% for val,label in category_choices %}
-                        <option value="{{ val }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div style="grid-column:1/-1">
-                <label class="small muted">Documento (Riferimento)</label><br>
-                <input type="text" name="document" placeholder="Es. Fattura 123/2024">
-            </div>
-            <div style="grid-column:1/-1">
-                <label class="small muted">Nota</label><br>
-                <input type="text" name="note" placeholder="Note facoltative">
-            </div>
-            <div>
-                <button class="btn primary" type="submit">Salva Spesa</button>
-            </div>
-        </form>
-    </details>
-
-    <h3 style="margin-top:24px">Elenco Spese</h3>
-    <form method="get" action="." style="margin-bottom:16px;">
-        <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: flex-end;">
-            <div>
-                <label class="small muted">Filtra per Categoria</label>
-                <select name="category">
-                    <option value="">Tutte</option>
-                    {% for val,label in category_choices %}
-                        <option value="{{ val }}" {% if val == request.GET.category %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label class="small muted">Cerca Fornitore</label>
-                <input type="text" name="vendor" value="{{ request.GET.vendor|default:'' }}" placeholder="Nome fornitore">
-            </div>
-            <button class="btn primary" type="submit">Filtra</button>
-            <a href="{% url 'project_detail' project.pk %}" class="btn" style="border:1px solid var(--line); color:var(--ink)">Reset</a>
-        </div>
-    </form>
-
-    {% if expenses %}
-        <ul style="list-style:none; padding:0; margin-top:16px">
-            {% for exp in expenses %}
-                <li style="border:1px solid var(--line); padding:12px; border-radius:4px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; background:#fff">
-                    <div>
-                        <span style="font-weight:bold">{{ exp.vendor|default:"N/D" }}</span>
-                        <small style="color:var(--muted); margin-left:8px">({{ dict(category_choices)|get:exp.category }})</small>
-                        <small style="display:block; font-size:0.85rem">Rif. Doc: {{ exp.document|default:"N/D" }}</small>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:16px">
-                        <small style="font-weight:bold; color:var(--ink)">{{ exp.date|date:"d/m/Y" }}</small>
-                        <span style="font-weight:bold; color:var(--bad)">€ {{ exp.amount|intcomma }}</span>
-                        </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="muted">Nessuna spesa trovata per questo progetto (o per i filtri attuali).</p>
-    {% endif %}
-
-
-    <h2 style="margin-top:32px">Limiti di Spesa</h2>
-
-    <details style="margin-top:16px" {% if add_limit %}open{% endif %}>
-        <summary class="btn">+ Aggiungi limite</summary>
-        <form method="post" action="." style="margin-top:12px" class="grid cols-2">
-            {% csrf_token %}
-            <input type="hidden" name="op" value="add_limit" />
-            <div>
-                <label class="small muted">Categoria</label><br>
-                <select name="category">
-                    {% for val,label in category_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
-                </select>
-            </div>
-            <div>
-                <label class="small muted">Base</label><br>
-                <select name="base">
-                    {% for val,label in base_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
-                </select>
-            </div>
-            <div>
-                <label class="small muted">% Limite</label><br>
-                <input type="number" name="percentage" step="0.01" min="0" placeholder="Es. 20.00" required>
-            </div>
-            <div style="grid-column:1/-1">
-                <label class="small muted">Nota</label><br>
-                <input type="text" name="note" placeholder="Facoltativa">
-            </div>
-            <div>
-                <button class="btn primary" type="submit">Salva/Aggiorna Limite</button>
-            </div>
-        </form>
-    </details>
-
-    <h3 style="margin-top:24px">Limiti Impostati</h3>
-    {% if limits_ctx %}
-        <ul style="list-style:none; padding:0; margin-top:16px">
-            {% for lim in limits_ctx %}
-                {% with over_limit=lim.remaining < 0 %}
-                    <li style="border:1px solid {% if over_limit %}var(--bad){% else %}var(--line){% endif %}; padding:12px; border-radius:4px; margin-bottom:8px; background:#fff">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <span style="font-weight:bold">{{ lim.category_label }}</span>
-                                <small style="color:var(--muted); margin-left:8px">({{ lim.percentage|floatformat:2 }}% di {{ lim.base_label|lower }})</small>
-                            </div>
-                            <div style="text-align:right">
-                                <span style="font-weight:bold">Speso: € {{ lim.spent_in_category|intcomma }}</span>
-                                <small style="display:block; color:{% if over_limit %}var(--bad){% else %}var(--ok){% endif %}">
-                                    Rimanente: € {{ lim.remaining|intcomma }}
-                                </small>
-                            </div>
-                        </div>
-                        <div class="progress-bar" style="height:6px; margin-top:8px;">
-                            <div class="progress-fill" style="width:{{ lim.pct_used|floatformat:2 }}%; background:{% if over_limit %}var(--bad){% elif lim.pct_used > 80 %}var(--warn){% else %}var(--ok){% endif %}"></div>
-                        </div>
-                        <small style="display:block; margin-top:4px;">Utilizzo: {{ lim.pct_used|floatformat:2 }}% (Massimo: € {{ lim.allowed_total|intcomma }})</small>
-                    </li>
-                {% endwith %}
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="muted">Nessun limite di spesa impostato.</p>
-    {% endif %}
-
-
   </div>
+</header>
+
+<main class="wrap">
+
+  <div class="card">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px">
+      <div>
+        <span class="badge status-{{ bando.status }}">
+          {{ bando.get_status_display }}
+        </span>
+      </div>
+      <div class="muted" style="font-size:13px">
+        Inserito: {{ bando.imported_at|date:"d/m/Y H:i" }} · Ultimo aggiornamento: {{ bando.last_update|date:"d/m/Y H:i" }}
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <dl>
+        <dt>Fonte</dt>
+        <dd>
+          {{ bando.source_name }}
+          {% if bando.source_url %}
+            · <a href="{{ bando.source_url }}" target="_blank">Apri bando ufficiale ↗</a>
+          {% endif %}
+        </dd>
+
+        <dt>Periodo</dt>
+        <dd>
+          {% if bando.publication_date %}Pubblicato il {{ bando.publication_date|date:"d/m/Y" }}{% else %}Data pubblicazione n.d.{% endif %}
+          {% if bando.deadline_date %} · Scadenza: <b>{{ bando.deadline_date|date:"d/m/Y" }}</b>{% endif %}
+        </dd>
+
+        <dt>Importo disponibile</dt>
+        <dd>
+          {% if bando.amount_available %}
+            € {{ bando.amount_available|floatformat:0|intcomma }}
+          {% else %}
+            <span class="muted">Non specificato</span>
+          {% endif %}
+        </dd>
+
+        <dt>Origine dati</dt>
+        <dd>
+          {{ bando.get_import_source_display }}
+        </dd>
+      </dl>
+    </div>
+
+    {% if bando.summary %}
+      <h2 class="section-title">Sintesi</h2>
+      <pre>{{ bando.summary }}</pre>
+    {% endif %}
+
+    {% if bando.requirements %}
+      <h2 class="section-title">Requisiti principali</h2>
+      <pre>{{ bando.requirements }}</pre>
+    {% endif %}
+
+    {% if bando.notes %}
+      <h2 class="section-title">Note interne</h2>
+      <pre>{{ bando.notes }}</pre>
+    {% endif %}
+  </div>
+
+</main>
+
 </body>
 </html>

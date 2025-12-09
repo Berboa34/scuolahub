@@ -24,6 +24,8 @@ from .models import School, Document, CallForProposal, Call, Notification
 User = get_user_model()
 
 
+
+
 @login_required
 def dashboard(request):
     """
@@ -32,117 +34,58 @@ def dashboard(request):
     - Progetti recenti con speso calcolato dalle Expense
     - Notifiche per l'utente loggato
     - Prossimi eventi di calendario per l'utente
-    - NUOVO: Timeline globale delle Milestone
     """
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
-    today = timezone.now().date()
-    is_superuser = request.user.is_superuser
 
-    # Logica per filtrare i progetti
-    if is_superuser:
-        project_qs = Project.objects.all().order_by('-start_date')
-    elif school:
-        project_qs = Project.objects.filter(school=school).order_by('-start_date')
-    else:
-        project_qs = Project.objects.none()
-
-    # Calcolo KPI aggregati
-    total_budget = project_qs.aggregate(total=Sum("budget"))["total"] or Decimal("0")
-    total_spent = Expense.objects.filter(project__in=project_qs).aggregate(total=Sum("amount"))["total"] or Decimal("0")
-
-    # Progress (speso vs budget)
-    progress_percent = Decimal("0")
-    if total_budget > 0:
-        progress_percent = (total_spent * Decimal("100")) / total_budget
-        if progress_percent > 100: progress_percent = Decimal("100")
-
-    # Progetti recenti (limitati a 5) con calcolo dello speso per progetto
-    projects = project_qs.annotate(
-        calculated_spent=Sum('expenses__amount')
-    ).order_by('-start_date')[:5]
-
-    # Notifiche (per l'utente loggato)
-    notifications = request.user.notifications.filter(is_read=False).order_by('-created_at')[:5]
-
-    # Prossimi Eventi (filtrati per user o scuola)
+    # --- PROGETTI DELLA SCUOLA
+    projects_qs = Project.objects.all()
     if school:
-        upcoming_events_qs = Event.objects.filter(Q(school=school) | Q(owner=request.user)).order_by('date')
-    else:
-        upcoming_events_qs = Event.objects.filter(owner=request.user).order_by('date')
+        projects_qs = projects_qs.filter(school=school)
 
-    upcoming_events = [e for e in upcoming_events_qs if e.date >= today][:5]
+    # KPI: budget totale e spesa totale (somma delle Expense)
+    totals = {}
+    totals["budget"] = projects_qs.aggregate(b=Sum("budget"))["b"] or 0
 
-    # === NUOVO: Aggregazione Milestone globali per la Dashboard ===
+    expenses_qs = Expense.objects.filter(project__in=projects_qs)
+    totals["spent"] = expenses_qs.aggregate(s=Sum("amount"))["s"] or 0
 
+    # Progetti recenti (ultimi 6) con spesa calcolata dalle expense
+    latest = list(projects_qs.order_by("-start_date", "-id")[:6])
+
+    # Mappa project.id -> somma spese
+    sums_per_project = (
+        Expense.objects
+        .filter(project__in=latest)
+        .values("project_id")
+        .annotate(total=Sum("amount"))
+    )
+    sums_map = {row["project_id"]: row["total"] or 0 for row in sums_per_project}
+
+    for p in latest:
+        # attributo usato nel template
+        p.spent_from_expenses = sums_map.get(p.id, 0)
+
+    # --- NOTIFICHE PER L'UTENTE
+    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")[:5]
+
+    # --- PROSSIMI EVENTI (CALENDARIO)
+    today = timezone.localdate()
+    events_qs = Event.objects.filter(owner=request.user, date__gte=today)
     if school:
-        # Prende tutte le milestone di tutti i progetti della scuola
-        all_milestones = Milestone.objects.filter(
-            project__school=school
-        ).select_related('project').order_by('due_date')
-    else:
-        all_milestones = Milestone.objects.none()
-
-    milestone_timeline_data = []
-    project_colors = {}
-
-    # Palette di colori semplici per differenziare i progetti
-    # (Usare colori web accessibili)
-    color_palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22",
-                     "#17becf"]
-    color_index = 0
-
-    # Mappa i progetti per ID per ottenere un colore stabile
-    for ms in all_milestones:
-        project_id = ms.project_id
-        if project_id not in project_colors:
-            project_colors[project_id] = color_palette[color_index % len(color_palette)]
-            color_index += 1
-
-        milestone_timeline_data.append({
-            'title': ms.title,
-            'due_date': ms.due_date,
-            'status': ms.status,
-            'project_id': ms.project_id,
-            'project_title': ms.project.title,
-            'color': project_colors[project_id],
-            'is_delayed': ms.due_date < today and ms.status == 'PENDING',
-        })
-
-    # Prepara i dati per la legenda dei progetti
-    legend_data = [{'project_title': p.title, 'color': project_colors[p.id]}
-                   for p in Project.objects.filter(id__in=project_colors.keys())]
-
-    # Totale milestone completate e totali per il calcolo in template
-    completed_milestones_count = all_milestones.filter(status='COMPLETED').count()
-    total_milestones_count = all_milestones.count()
-
-    milestones_remaining = total_milestones_count - completed_milestones_count
+        events_qs = events_qs.filter(school=school)
+    upcoming_events = events_qs.order_by("date")[:5]
 
     context = {
-        # ...
-        "completed_milestones_count": completed_milestones_count,
-        "total_milestones_count": total_milestones_count,
-        "milestones_remaining": milestones_remaining,  # NUOVO
-    }
-
-    context = {
-        "is_superuser": is_superuser,
         "school": school,
-        "projects": projects,
+        "totals": totals,
+        "latest": latest,
         "notifications": notifications,
         "upcoming_events": upcoming_events,
-        "total_budget": total_budget,
-        "total_spent": total_spent,
-        "progress_percent": progress_percent,
-        "today": today,
-
-        "global_milestones": milestone_timeline_data,  # NUOVO
-        "project_legend": legend_data,  # NUOVO
-        "completed_milestones_count": completed_milestones_count,
-        "total_milestones_count": total_milestones_count,
     }
     return render(request, "dashboard.html", context)
+
+
 
 
 @login_required
@@ -205,16 +148,21 @@ from .models import School, Document, CallForProposal, Call, Notification
 
 @login_required
 def project_detail(request, pk: int):
-    project = get_object_or_404(Project, pk=pk)
-    today = timezone.now().date()
-
-    # Se l’utente è legato a una scuola, impediamo accesso ad altre scuole
+    # --- 1. RECUPERO DEL PROFILO E GESTIONE SICUREZZA ---
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
-    is_superuser = request.user.is_superuser
+    is_superuser = request.user.is_superuser  # Aggiunto per coerenza
+    today = timezone.now().date()  # Aggiunto per Milestone e form
 
-    if school and project.school_id and project.school_id != school.id and not is_superuser:
-        raise Http404("Progetto non trovato")
+    # Logica di accesso e sicurezza (riorganizzata)
+    if is_superuser:
+        project = get_object_or_404(Project, pk=pk)
+    elif school:
+        project = get_object_or_404(Project, pk=pk, school=school)
+        if project.school_id and project.school_id != school.id:
+            raise Http404("Progetto non trovato.")
+    else:
+        raise Http404("Accesso negato: Nessuna scuola associata all'utente.")
 
     # ---------------------------
     # A) Gestione POST (insert)
@@ -222,7 +170,7 @@ def project_detail(request, pk: int):
     if request.method == "POST":
         op = request.POST.get("op", "")
 
-        # A.1) Aggiungi spesa
+        # A.1) Aggiungi spesa (LOGICA ESISTENTE)
         if op == "add_expense":
             try:
                 date_str = request.POST.get("date") or today.isoformat()
@@ -244,7 +192,7 @@ def project_detail(request, pk: int):
                 messages.error(request, f"Errore inserimento spesa: {e}")
                 return redirect(f"{reverse('project_detail', args=[project.pk])}?add=expense")
 
-        # A.2) Aggiungi limite
+        # A.2) Aggiungi limite (LOGICA ESISTENTE)
         if op == "add_limit":
             try:
                 category = request.POST.get("category") or "MATERIALI"
@@ -268,7 +216,7 @@ def project_detail(request, pk: int):
                 messages.error(request, f"Errore inserimento limite: {e}")
                 return redirect(f"{reverse('project_detail', args=[project.pk])}?add=limit")
 
-        # A.3) Aggiungi Milestone
+        # A.3) Aggiungi Milestone (NUOVA LOGICA DA AGGIUNGERE)
         if op == "add_milestone":
             try:
                 title = (request.POST.get("title") or "").strip()
@@ -288,110 +236,57 @@ def project_detail(request, pk: int):
                 messages.error(request, f"Errore inserimento milestone: {e}")
                 return redirect(f"{reverse('project_detail', args=[project.pk])}?add=milestone")
 
-        # Se POST senza op valido
+        # Se POST senza op valido (VIENE ESEGUITO SE OP NON RICONOSCIUTO)
         return HttpResponseBadRequest("Operazione non riconosciuta.")
 
     # ---------------------------
     # B) Gestione GET (filtri e calcoli)
     # ---------------------------
+
+    # ... (LOGICA CALCOLI SPESE E LIMITI, come nel tuo codice) ...
+    # (Ometto per brevità ma assumo sia qui)
+
     exp_qs = project.expenses.all().order_by("-date", "-id")
-
+    # Logica filtri
     cat = request.GET.get("category") or ""
-    if cat:
-        exp_qs = exp_qs.filter(category=cat)
-
+    if cat: exp_qs = exp_qs.filter(category=cat)
     vendor_q = request.GET.get("vendor") or ""
-    if vendor_q:
-        exp_qs = exp_qs.filter(vendor__icontains=vendor_q)
+    if vendor_q: exp_qs = exp_qs.filter(vendor__icontains=vendor_q)
 
     expenses = list(exp_qs)
     filtered_total = exp_qs.aggregate(total=Sum("amount"))["total"] or Decimal("0")
-
-    # Totale speso su tutte le spese del progetto
     total_spent = project.expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0")
-
-    # Avanzamento (speso vs budget)
     budget = project.budget or Decimal("0")
     progress_percent = Decimal("0")
     if budget > 0:
         progress_percent = (total_spent * Decimal("100")) / budget
-        if progress_percent > 100:
-            progress_percent = Decimal("100")
+        if progress_percent > 100: progress_percent = Decimal("100")
 
-    # ---------------------------
-    # C) Limiti
-    # ---------------------------
+    # Logica Limiti
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
     sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
-
     limits_ctx = []
     for lim in project.limits.all().order_by("category", "base", "id"):
-        if lim.base == "TOTAL_SPENT":
-            base_total = total_spent
-        else:  # "TOTAL_BUDGET"
-            base_total = budget
-
+        base_total = total_spent if lim.base == "TOTAL_SPENT" else budget
         allowed_total = (lim.percentage / Decimal("100")) * base_total
         spent_in_cat = sums_by_cat.get(lim.category, Decimal("0"))
         remaining = allowed_total - spent_in_cat
-
         pct_used = Decimal("0")
         if allowed_total > 0:
             pct_used = (spent_in_cat * Decimal("100")) / allowed_total
-            if pct_used > 100:
-                pct_used = Decimal("100")
-
+            if pct_used > 100: pct_used = Decimal("100")
         limits_ctx.append({
-            "limit_id": lim.id,
-            "category": lim.category,
+            "limit_id": lim.id, "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
-            "base": lim.base,
-            "base_label": {
-                "TOTAL_SPENT": "Percentuale sul totale speso",
-                "TOTAL_BUDGET": "Percentuale sul budget totale"
-            }.get(lim.base, lim.base),
-            "percentage": lim.percentage,
-            "allowed_total": allowed_total,
-            "spent_in_category": spent_in_cat,
+            "base": lim.base, "base_label": {"TOTAL_SPENT": "Percentuale sul totale speso",
+                                             "TOTAL_BUDGET": "Percentuale sul budget totale"}.get(lim.base, lim.base),
+            "percentage": lim.percentage, "allowed_total": allowed_total, "spent_in_category": spent_in_cat,
             "remaining": remaining,
-            "pct_used": pct_used,
-            "note": getattr(lim, "note", None),
+            "pct_used": pct_used, "note": getattr(lim, "note", None),
         })
 
-    # ---------------------------
-    # D) Milestone (Recupero e Calcoli)
-    # ---------------------------
+    # NUOVO: 3. Milestone (CALCOLO)
     milestones = project.milestones.all().order_by('due_date')
-
-    # NUOVO: Calcolo per Timeline Visiva
-    project_start = project.start_date
-    project_end = project.end_date
-
-    today_pos_percent = None
-
-    if project_start and project_end and project_end > project_start:
-        total_days = (project_end - project_start).days
-
-        if total_days > 0:
-            # 1. Posizione del marker OGGI
-            days_passed = (today - project_start).days
-            today_pos_percent = min(100, max(0, (days_passed / total_days) * 100))
-
-            # 2. Calcolo posizione milestone
-            for ms in milestones:
-                ms_days_from_start = (ms.due_date - project_start).days
-                ms.pos_percent = min(100, max(0, (ms_days_from_start / total_days) * 100))
-        else:
-            # Caso progetto inizia e finisce lo stesso giorno (o dura 0 giorni)
-            for ms in milestones:
-                ms.pos_percent = None
-
-    else:
-        # Se le date di progetto non sono definite, non calcolare la posizione
-        for ms in milestones:
-            ms.pos_percent = None
-
-            # Calcoli Avanzamento Milestone
     total_milestones = milestones.count()
     completed_milestones = milestones.filter(status='COMPLETED').count()
 
@@ -399,26 +294,24 @@ def project_detail(request, pk: int):
     if total_milestones > 0:
         milestone_progress_percent = (completed_milestones * Decimal("100")) / total_milestones
 
+    # --- D) GESTIONE CONTESTO FINALE ---
     context = {
-        "project": project,
-        "expenses": expenses,
-        "filtered_total": filtered_total,
-        "total_spent": total_spent,
+        "project": project, "school": school,
+        "expenses": expenses, "filtered_total": filtered_total, "total_spent": total_spent,
         "progress_percent": progress_percent,
-        "category_choices": Expense.CATEGORY_CHOICES,
-        "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
-                         ("TOTAL_BUDGET", "Percentuale sul budget totale")],
-        "add_expense": request.GET.get("add") == "expense",
-        "add_limit": request.GET.get("add") == "limit",
-        "add_milestone": request.GET.get("add") == "milestone",
         "limits_ctx": limits_ctx,
 
-        "milestones": milestones,
-        "milestone_progress_percent": milestone_progress_percent,
+        "milestones": milestones,  # AGGIUNTO
+        "milestone_progress_percent": milestone_progress_percent,  # AGGIUNTO
 
-        "project_start": project_start,
-        "project_end": project_end,
-        "today_pos_percent": today_pos_percent,
+        "category_choices": Expense.CATEGORY_CHOICES, "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
+                                                                       ("TOTAL_BUDGET",
+                                                                        "Percentuale sul budget totale")],
+
+        "add_expense": request.GET.get("add") == "expense",
+        "add_limit": request.GET.get("add") == "limit",
+        "add_milestone": request.GET.get("add") == "milestone",  # AGGIUNTO
+
         "today": today.isoformat(),
     }
     return render(request, "projects/detail.html", context)
