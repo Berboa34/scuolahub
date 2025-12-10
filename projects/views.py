@@ -258,7 +258,7 @@ def project_detail(request, pk: int):
     # B) Gestione GET (Calcoli Finanziari) - Aggiornato il filtro categoria
     # ---------------------------
     # select_related('category') ottimizza il recupero del nome della categoria nella lista spese.
-    exp_qs = project.expenses.all().select_related('category').order_by("-date", "-id")
+    exp_qs = project.expenses.all().order_by("-date", "-id")
 
     cat_pk = request.GET.get("category") or ""
     current_category = None  # Variabile per mantenere il filtro selezionato nel template
@@ -293,7 +293,7 @@ def project_detail(request, pk: int):
 
     limits_ctx = []
     # select_related('category') per evitare query N+1 nell'iterazione
-    for lim in project.limits.all().select_related('category').order_by("category__name", "base", "id"):
+    for lim in project.limits.all().order_by("category__name", "base", "id"):
         base_total = total_spent if lim.base == "TOTAL_SPENT" else budget
 
         # Recupera la somma spesa usando l'ID della categoria
