@@ -146,6 +146,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import School, Document, CallForProposal, Call, Notification
 
 
+# ... (Il resto degli import e delle funzioni sono invariati) ...
+
 @login_required
 def project_detail(request, pk: int):
     project = get_object_or_404(Project, pk=pk)
@@ -160,8 +162,7 @@ def project_detail(request, pk: int):
 
     # ---------------------------
     # A) Gestione POST (insert)
-    # ---------------------------
-    # ... [Lascia qui la tua gestione POST esistente per Expense, Limit, Milestone] ...
+    # ... (LOGICA POST INVARIATA) ...
     if request.method == "POST":
         op = request.POST.get("op", "")
 
@@ -233,7 +234,6 @@ def project_detail(request, pk: int):
 
         # Se POST senza op valido
         return HttpResponseBadRequest("Operazione non riconosciuta.")
-        # ... [Fine della gestione POST] ...
 
     # ---------------------------
     # B) Gestione GET (filtri e calcoli)
@@ -265,7 +265,6 @@ def project_detail(request, pk: int):
     # ---------------------------
     # C) Limiti
     # ---------------------------
-    # ... [Lascia qui la tua logica esistente per i Limiti (by_cat, sums_by_cat, limits_ctx)] ...
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
     sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
 
@@ -319,19 +318,20 @@ def project_detail(request, pk: int):
 
         if total_days > 0:
             # 1. Posizione del marker OGGI
-            days_passed = (today - project_start).days
-            today_pos_percent = min(100, max(0, (days_passed / total_days) * 100))
+            days_passed_today = (today - project_start).days
+            # Clamp: la posizione non deve andare sotto 0% o sopra 100%
+            today_pos_percent = min(100, max(0, (days_passed_today / total_days) * 100))
 
             # 2. Calcolo posizione milestone
             for ms in milestones:
                 if ms.due_date:
                     ms_days_from_start = (ms.due_date - project_start).days
-                    # Correzione del nome: deve essere 'ms_days_from_start'
+                    # CORREZIONE QUI: variabile ms_days_from_start è usata correttamente
                     ms.pos_percent = min(100, max(0, (ms_days_from_start / total_days) * 100))
                 else:
                     ms.pos_percent = None
         else:
-            # Caso in cui start_date == end_date
+            # Caso progetto dura 0 giorni
             today_pos_percent = 0
             for ms in milestones:
                 ms.pos_percent = 0
@@ -369,7 +369,7 @@ def project_detail(request, pk: int):
 
         "project_start": project_start,
         "project_end": project_end,
-        "today_pos_percent": today_pos_percent,  # NUOVO
+        "today_pos_percent": today_pos_percent,
         "today": today.isoformat(),
     }
     return render(request, "projects/detail.html", context)
