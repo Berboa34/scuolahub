@@ -13,6 +13,95 @@ class School(models.Model):
         return self.name
 
 
+
+class ExpenseCategory(models.Model):
+    """Categoria di spesa definibile dall'amministratore/DSGA."""
+    name = models.CharField(max_length=100, verbose_name="Nome Categoria")
+    code = models.CharField(max_length=32, unique=True, verbose_name="Codice Unico (es. MATER)")
+    # Collega alla scuola per permettere categorie diverse per scuole diverse
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='expense_categories'
+    )
+
+    class Meta:
+        verbose_name = "Categoria di Spesa"
+        verbose_name_plural = "Categorie di Spesa"
+
+    def __str__(self):
+        return self.name
+
+
+# --- Aggiorna la classe Expense ---
+class Expense(models.Model):
+    # Rimuovi la lista CATEGORY_CHOICES
+    # Rimuovi il campo 'category' CharField
+
+    project = models.ForeignKey(
+        "Project",
+        on_delete=models.CASCADE,
+        related_name="expenses",
+        verbose_name="Progetto"
+    )
+    # NUOVO CAMPO: ora è una chiave esterna al nuovo modello
+    category = models.ForeignKey(
+        ExpenseCategory,
+        on_delete=models.SET_NULL,  # Se la categoria viene cancellata, il campo diventa NULL
+        null=True,
+        verbose_name="Categoria"
+    )
+
+    date = models.DateField(default=timezone.now, verbose_name="Data Spesa")
+    vendor = models.CharField(max_length=200, blank=True, null=True, verbose_name="Fornitore")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Importo")
+    document = models.CharField(max_length=255, blank=True, null=True, verbose_name="Riferimento Documento")
+    note = models.TextField(blank=True, null=True, verbose_name="Note")
+
+    def __str__(self):
+        return f"Spesa di {self.amount}€ ({self.project.title})"
+
+
+# --- Aggiorna la classe SpendingLimit ---
+class SpendingLimit(models.Model):
+    BASE_CHOICES = [
+        ("TOTAL_SPENT", "Percentuale sul totale speso"),
+        ("TOTAL_BUDGET", "Percentuale sul budget totale"),
+    ]
+
+    project = models.ForeignKey(
+        "Project",
+        on_delete=models.CASCADE,
+        related_name="limits",
+        verbose_name="Progetto"
+    )
+    # NUOVO CAMPO: usa la chiave esterna
+    category = models.ForeignKey(
+        ExpenseCategory,
+        on_delete=models.CASCADE,
+        verbose_name="Categoria"
+    )
+
+    base = models.CharField(
+        max_length=16,
+        choices=BASE_CHOICES,
+        default="TOTAL_BUDGET",
+        verbose_name="Base di Calcolo"
+    )
+    percentage = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Percentuale Massima (%)")
+    note = models.TextField(blank=True, null=True, verbose_name="Note")
+
+    class Meta:
+        unique_together = ('project', 'category', 'base')
+        verbose_name = "Limite di Spesa"
+        verbose_name_plural = "Limiti di Spesa"
+
+    def __str__(self):
+        return f"Limite {self.percentage}% per {self.category.name} in {self.project.title}"
+
+
 class Project(models.Model):
     PROGRAM_CHOICES = [
         ("PNRR", "PNRR"),
