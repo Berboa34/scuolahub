@@ -150,9 +150,11 @@ from .models import School, Document, CallForProposal, Call, Notification
 
 @login_required
 def project_detail(request, pk: int):
+    # La data di oggi deve essere acquisita in modo coerente
+    today = timezone.localdate()  # Usa localdate per coerenza di fuso orario con il database
+
     project = get_object_or_404(Project, pk=pk)
-    project_pk = project.pk  # VARIABILE LOCALE SICURA per i redirect
-    today = timezone.now().date()
+    project_pk = project.pk
 
     profile = getattr(request.user, "profile", None)
     school = getattr(profile, "school", None)
@@ -162,7 +164,7 @@ def project_detail(request, pk: int):
         raise Http404("Progetto non trovato")
 
     # ---------------------------
-    # A) Gestione POST (insert) - Corretto NoReverseMatch
+    # A) Gestione POST (insert) - Logica invariata
     # ---------------------------
     if request.method == "POST":
         op = request.POST.get("op", "")
@@ -184,10 +186,10 @@ def project_detail(request, pk: int):
                     category=category, amount=amount, document=document, note=note,
                 )
                 messages.success(request, "Spesa aggiunta con successo.")
-                return redirect("project_detail", pk=project_pk)  # USA VARIABILE SICURA
+                return redirect("project_detail", pk=project_pk)
             except Exception as e:
                 messages.error(request, f"Errore inserimento spesa: {e}")
-                return redirect(f"{reverse('project_detail', args=[project_pk])}?add=expense")  # USA VARIABILE SICURA
+                return redirect(f"{reverse('project_detail', args=[project_pk])}?add=expense")
 
         # A.2) Aggiungi limite
         if op == "add_limit":
@@ -208,10 +210,10 @@ def project_detail(request, pk: int):
                     lim.save(update_fields=["percentage", "note"])
 
                 messages.success(request, "Limite aggiornato con successo.")
-                return redirect("project_detail", pk=project_pk)  # USA VARIABILE SICURA
+                return redirect("project_detail", pk=project_pk)
             except Exception as e:
                 messages.error(request, f"Errore inserimento limite: {e}")
-                return redirect(f"{reverse('project_detail', args=[project_pk])}?add=limit")  # USA VARIABILE SICURA
+                return redirect(f"{reverse('project_detail', args=[project_pk])}?add=limit")
 
         # A.3) Aggiungi Milestone
         if op == "add_milestone":
@@ -228,83 +230,59 @@ def project_detail(request, pk: int):
                     project=project, title=title, due_date=due_date_str, status=status, description=description,
                 )
                 messages.success(request, f"Milestone '{title}' aggiunta con successo.")
-                return redirect("project_detail", pk=project_pk)  # USA VARIABILE SICURA
+                return redirect("project_detail", pk=project_pk)
             except Exception as e:
                 messages.error(request, f"Errore inserimento milestone: {e}")
-                return redirect(f"{reverse('project_detail', args=[project_pk])}?add=milestone")  # USA VARIABILE SICURA
+                return redirect(f"{reverse('project_detail', args=[project_pk])}?add=milestone")
 
         # Se POST senza op valido
         return HttpResponseBadRequest("Operazione non riconosciuta.")
 
     # ---------------------------
-    # B) Gestione GET (filtri e calcoli)
+    # B) Gestione GET (Calcoli Finanziari) - Logica invariata
     # ---------------------------
     exp_qs = project.expenses.all().order_by("-date", "-id")
 
     cat = request.GET.get("category") or ""
-    if cat:
-        exp_qs = exp_qs.filter(category=cat)
-
+    if cat: exp_qs = exp_qs.filter(category=cat)
     vendor_q = request.GET.get("vendor") or ""
-    if vendor_q:
-        exp_qs = exp_qs.filter(vendor__icontains=vendor_q)
+    if vendor_q: exp_qs = exp_qs.filter(vendor__icontains=vendor_q)
 
     expenses = list(exp_qs)
     filtered_total = exp_qs.aggregate(total=Sum("amount"))["total"] or Decimal("0")
-
-    # Totale speso su tutte le spese del progetto
     total_spent = project.expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0")
-
-    # Avanzamento (speso vs budget)
     budget = project.budget or Decimal("0")
     progress_percent = Decimal("0")
     if budget > 0:
         progress_percent = (total_spent * Decimal("100")) / budget
-        if progress_percent > 100:
-            progress_percent = Decimal("100")
+        if progress_percent > 100: progress_percent = Decimal("100")
 
     # ---------------------------
-    # C) Limiti
+    # C) Limiti - Logica invariata
     # ---------------------------
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
     sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
-
     limits_ctx = []
     for lim in project.limits.all().order_by("category", "base", "id"):
-        if lim.base == "TOTAL_SPENT":
-            base_total = total_spent
-        else:  # "TOTAL_BUDGET"
-            base_total = budget
-
+        base_total = total_spent if lim.base == "TOTAL_SPENT" else budget
         allowed_total = (lim.percentage / Decimal("100")) * base_total
         spent_in_cat = sums_by_cat.get(lim.category, Decimal("0"))
         remaining = allowed_total - spent_in_cat
-
         pct_used = Decimal("0")
         if allowed_total > 0:
             pct_used = (spent_in_cat * Decimal("100")) / allowed_total
-            if pct_used > 100:
-                pct_used = Decimal("100")
-
+            if pct_used > 100: pct_used = Decimal("100")
         limits_ctx.append({
-            "limit_id": lim.id,
-            "category": lim.category,
+            "limit_id": lim.id, "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
-            "base": lim.base,
-            "base_label": {
-                "TOTAL_SPENT": "Percentuale sul totale speso",
-                "TOTAL_BUDGET": "Percentuale sul budget totale"
-            }.get(lim.base, lim.base),
-            "percentage": lim.percentage,
-            "allowed_total": allowed_total,
-            "spent_in_category": spent_in_cat,
-            "remaining": remaining,
-            "pct_used": pct_used,
-            "note": getattr(lim, "note", None),
+            "base": lim.base, "base_label": {"TOTAL_SPENT": "Percentuale sul totale speso",
+                                             "TOTAL_BUDGET": "Percentuale sul budget totale"}.get(lim.base, lim.base),
+            "percentage": lim.percentage, "allowed_total": allowed_total, "spent_in_cat": spent_in_cat,
+            "remaining": remaining, "pct_used": pct_used, "note": getattr(lim, "note", None),
         })
 
     # ---------------------------
-    # D) Milestone (Recupero e Calcoli POSIZIONE) - Corretto per la posizione 0%
+    # D) Milestone (Recupero e Calcoli POSIZIONE) - Logica corretta per 0%
     # ---------------------------
     milestones = project.milestones.all().order_by('due_date')
 
@@ -313,11 +291,10 @@ def project_detail(request, pk: int):
 
     today_pos_percent = None
 
-    # Calcolo solo se ho date valide
     if project_start and project_end and project_end > project_start:
 
         time_span = project_end - project_start
-        total_days = time_span.days
+        total_days = float(time_span.days)  # Durata totale come float
 
         if total_days > 0:
 
@@ -325,7 +302,7 @@ def project_detail(request, pk: int):
             days_passed_td = today - project_start
             days_passed_today = days_passed_td.days
 
-            # Utilizza float() per la precisione nel calcolo percentuale
+            # Calcolo percentuale e clamping
             raw_percent = (float(days_passed_today) / total_days) * 100
             today_pos_percent = min(100, max(0, raw_percent))
 
@@ -335,7 +312,6 @@ def project_detail(request, pk: int):
                     ms_time_span = ms.due_date - project_start
                     ms_days_from_start = ms_time_span.days
 
-                    # Utilizza float() per la precisione nel calcolo percentuale
                     ms_raw_percent = (float(ms_days_from_start) / total_days) * 100
                     ms.pos_percent = min(100, max(0, ms_raw_percent))
                 else:
@@ -358,31 +334,16 @@ def project_detail(request, pk: int):
     if total_milestones > 0:
         milestone_progress_percent = (completed_milestones * Decimal("100")) / total_milestones
 
-    # ---------------------------
-    # E) Context completo
-    # ---------------------------
     context = {
-        "project": project,
-        "expenses": expenses,
-        "filtered_total": filtered_total,
-        "total_spent": total_spent,
-        "progress_percent": progress_percent,
-        "category_choices": Expense.CATEGORY_CHOICES,
+        "project": project, "expenses": expenses, "filtered_total": filtered_total, "total_spent": total_spent,
+        "progress_percent": progress_percent, "category_choices": Expense.CATEGORY_CHOICES,
         "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
                          ("TOTAL_BUDGET", "Percentuale sul budget totale")],
-        "add_expense": request.GET.get("add") == "expense",
-        "add_limit": request.GET.get("add") == "limit",
-        "add_milestone": request.GET.get("add") == "milestone",
-        "limits_ctx": limits_ctx,
-
-        "milestones": milestones,
-        "milestone_progress_percent": milestone_progress_percent,
-        "completed_milestones": completed_milestones,
-        "total_milestones": total_milestones,
-
-        "project_start": project_start,
-        "project_end": project_end,
-        "today_pos_percent": today_pos_percent,
+        "add_expense": request.GET.get("add") == "expense", "add_limit": request.GET.get("add") == "limit",
+        "add_milestone": request.GET.get("add") == "milestone", "limits_ctx": limits_ctx,
+        "milestones": milestones, "milestone_progress_percent": milestone_progress_percent,
+        "completed_milestones": completed_milestones, "total_milestones": total_milestones,
+        "project_start": project_start, "project_end": project_end, "today_pos_percent": today_pos_percent,
         "today": today.isoformat(),
     }
     return render(request, "projects/detail.html", context)
