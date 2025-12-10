@@ -35,10 +35,11 @@
     .timeline-bar{height:4px;background:#ddd;position:absolute;top:50%;width:100%;transform:translateY(-50%)}
     .today-marker{position:absolute;top:50%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid var(--bg);transform:translate(-50%,-50%);z-index:2;cursor:help;transition:left 0.5s ease-out}
     .today-label{position:absolute;top:-25px;left:50%;transform:translateX(-50%);font-size:0.75rem;white-space:nowrap;color:var(--bg)}
-    .ms-marker{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#aaa;transform:translate(-50%,-50%);z-index:1;border:2px solid #fff;transition:left 0.5s ease-out}
-    .ms-marker.completed{background:var(--ok)}
-    .ms-marker.delayed{background:var(--warn)}
-    .ms-marker-label{position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:0.75rem;white-space:nowrap;cursor:default}
+    /* AGGIORNATO: da ms-marker a timeline-marker per maggiore coerenza */
+    .timeline-marker{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#aaa;transform:translate(-50%,-50%);z-index:1;border:2px solid #fff;transition:left 0.5s ease-out}
+    .timeline-marker.completed{background:var(--ok)}
+    .timeline-marker.delayed{background:var(--bad)} /* Usiamo bad per delayed */
+    .timeline-marker-label{position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:0.75rem;white-space:nowrap;cursor:default}
     .timeline-details{display:flex;justify-content:space-between;font-size:0.75rem;margin-top:8px}
 
     /* TABELLE */
@@ -100,13 +101,12 @@
             <div class="progress-bar-container">
               {% with progress_percent as pct %}
                 {% if pct < 70 %}
-                  {% with 'ok' as status_class %}
+                  <div class="progress-bar ok" style="width:{{ progress_percent }}%"></div>
                 {% elif pct < 90 %}
-                  {% with 'warn' as status_class %}
+                  <div class="progress-bar warn" style="width:{{ progress_percent }}%"></div>
                 {% else %}
-                  {% with 'bad' as status_class %}
+                  <div class="progress-bar bad" style="width:{{ progress_percent }}%"></div>
                 {% endif %}
-                <div class="progress-bar {{ status_class }}" style="width:{{ progress_percent }}%"></div>
               {% endwith %}
             </div>
           </div>
@@ -157,7 +157,7 @@
             {% for ms in milestones %}
               {% if ms.pos_percent is not None %}
                 {% with ms.status|lower as status %}
-                <div class="ms-marker {% if status == 'completed' %}completed{% elif status == 'delayed' %}delayed{% endif %}"
+                <div class="timeline-marker {% if status == 'completed' %}completed{% elif status == 'delayed' %}delayed{% endif %}"
                      style="left:{{ ms.pos_percent|floatformat:2 }}%"
                      title="{{ ms.title }} ({{ ms.get_status_display }}) - Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
                 </div>
@@ -192,7 +192,7 @@
                   {% with ms.status|lower as status %}
                     <span class="chip" style="background:
                       {% if status == 'completed' %}var(--ok);color:#fff;
-                      {% elif status == 'delayed' %}var(--warn);color:#fff;
+                      {% elif status == 'delayed' %}var(--bad);color:#fff;
                       {% elif status == 'canceled' %}var(--muted);color:#fff;
                       {% else %}#eee;color:var(--ink);
                       {% endif %}">
@@ -269,6 +269,7 @@
                 <a href="{% url 'project_detail' project.pk %}" class="btn">Reset</a>
               </div>
             </form>
+
             {% if expenses %}
             <p class="small muted">Totale filtrato: <strong>{{ filtered_total|floatformat:2|intcomma }}€</strong></p>
             <table class="simple-table">
