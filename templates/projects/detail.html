@@ -8,436 +8,415 @@
   <style>
     :root { --bg:#0b2a42; --light:#f5f7fb; --muted:#6b7280; --br:#e5e7eb; --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626; }
     *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
-    a{color:#0b5cab;text-decoration:none} a:hover{text-decoration:underline}\
+    a{color:#0b5cab;text-decoration:none} a:hover{text-decoration:underline}
     header{background:var(--bg);color:#fff}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
     .topnav{display:flex;gap:12px;align-items:center;justify-content:space-between}
     .crumbs a{color:#cde1ff}
     .grid{display:grid;gap:16px}
     @media(min-width:900px){ .grid.cols-2{grid-template-columns:1fr 1fr} }
-    .card{background:#fff;border:1px solid var(--br);border-radius:4px;padding:16px}
-    .small{font-size:0.85rem} .muted{color:var(--muted)}
-    .text-center{text-align:center} .text-right{text-align:right}
+    .card{background:#fff;border:1px solid var(--br);border-radius:10px;padding:16px}
+    .muted{color:var(--muted)}
+    .kpis{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr))}
+    .kpi{padding:12px;border:1px dashed var(--br);border-radius:8px;background:var(--light)}
+    .progress{height:10px;background:#e6edf6;border-radius:999px;overflow:hidden}
+    .bar{height:100%}
+    .bar.ok{background:var(--ok)} .bar.warn{background:var(--warn)} .bar.bad{background:var(--bad)}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 10px;border-bottom:1px solid var(--br);vertical-align:top}
+    th{text-align:left;background:#f8fafc;font-weight:600}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;border:1px solid var(--br);background:#fff;cursor:pointer}
+    .btn.primary{background:#0b5cab;color:#fff;border-color:#0b5cab}
+    .btn.danger{background:#dc2626;color:#fff;border-color:#dc2626}
+    form.inline{display:inline}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+    input[type="text"], select, input[type="date"], input[type="number"]{padding:8px;border-radius:8px;border:1px solid var(--br)}
+    .section-title{margin:0 0 10px 0;font-size:18px}
+    .small{font-size:13px}
+    .badge{display:inline-block;padding:2px 6px;border-radius:6px;background:#eef2ff;color:#334155;font-size:12px;border:1px solid #c7d2fe}
 
-    /* KPI */
-    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
-    .kpi-card{padding:12px 16px;background:#fff;border:1px solid var(--br);border-radius:4px}
-    .kpi-card h4{margin:0;font-size:1.1rem}
-    .kpi-card strong{font-size:1.75rem;display:block;margin-top:4px}
+    /* ---------------------------------
+       STILI MILESTONE (NUOVI)
+       --------------------------------- */
+    .timeline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-top: 20px;
+      position: relative;
+      overflow-x: auto;
+      padding-bottom: 20px;
+      min-height: 100px;
+    }
+    .timeline-bar {
+      position: absolute;
+      top: 30px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--br);
+    }
+    .milestone-point {
+      flex: 1;
+      min-width: 150px;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+    .milestone-circle {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      margin: 0 auto 10px;
+      position: relative;
+      top: 25px;
+      border: 3px solid #fff;
+      transition: background-color 0.3s;
+    }
+    .milestone-point.completed .milestone-circle { background-color: var(--ok); }
+    .milestone-point.delayed .milestone-circle { background-color: var(--bad); }
+    .milestone-point.pending .milestone-circle { background-color: var(--warn); }
 
-    /* BARRE DI PROGRESSO */
-    .progress-bar-container{width:100%;height:10px;background:#f0f0f0;border-radius:5px;margin-top:8px;overflow:hidden}
-    .progress-bar{height:100%;background:var(--primary);transition:width 0.3s}
-    .progress-bar.ok{background:var(--ok)} .progress-bar.warn{background:var(--warn)} .progress-bar.bad{background:var(--bad)}
+    .milestone-date { font-size: 0.8em; color: var(--muted); margin-top: 35px; }
+    .milestone-title { font-weight: 600; margin-top: 5px; }
 
-    /* TIMELINE */
-    .timeline-container{position:relative;height:50px;margin:24px 0}
-    .timeline-bar{height:4px;background:#ddd;position:absolute;top:50%;width:100%;transform:translateY(-50%)}
-    .today-marker{position:absolute;top:50%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid var(--bg);transform:translate(-50%,-50%);z-index:2;cursor:help;transition:left 0.5s ease-out}
-    .today-label{position:absolute;top:-25px;left:50%;transform:translateX(-50%);font-size:0.75rem;white-space:nowrap;color:var(--bg)}
-    .timeline-marker{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#aaa;transform:translate(-50%,-50%);z-index:1;border:2px solid #fff;transition:left 0.5s ease-out}
-    .timeline-marker.completed{background:var(--ok)}
-    .timeline-marker.delayed{background:var(--bad)}
-    .timeline-marker-label{position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:0.75rem;white-space:nowrap;cursor:default}
-    .timeline-details{display:flex;justify-content:space-between;font-size:0.75rem;margin-top:8px}
-
-    /* TABELLE */
-    .simple-table{width:100%;border-collapse:collapse;font-size:0.9rem;margin-top:12px}
-    .simple-table th,.simple-table td{padding:8px;border-bottom:1px solid var(--br)}
-    .simple-table th{text-align:left;background:#f9f9f9;font-weight:600}
-    .simple-table tbody tr:hover{background:#fafafa}
-    .chip{display:inline-block;padding:2px 8px;border-radius:12px;background:#eee;font-size:0.75rem;color:var(--ink)}
-
-    /* FORM */
-    .grid input[type="text"],.grid input[type="number"],.grid input[type="date"],.grid select{width:100%;padding:8px;border:1px solid var(--br);border-radius:4px}
-    .btn{padding:8px 16px;border:1px solid var(--br);border-radius:4px;cursor:pointer;background:#fff;text-align:center;display:inline-block;font-size:0.9rem}
-    .btn.primary{background:var(--bg);color:#fff;border-color:var(--bg)}
-    .btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
-    .btn:hover{text-decoration:none;opacity:0.9}
-    .messages{padding:12px;margin-bottom:16px;border-radius:4px;font-size:0.9rem}
-    .messages.success{background:#dcfce7;border:1px solid var(--ok);color:var(--ok)}
-    .messages.error{background:#fee2e2;border:1px solid var(--bad);color:var(--bad)}
-    .messages.warning{background:#fef3c7;border:1px solid var(--warn);color:var(--warn)}
+    .progress-line {
+      position: absolute;
+      top: 30px;
+      left: 0;
+      height: 4px;
+      background: var(--ok);
+      width: 0%;
+      transition: width 0.5s;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <div class="topnav">
-        <div>
-          <div class="crumbs small"><a href="{% url 'dashboard' %}">Dashboard</a> / {{ project.title }}</div>
-          <h1 style="margin:4px 0 0">{{ project.title }}</h1>
-        </div>
-        <div class="small">
-          <a href="{% url 'project_list' %}" class="btn">← Tutti i progetti</a>
-        </div>
+{% if messages %}
+  {% for message in messages %}
+    <div class="wrap" style="padding-bottom: 0;">
+      <div class="card" style="padding: 10px; background: {% if message.tags == 'success' %}#dcfce7{% elif message.tags == 'error' %}#fee2e2{% else %}#fef9c3{% endif %}; border-color: #ccc; margin-top: 16px;">
+        {{ message }}
       </div>
     </div>
-  </header>
+  {% endfor %}
+{% endif %}
+<header>
+  <div class="wrap">
+    <div class="topnav">
+      <div class="crumbs small">
+        <a href="{% url 'dashboard' %}">← Torna alla Dashboard</a> ·
+        <a href="{% url 'projects_list' %}">Torna a Progetti</a>
+      </div>
+      <div class="small">
+        Utente: <b>{{ request.user.username }}</b>
+        {% if request.user.is_staff %}<span class="badge">staff</span>{% endif %}
+      </div>
+    </div>
+    <h1 style="margin:8px 0 2px">{{ project.title }}</h1>
+    <div class="muted">
+      {% if project.school %}Scuola: <b>{{ project.school.name }}</b> · {% endif %}
+      Programma: <b>{{ project.program }}</b> ·
+      Stato: <b>{{ project.get_status_display }}</b>
+      {% if project.cup %} · CUP: {{ project.cup }}{% endif %}
+      {% if project.cig %} · CIG: {{ project.cig }}{% endif %}
+    </div>
+  </div>
+</header>
 
-  <main style="padding:16px 0">
-    <div class="wrap">
-      {% if messages %}
-        {% for message in messages %}
-          <div class="messages {{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
+<main class="wrap" style="padding:16px 16px 40px">
+  <div class="card">
+    <div class="kpis">
+      <div class="kpi">
+        <div class="muted small">Budget totale</div>
+        <div><b>€ {{ project.budget|floatformat:0|intcomma }}</b></div>
+      </div>
+      <div class="kpi">
+        <div class="muted small">Speso totale</div>
+        <div><b>€ {{ total_spent|floatformat:0|intcomma }}</b></div>
+      </div>
+      <div class="kpi">
+        <div class="muted small">Avanzamento</div>
+        <div class="progress" aria-hidden="true">
+          {% with p=progress_percent %}
+            {% if p >= 90 %}
+              <div class="bar bad" style="width: {{ p }}%"></div>
+            {% elif p >= 70 %}
+              <div class="bar warn" style="width: {{ p }}%"></div>
+            {% else %}
+              <div class="bar ok" style="width: {{ p }}%"></div>
+            {% endif %}
+          {% endwith %}
+        </div>
+        <div class="small muted">{{ progress_percent|floatformat:0 }}% del budget</div>
+      </div>
+    </div>
+  </div>
 
-      <div class="card" style="margin-bottom:16px">
-        <h3 style="margin-top:0">Riepilogo e KPI</h3>
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <h4 class="small muted">Budget Totale</h4>
-            <strong>{{ project.budget|floatformat:2|intcomma }}€</strong>
+  <section id="milestones" class="card" style="margin-top:16px">
+    <h2 class="section-title">Tappe Fondamentali (Milestone)</h2>
+
+    <details style="margin-top:16px; margin-bottom: 20px;" {% if add_milestone %}open{% endif %}>
+      <summary class="btn primary" style="background: var(--ok); border-color: var(--ok);">+ Aggiungi Milestone</summary>
+      <form method="post" action="" style="margin-top:12px" class="grid">
+        {% csrf_token %}
+        <input type="hidden" name="op" value="add_milestone" />
+
+        <div style="grid-column:1/3;">
+          <label class="small muted">Titolo</label><br>
+          <input type="text" name="title" required placeholder="Es. Approvazione Piano Finanziario">
+        </div>
+
+        <div>
+          <label class="small muted">Data di Scadenza</label><br>
+          <input type="date" name="due_date" value="{{ today }}" required>
+        </div>
+
+        <div>
+          <label class="small muted">Stato Iniziale</label><br>
+          <select name="status">
+            <option value="PENDING">In attesa (Default)</option>
+            <option value="COMPLETED">Completata</option>
+          </select>
+        </div>
+
+        <div style="grid-column:1/-1">
+          <label class="small muted">Descrizione (opzionale)</label><br>
+          <input type="text" name="description" placeholder="Dettagli sulla tappa">
+        </div>
+
+        <div>
+          <button class="btn primary" type="submit">Salva Milestone</button>
+        </div>
+      </form>
+    </details>
+
+
+    {% if milestones %}
+      <div style="overflow:visible; padding-bottom: 30px;">
+        <div class="timeline">
+          <div class="timeline-bar"></div>
+
+          <div class="progress-line" style="width: {{ milestone_progress_percent|floatformat:0 }}%;"></div>
+
+          {% for m in milestones %}
+            {% with status_class=m.status|lower %}
+
+            <div class="milestone-point {{ status_class }} {% if m.due_date|date:"Y-m-d" < today and m.status == 'PENDING' %}delayed{% endif %}">
+              <div class="milestone-circle"></div>
+              <div class="milestone-date">{{ m.due_date|date:"d/m/Y" }}</div>
+              <div class="milestone-title">{{ m.title }}</div>
+            </div>
+
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+
+    {% else %}
+      <p class="muted small" style="margin-bottom:0;">Nessuna tappa fondamentale (milestone) definita per questo progetto. Utilizza il pulsante qui sopra per aggiungerne una.</p>
+    {% endif %}
+  </section>
+  <div class="grid cols-2" style="margin-top:16px">
+    <section class="card">
+      <h2 class="section-title">Spese</h2>
+
+      <form method="get" class="filters" action="">
+        <select name="category">
+          <option value="">Tutte le categorie</option>
+          {% for val,label in category_choices %}
+            <option value="{{ val }}" {% if request.GET.category == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <input type="text" name="vendor" placeholder="Fornitore contiene…" value="{{ request.GET.vendor|default:'' }}" />
+
+        <button class="btn" type="submit">Filtra</button>
+        <a class="btn" href="?">Azzera</a>
+        <span class="muted small">Totale filtrato: <b>€ {{ filtered_total|floatformat:0|intcomma }}</b></span>
+      </form>
+
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:110px">Data</th>
+              <th>Fornitore</th>
+              <th style="width:150px">Categoria</th>
+              <th style="width:130px">Importo</th>
+              <th style="width:120px">Documento</th>
+              <th>Note</th>
+              <th style="width:110px">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in expenses %}
+              <tr>
+                <td class="small">{{ e.date|date:"d/m/Y" }}</td>
+                <td>{{ e.vendor|default:"—" }}</td>
+                <td class="small">{{ e.get_category_display }}</td>
+                <td><b>€ {{ e.amount|floatformat:2|intcomma }}</b></td>
+                <td class="small">{{ e.document|default:"—" }}</td>
+                <td class="small">{{ e.note|default:"" }}</td>
+                <td>
+                  <form class="inline" method="post" action="{% url 'expense_delete' e.id %}" onsubmit="return confirm('Eliminare questa spesa?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn danger">Elimina</button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="7" class="muted small">Nessuna spesa trovata.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <details style="margin-top:16px" {% if add_expense %}open{% endif %}>
+        <summary class="btn">+ Aggiungi spesa</summary>
+        <form method="post" action="" style="margin-top:12px" class="grid">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="add_expense" />
+          <div>
+            <label class="small muted">Data</label><br>
+            <input type="date" name="date" value="{{ today }}">
           </div>
-          <div class="kpi-card">
-            <h4 class="small muted">Totale Speso</h4>
-            <strong>{{ total_spent|floatformat:2|intcomma }}€</strong>
+          <div>
+            <label class="small muted">Fornitore</label><br>
+            <input type="text" name="vendor" placeholder="Es. Fornitore Srl">
           </div>
-          <div class="kpi-card">
-            <h4 class="small muted">Avanzamento Finanziario</h4>
-            <strong>{{ progress_percent|floatformat:2 }}%</strong>
-            <div class="progress-bar-container">
-              {% with progress_percent as pct %}
-                {% if pct < 70 %}
-                  <div class="progress-bar ok" style="width:{{ progress_percent }}%"></div>
-                {% elif pct < 90 %}
-                  <div class="progress-bar warn" style="width:{{ progress_percent }}%"></div>
+          <div>
+            <label class="small muted">Categoria</label><br>
+            <select name="category">
+              {% for val,label in category_choices %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="small muted">Importo</label><br>
+            <input type="number" name="amount" step="0.01" min="0" placeholder="0.00">
+          </div>
+          <div>
+            <label class="small muted">Documento</label><br>
+            <input type="text" name="document" placeholder="Es. Fattura 15/2025">
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="small muted">Note</label><br>
+            <input type="text" name="note" placeholder="Annotazioni (facoltative)">
+          </div>
+          <div>
+            <button class="btn primary" type="submit">Salva spesa</button>
+          </div>
+        </form>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Limiti di spesa per categoria</h2>
+
+      <div class="small muted" style="margin-bottom:8px">
+        Base calcolo: “Percentuale sul totale speso” oppure “Percentuale sul budget totale”.
+      </div>
+
+      <div style="display:grid;gap:12px">
+        {% for L in limits_ctx %}
+          <div style="border:1px solid var(--br); border-radius:8px; padding:12px">
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+              <div>
+                <b>{{ L.category_label }}</b>
+                <div class="small muted">{{ L.base_label }} — Limite: {{ L.percentage|floatformat:2 }}%</div>
+                {% if L.note %}<div class="small muted">Nota: {{ L.note }}</div>{% endif %}
+              </div>
+              <div class="small muted">
+                Consentito: <b>€ {{ L.allowed_total|floatformat:0|intcomma }}</b> ·
+                Speso: <b>€ {{ L.spent_in_category|floatformat:0|intcomma }}</b> ·
+                Residuo: <b>€ {{ L.remaining|floatformat:0|intcomma }}</b>
+              </div>
+            </div>
+
+            <div class="progress" style="margin-top:8px">
+              {% with p=L.pct_used %}
+                {% if p >= 100 %}
+                  <div class="bar bad" style="width:100%"></div>
+                {% elif p >= 80 %}
+                  <div class="bar warn" style="width: {{ p }}%"></div>
                 {% else %}
-                  <div class="progress-bar bad" style="width:{{ progress_percent }}%"></div>
+                  <div class="bar ok" style="width: {{ p }}%"></div>
                 {% endif %}
               {% endwith %}
             </div>
-          </div>
-          <div class="kpi-card">
-            <h4 class="small muted">Milestone Completate</h4>
-            <strong>{{ completed_milestones }}/{{ total_milestones }}</strong>
-            <div class="progress-bar-container">
-                <div class="progress-bar ok" style="width:{{ milestone_progress_percent|floatformat:0 }}%"></div>
+            <div class="small muted" style="margin-top:4px">
+              Utilizzo: <b>{{ L.pct_used|floatformat:0 }}%</b>
             </div>
-          </div>
-        </div>
 
-        <div style="margin-top:16px;border-top:1px solid var(--br);padding-top:16px">
-          <div class="grid cols-2">
-            <div>
-              <p class="small muted" style="margin:0 0 4px">Titolo Progetto</p>
-              <p style="margin:0">{{ project.title }}</p>
-
-              <p class="small muted" style="margin:12px 0 4px">Programma</p>
-              <p style="margin:0" class="chip">{{ project.get_program_display }}</p>
-            </div>
-            <div>
-              <p class="small muted" style="margin:0 0 4px">Date</p>
-              <p style="margin:0">
-                Inizio: **{{ project.start_date|date:"d/m/Y"|default:"N/D" }}**<br>
-                Fine: **{{ project.end_date|date:"d/m/Y"|default:"N/D" }}**
-              </p>
-
-              <p class="small muted" style="margin:12px 0 4px">Stato</p>
-              <p style="margin:0" class="chip">{{ project.get_status_display }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom:16px">
-        <h3 style="margin-top:0">Timeline e Milestone</h3>
-        {% if project_start and project_end %}
-          <div class="timeline-container">
-            <div class="timeline-bar"></div>
-
-            {% if today_pos_percent is not None %}
-            <div class="today-marker" style="left:{{ today_pos_percent|floatformat:2 }}%" title="Oggi: {{ today }}">
-              <div class="today-label">Oggi</div>
-            </div>
-            {% endif %}
-
-            {% for ms in milestones %}
-              {% if ms.pos_percent is not None %}
-                {% with ms.status|lower as status %}
-                <div class="timeline-marker {% if status == 'completed' %}completed{% elif status == 'delayed' %}delayed{% endif %}"
-                     style="left:{{ ms.pos_percent|floatformat:2 }}%"
-                     title="{{ ms.title }} ({{ ms.get_status_display }}) - Scadenza: {{ ms.due_date|date:'d/m/Y' }}">
-                </div>
-                {% endwith %}
-              {% endif %}
-            {% endfor %}
-          </div>
-          <div class="timeline-details">
-            <small>{{ project_start|date:"d/m/Y" }}</small>
-            <small>{{ project_end|date:"d/m/Y" }}</small>
-          </div>
-        {% else %}
-          <p class="muted text-center">Definire le date di inizio e fine progetto per visualizzare la timeline.</p>
-        {% endif %}
-
-        {% if milestones %}
-        <div style="margin-top:24px;border-top:1px solid var(--br);padding-top:16px">
-          <table class="simple-table">
-            <thead>
-              <tr>
-                <th>Milestone</th>
-                <th>Scadenza</th>
-                <th>Stato</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for ms in milestones %}
-              <tr>
-                <td>{{ ms.title }}</td>
-                <td>{{ ms.due_date|date:"d/m/Y" }}</td>
-                <td>
-                  {% with ms.status|lower as status %}
-                    <span class="chip" style="background:
-                      {% if status == 'completed' %}var(--ok);color:#fff;
-                      {% elif status == 'delayed' %}var(--bad);color:#fff;
-                      {% elif status == 'canceled' %}var(--muted);color:#fff;
-                      {% else %}#eee;color:var(--ink);
-                      {% endif %}">
-                      {{ ms.get_status_display }}
-                    </span>
-                  {% endwith %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% endif %}
-
-        <details style="margin-top:16px" {% if add_milestone %}open{% endif %}>
-          <summary class="btn">+ Aggiungi milestone</summary>
-          <form method="post" action="" style="margin-top:12px" class="grid cols-2">
-            {% csrf_token %}
-            <input type="hidden" name="op" value="add_milestone" />
-            <div style="grid-column:1/-1">
-              <label class="small muted">Titolo</label><br>
-              <input type="text" name="title" required placeholder="Es. Acquisto materiale didattico">
-            </div>
-            <div>
-              <label class="small muted">Data di Scadenza</label><br>
-              <input type="date" name="due_date" required>
-            </div>
-            <div>
-              <label class="small muted">Stato Iniziale</label><br>
-              <select name="status">
-                <option value="PENDING">In attesa</option>
-                <option value="COMPLETED">Completata</option>
+            <form method="post" action="{% url 'limit_update' L.limit_id %}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+              {% csrf_token %}
+              <select name="category" required>
+                {% for val,label in category_choices %}
+                  <option value="{{ val }}" {% if val == L.category %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
               </select>
-            </div>
-            <div style="grid-column:1/-1">
-              <label class="small muted">Descrizione (facoltativa)</label><br>
-              <textarea name="description" rows="3"></textarea>
-            </div>
-            <div>
-              <button class="btn primary" type="submit">Aggiungi Milestone</button>
-            </div>
-          </form>
-        </details>
-      </div>
 
-      <div class="grid cols-2">
+              <select name="base" required>
+                {% for val,label in base_choices %}
+                  <option value="{{ val }}" {% if val == L.base %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
 
-        <div class="col-8">
-          <div class="card">
-            <h3 style="margin-top:0">Spese Registrate</h3>
-
-            <form method="get" action="" style="display:flex;gap:12px;margin-bottom:12px;padding:12px 0;border-bottom:1px solid var(--br)">
-              <div style="flex-grow:1">
-                <label class="small muted">Fornitore</label><br>
-                <input type="text" name="vendor" value="{{ request.GET.vendor|default:"" }}" onchange="this.form.submit()" placeholder="Cerca...">
-              </div>
-
-              <div>
-                <label class="small muted">Categoria</label><br>
-                <select name="category" onchange="this.form.submit()">
-                  <option value="">Tutte</option>
-                  {% for val,label in category_choices %}
-                    <option
-                        value="{{ val }}"
-                        {% if current_category|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>
-                        {{ label }}
-                    </option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div>
-                <label class="small muted" style="visibility:hidden">Reset</label><br>
-                <a href="{% url 'project_detail' project.pk %}" class="btn">Reset</a>
-              </div>
+              <input type="number" name="percentage" step="0.01" min="0" max="100" value="{{ L.percentage }}">
+              <input type="text" name="note" placeholder="Nota (opz.)" value="{{ L.note|default:'' }}">
+              <button class="btn" type="submit">Modifica</button>
             </form>
 
-            {% if expenses %}
-            <p class="small muted">Totale filtrato: <strong>{{ filtered_total|floatformat:2|intcomma }}€</strong></p>
-            <table class="simple-table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Categoria</th>
-                  <th>Fornitore</th>
-                  <th class="text-right">Importo</th>
-                  <th>Doc. Rif.</th>
-                  <th>Note</th>
-                  <th class="text-right">Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for exp in expenses %}
-                <tr>
-                  <td>{{ exp.date|date:"d/m/Y" }}</td>
-                  <td>{{ exp.category.name|default:"N/D" }}</td>
-                  <td>{{ exp.vendor|default:"N/D" }}</td>
-                  <td class="text-right">{{ exp.amount|floatformat:2|intcomma }}€</td>
-                  <td>{{ exp.document|default:"N/D" }}</td>
-                  <td>{{ exp.note|default:"N/D" }}</td>
-                  <td class="text-right">
-                    <a href="{% url 'expense_edit' exp.pk %}">Modifica</a>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            {% else %}
-              <p class="muted text-center">Nessuna spesa registrata per questo progetto (o per i filtri selezionati).</p>
-            {% endif %}
-
-            <details style="margin-top:16px" {% if add_expense %}open{% endif %}>
-              <summary class="btn">+ Aggiungi spesa</summary>
-              <form method="post" action="" style="margin-top:12px" class="grid cols-2">
-                {% csrf_token %}
-                <input type="hidden" name="op" value="add_expense" />
-                <div>
-                  <label class="small muted">Data</label><br>
-                  <input type="date" name="date" value="{{ 'now'|date:'Y-m-d' }}" required>
-                </div>
-                <div>
-                  <label class="small muted">Importo</label><br>
-                  <input type="number" name="amount" step="0.01" min="0.01" required placeholder="Es. 1250.00">
-                </div>
-                <div>
-                  <label class="small muted">Categoria</label><br>
-                  <select name="category" required>
-                    <option value="">Seleziona...</option>
-                    {% for val,label in category_choices %}
-                      <option value="{{ val }}">{{ label }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div>
-                  <label class="small muted">Fornitore</label><br>
-                  <input type="text" name="vendor" placeholder="Es. Amazon o N/D">
-                </div>
-                <div>
-                  <label class="small muted">Rif. Documento/Fattura</label><br>
-                  <input type="text" name="document" placeholder="Es. FT2025/123 o CIG/CUP">
-                </div>
-                <div>
-                  <label class="small muted">Nota</label><br>
-                  <input type="text" name="note" placeholder="Breve nota (facoltativa)">
-                </div>
-                <div style="grid-column:1/-1">
-                  <button class="btn primary" type="submit">Registra Spesa</button>
-                </div>
-              </form>
-            </details>
+            <form method="post" action="{% url 'limit_delete' L.limit_id %}" onsubmit="return confirm('Eliminare questo limite?');" style="margin-top:6px;">
+              {% csrf_token %}
+              <button class="btn danger" type="submit">Elimina limite</button>
+            </form>
           </div>
-        </div>
-
-        <div class="col-4">
-          <div class="card">
-            <h3 style="margin-top:0">Budget e Controlli</h3>
-
-            {% if project.budget >= total_spent %}
-            <p class="kpi-card" style="background:#e6ffec;border-color:var(--ok)">
-              <h4 class="small muted" style="color:var(--ok)">Fondi Rimanenti</h4>
-              <strong style="color:var(--ok)">
-                {{ funds_remaining|floatformat:2|intcomma }}€
-              </strong>
-            </p>
-            {% else %}
-            <p class="kpi-card" style="background:#fee2e2;border-color:var(--bad)">
-              <h4 class="small muted" style="color:var(--bad)">Budget Superato</h4>
-              <strong style="color:var(--bad)">
-                {{ funds_exceeded|floatformat:2|intcomma }}€
-              </strong>
-            </p>
-            {% endif %}
-
-            {% if limits_ctx %}
-            <div class="card" style="margin-top:16px">
-              <h3 style="margin-top:0">Limiti di Spesa</h3>
-              <table class="simple-table" style="font-size:0.85rem">
-                <thead>
-                  <tr>
-                    <th>Categoria</th>
-                    <th>Base</th>
-                    <th>% Max</th>
-                    <th class="text-right">Speso</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for lim in limits_ctx %}
-                  <tr>
-                    <td class="chip">{{ lim.category_label }}</td>
-                    <td>{{ lim.base_label }}</td>
-                    <td>{{ lim.percentage }}%</td>
-                    <td class="text-right">
-                      {{ lim.spent_in_category|floatformat:2|intcomma }}€
-                      {% with lim.pct_used as pct %}
-                      {% if pct > 100 %}<span style="color:var(--bad)"> ({{ pct|floatformat:0 }}%)</span>
-                      {% else %}<span style="color:var(--muted)"> ({{ pct|floatformat:0 }}%)</span>
-                      {% endif %}
-                      {% endwith %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% endif %}
-
-            <details style="margin-top:16px" {% if add_limit %}open{% endif %}>
-              <summary class="btn">+ Aggiungi limite</summary>
-              <form method="post" action="" style="margin-top:12px" class="grid">
-                {% csrf_token %}
-                <input type="hidden" name="op" value="add_limit" />
-                <div>
-                  <label class="small muted">Categoria</label><br>
-                  <select name="category" required>
-                    <option value="">Seleziona...</option>
-                    {% for val,label in category_choices %}
-                      <option value="{{ val }}">{{ label }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div>
-                  <label class="small muted">Base</label><br>
-                  <select name="base" required>
-                    {% for val,label in base_choices %}
-                      <option value="{{ val }}">{{ label }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div>
-                  <label class="small muted">% Limite</label><br>
-                  <input type="number" name="percentage" step="0.01" min="0" required placeholder="Es. 20.00">
-                </div>
-                <div style="grid-column:1/-1">
-                  <label class="small muted">Nota</label><br>
-                  <input type="text" name="note" placeholder="Facoltativa">
-                </div>
-                <div>
-                  <button class="btn primary" type="submit">Imposta Limite</button>
-                </div>
-              </form>
-            </details>
-          </div>
-        </div>
-
+        {% empty %}
+          <div class="muted small">Nessun limite impostato.</div>
+        {% endfor %}
       </div>
-    </div>
-  </main>
+
+      <details style="margin-top:16px" {% if add_limit %}open{% endif %}>
+        <summary class="btn">+ Aggiungi limite</summary>
+        <form method="post" action="" style="margin-top:12px" class="grid">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="add_limit" />
+          <div>
+            <label class="small muted">Categoria</label><br>
+            <select name="category">
+              {% for val,label in category_choices %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="small muted">Base</label><br>
+            <select name="base">
+              {% for val,label in base_choices %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="small muted">% Limite</label><br>
+            <input type="number" name="percentage" step="0.01" min="0" placeholder="Es. 20.00">
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="small muted">Nota</label><br>
+            <input type="text" name="note" placeholder="Facoltativa">
+          </div>
+          <div>
+            <button class="btn primary" type="submit">Salva limite</button>
+          </div>
+        </form>
+      </details>
+    </section>
+  </div>
+</main>
+
 </body>
 </html>
