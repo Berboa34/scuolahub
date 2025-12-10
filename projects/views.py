@@ -282,23 +282,23 @@ def project_detail(request, pk: int):
         progress_percent = (total_spent * Decimal("100")) / budget
         if progress_percent > 100: progress_percent = Decimal("100")
 
-        # ---------------------------
-        # C) Limiti - Aggiornata la query di raggruppamento e il contesto
-        # ---------------------------
-        # Raggruppa per ID categoria (ForeignKey)
-    by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
+    # ---------------------------
+    # C) Limiti - Aggiornata la query di raggruppamento e il contesto
+    # ---------------------------
+    # Raggruppa per ID categoria (ForeignKey)
+    # *Nota: Stiamo raggruppando per il PK della categoria, assumendo che i dati siano migrati.*
+    by_cat = project.expenses.values("category_id").annotate(total=Sum("amount"))
 
-        # Mappa le somme all'ID della categoria
-    sums_by_id = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
+    # Mappa le somme all'ID della categoria
+    sums_by_id = {row["category_id"]: row["total"] or Decimal("0") for row in by_cat}
 
     limits_ctx = []
-        # RIMOZIONE DELL'ORDINAMENTO COMPLESSO. Ordina solo per campo base.
-        # Se il tuo codice ha select_related('category'), lascialo.
-        # Altrimenti, usiamo .all().order_by('base')
+    # RIMOSSO .select_related() per evitare ambiguità, ordina per 'base' semplice
     for lim in project.limits.all().order_by("base"):
         base_total = total_spent if lim.base == "TOTAL_SPENT" else budget
 
-            # Recupera la somma spesa usando l'ID della categoria
+        # Recupera la somma spesa usando l'ID della categoria (lim.category_id è implicito)
+        # ACCESSO SICURO ALL'ID (usiamo lim.category_id, che Django crea)
         spent_in_cat = sums_by_id.get(lim.category_id, Decimal("0"))
 
         allowed_total = (lim.percentage / Decimal("100")) * base_total
@@ -311,8 +311,8 @@ def project_detail(request, pk: int):
 
         limits_ctx.append({
             "limit_id": lim.id,
-            "category": lim.category.pk,
-            "category_label": lim.category.name,  # Nome per il display
+            "category": lim.category.pk,  # ACCESSO all'oggetto category e poi al PK
+            "category_label": lim.category.name,  # ACCESSO all'oggetto category e poi al NAME
             "base": lim.base,
             "base_label": {
                 "TOTAL_SPENT": "Percentuale sul totale speso",
