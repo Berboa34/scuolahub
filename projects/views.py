@@ -314,24 +314,27 @@ def project_detail(request, pk: int):
     today_pos_percent = None
 
     if project_start and project_end and project_end > project_start:
+        # total_days è un intero
         total_days = (project_end - project_start).days
 
         if total_days > 0:
             # 1. Posizione del marker OGGI
             days_passed_today = (today - project_start).days
-            # Clamp: la posizione non deve andare sotto 0% o sopra 100%
-            today_pos_percent = min(100, max(0, (days_passed_today / total_days) * 100))
+
+            # CORREZIONE: Forza la divisione in virgola mobile per la precisione
+            # today_pos_percent non è a None
+            today_pos_percent = min(100, max(0, (float(days_passed_today) / total_days) * 100))
 
             # 2. Calcolo posizione milestone
             for ms in milestones:
                 if ms.due_date:
                     ms_days_from_start = (ms.due_date - project_start).days
-                    # CORREZIONE QUI: variabile ms_days_from_start è usata correttamente
-                    ms.pos_percent = min(100, max(0, (ms_days_from_start / total_days) * 100))
+                    # CORREZIONE: Forza la divisione in virgola mobile per la precisione
+                    ms.pos_percent = min(100, max(0, (float(ms_days_from_start) / total_days) * 100))
                 else:
                     ms.pos_percent = None
         else:
-            # Caso progetto dura 0 giorni
+            # Caso progetto dura 0 giorni (durata uguale a 0, i marker sono a 0%)
             today_pos_percent = 0
             for ms in milestones:
                 ms.pos_percent = 0
