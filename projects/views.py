@@ -282,10 +282,8 @@ def project_detail(request, pk: int):
         progress_percent = (total_spent * Decimal("100")) / budget
         if progress_percent > 100: progress_percent = Decimal("100")
 
-    # ... (all'interno di project_detail) ...
-
     # ---------------------------
-    # C) Limiti - Corretto l'accesso alla chiave
+    # C) Limiti - Aggiornata la query di raggruppamento e il contesto
     # ---------------------------
     # Raggruppa per la chiave che Django vede: 'category' (non 'category_id')
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
@@ -296,12 +294,29 @@ def project_detail(request, pk: int):
     limits_ctx = []
     # RIMOSSO .select_related() per evitare ambiguità, ordina per 'base' semplice
     for lim in project.limits.all().order_by("base"):
+
+        # 🚨 GESTIONE DATI IBRIDI E NON MIGRATI
+        try:
+            # Tenta di accedere all'oggetto Foreign Key e ai suoi attributi
+            category_pk = lim.category.pk
+            category_name = lim.category.name
+        except AttributeError:
+            # Se lim.category non è un oggetto ExpenseCategory (es. è NULL o una stringa vecchia non migrata)
+            # Sostituiamo con valori di fallback sicuri per non bloccare la pagina
+            category_pk = None
+            category_name = "Categoria Non Trovata/Errore"
+            # Per la logica di spesa, skippiamo il calcolo se la categoria non è valida
+            spent_in_cat = Decimal("0")
+        except Exception:
+            category_pk = None
+            category_name = "Categoria Non Trovata/Errore"
+            spent_in_cat = Decimal("0")
+
+        if category_pk is not None:
+            # Se la categoria è valida, usa l'ID per trovare la spesa aggregata
+            spent_in_cat = sums_by_id.get(category_pk, Decimal("0"))
+
         base_total = total_spent if lim.base == "TOTAL_SPENT" else budget
-
-        # Recupera la somma spesa usando la chiave 'category' (lim.category è l'oggetto Foreign Key)
-        # ACCESSO ALLA CHIAVE PRIMARIA: usiamo lim.category.pk (o lim.category.id)
-        spent_in_cat = sums_by_id.get(lim.category.pk, Decimal("0"))
-
         allowed_total = (lim.percentage / Decimal("100")) * base_total
         remaining = allowed_total - spent_in_cat
 
@@ -312,8 +327,8 @@ def project_detail(request, pk: int):
 
         limits_ctx.append({
             "limit_id": lim.id,
-            "category": lim.category.pk,
-            "category_label": lim.category.name,
+            "category": category_pk,
+            "category_label": category_name,
             "base": lim.base,
             "base_label": {
                 "TOTAL_SPENT": "Percentuale sul totale speso",
