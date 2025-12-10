@@ -295,7 +295,7 @@ def project_detail(request, pk: int):
         # RIMOZIONE DELL'ORDINAMENTO COMPLESSO. Ordina solo per campo base.
         # Se il tuo codice ha select_related('category'), lascialo.
         # Altrimenti, usiamo .all().order_by('base')
-    for lim in project.limits.all().select_related('category').order_by("base"):
+    for lim in project.limits.all().order_by("base"):
         base_total = total_spent if lim.base == "TOTAL_SPENT" else budget
 
             # Recupera la somma spesa usando l'ID della categoria
