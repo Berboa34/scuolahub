@@ -289,19 +289,29 @@ def project_detail(request, pk: int):
     # Calcolo solo se ho date valide
     if project_start and project_end and project_end > project_start:
 
-        # Durata totale del progetto in giorni (float per calcoli precisi)
-        total_days = float((project_end - project_start).days)
+        # Calcolo Durata Totale (timedelta)
+        time_span = project_end - project_start
+        total_days = time_span.days  # È un intero, useremo float per la divisione
 
         if total_days > 0:
+
             # 1. Posizione del marker OGGI
-            days_passed_today = (today - project_start).days
-            today_pos_percent = min(100, max(0, (days_passed_today / total_days) * 100))
+            days_passed_td = today - project_start  # Oggetto timedelta
+            days_passed_today = days_passed_td.days  # Ottiene i giorni come intero
+
+            # Calcolo percentuale usando float()
+            raw_percent = (float(days_passed_today) / total_days) * 100
+            today_pos_percent = min(100, max(0, raw_percent))
 
             # 2. Calcolo posizione milestone
             for ms in milestones:
                 if ms.due_date:
-                    ms_days_from_start = (ms.due_date - project_start).days
-                    ms.pos_percent = min(100, max(0, (ms_days_from_start / total_days) * 100))
+                    ms_time_span = ms.due_date - project_start
+                    ms_days_from_start = ms_time_span.days
+
+                    # Calcolo percentuale usando float()
+                    ms_raw_percent = (float(ms_days_from_start) / total_days) * 100
+                    ms.pos_percent = min(100, max(0, ms_raw_percent))
                 else:
                     ms.pos_percent = None
         else:
@@ -310,11 +320,12 @@ def project_detail(request, pk: int):
             for ms in milestones:
                 ms.pos_percent = 0
     else:
+        # Se mancano le date, nessuna posizione
         today_pos_percent = None
         for ms in milestones:
             ms.pos_percent = None
 
-            # Calcoli Avanzamento Milestone
+            # Calcoli Avanzamento Milestone (logica invariata)
     total_milestones = milestones.count()
     completed_milestones = milestones.filter(status='COMPLETED').count()
     milestone_progress_percent = Decimal("0")
@@ -322,17 +333,14 @@ def project_detail(request, pk: int):
         milestone_progress_percent = (completed_milestones * Decimal("100")) / total_milestones
 
     context = {
-        "project": project, "expenses": expenses, "filtered_total": filtered_total, "total_spent": total_spent,
-        "progress_percent": progress_percent, "category_choices": Expense.CATEGORY_CHOICES,
-        "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
-                         ("TOTAL_BUDGET", "Percentuale sul budget totale")],
-        "add_expense": request.GET.get("add") == "expense", "add_limit": request.GET.get("add") == "limit",
-        "add_milestone": request.GET.get("add") == "milestone", "limits_ctx": limits_ctx,
-        "milestones": milestones, "milestone_progress_percent": milestone_progress_percent,
-        "project_start": project_start, "project_end": project_end, "today_pos_percent": today_pos_percent,
+        # ... (Mantieni il resto del tuo contesto) ...
+        "milestones": milestones,
+        "milestone_progress_percent": milestone_progress_percent,
+        "project_start": project_start, "project_end": project_end,
+        "today_pos_percent": today_pos_percent,
         "today": today.isoformat(),
-        "completed_milestones": completed_milestones,  # aggiunto per template
-        "total_milestones": total_milestones,  # aggiunto per template
+        "completed_milestones": completed_milestones,
+        "total_milestones": total_milestones,
     }
     return render(request, "projects/detail.html", context)
 
