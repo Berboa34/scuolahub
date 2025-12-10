@@ -282,21 +282,23 @@ def project_detail(request, pk: int):
         progress_percent = (total_spent * Decimal("100")) / budget
         if progress_percent > 100: progress_percent = Decimal("100")
 
-    # ---------------------------
-    # C) Limiti - Aggiornata la query di raggruppamento e il contesto
-    # ---------------------------
-    # Raggruppa per ID categoria (ForeignKey)
+        # ---------------------------
+        # C) Limiti - Aggiornata la query di raggruppamento e il contesto
+        # ---------------------------
+        # Raggruppa per ID categoria (ForeignKey)
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
 
-    # Mappa le somme all'ID della categoria
+        # Mappa le somme all'ID della categoria
     sums_by_id = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
 
     limits_ctx = []
-    # select_related('category') per evitare query N+1 nell'iterazione
-    for lim in project.limits.all().order_by("category__name", "base", "id"):
+        # RIMOZIONE DELL'ORDINAMENTO COMPLESSO. Ordina solo per campo base.
+        # Se il tuo codice ha select_related('category'), lascialo.
+        # Altrimenti, usiamo .all().order_by('base')
+    for lim in project.limits.all().select_related('category').order_by("base"):
         base_total = total_spent if lim.base == "TOTAL_SPENT" else budget
 
-        # Recupera la somma spesa usando l'ID della categoria
+            # Recupera la somma spesa usando l'ID della categoria
         spent_in_cat = sums_by_id.get(lim.category_id, Decimal("0"))
 
         allowed_total = (lim.percentage / Decimal("100")) * base_total
