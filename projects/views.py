@@ -379,6 +379,16 @@ def project_detail(request, pk: int):
     total_milestones = milestones.count()
     completed_milestones = milestones.filter(status='COMPLETED').count()
     milestone_progress_percent = Decimal("0")
+    funds_remaining = project.budget - total_spent
+    funds_exceeded = total_spent - project.budget
+
+    # Aggiungi queste variabili al contesto finale:
+    context = {
+        # ...
+        "funds_remaining": funds_remaining,
+        "funds_exceeded": funds_exceeded,
+        # ...
+    }
     if total_milestones > 0:
         milestone_progress_percent = (completed_milestones * Decimal("100")) / total_milestones
 

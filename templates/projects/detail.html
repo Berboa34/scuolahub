@@ -35,10 +35,9 @@
     .timeline-bar{height:4px;background:#ddd;position:absolute;top:50%;width:100%;transform:translateY(-50%)}
     .today-marker{position:absolute;top:50%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid var(--bg);transform:translate(-50%,-50%);z-index:2;cursor:help;transition:left 0.5s ease-out}
     .today-label{position:absolute;top:-25px;left:50%;transform:translateX(-50%);font-size:0.75rem;white-space:nowrap;color:var(--bg)}
-    /* AGGIORNATO: da ms-marker a timeline-marker per maggiore coerenza */
     .timeline-marker{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#aaa;transform:translate(-50%,-50%);z-index:1;border:2px solid #fff;transition:left 0.5s ease-out}
     .timeline-marker.completed{background:var(--ok)}
-    .timeline-marker.delayed{background:var(--bad)} /* Usiamo bad per delayed */
+    .timeline-marker.delayed{background:var(--bad)}
     .timeline-marker-label{position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:0.75rem;white-space:nowrap;cursor:default}
     .timeline-details{display:flex;justify-content:space-between;font-size:0.75rem;margin-top:8px}
 
@@ -350,18 +349,18 @@
           <div class="card">
             <h3 style="margin-top:0">Budget e Controlli</h3>
 
-            {% if project.budget > total_spent %}
+            {% if project.budget >= total_spent %}
             <p class="kpi-card" style="background:#e6ffec;border-color:var(--ok)">
               <h4 class="small muted" style="color:var(--ok)">Fondi Rimanenti</h4>
               <strong style="color:var(--ok)">
-                {{ project.budget|sub:total_spent|floatformat:2|intcomma }}€
+                {{ funds_remaining|floatformat:2|intcomma }}€
               </strong>
             </p>
             {% else %}
             <p class="kpi-card" style="background:#fee2e2;border-color:var(--bad)">
               <h4 class="small muted" style="color:var(--bad)">Budget Superato</h4>
               <strong style="color:var(--bad)">
-                {{ total_spent|sub:project.budget|floatformat:2|intcomma }}€
+                {{ funds_exceeded|floatformat:2|intcomma }}€
               </strong>
             </p>
             {% endif %}
