@@ -236,70 +236,44 @@ def project_detail(request, pk: int):
         return HttpResponseBadRequest("Operazione non riconosciuta.")
 
     # ---------------------------
-    # B) Gestione GET (filtri e calcoli)
+    # B) Gestione GET (Calcoli Finanziari)
     # ---------------------------
     exp_qs = project.expenses.all().order_by("-date", "-id")
-
     cat = request.GET.get("category") or ""
-    if cat:
-        exp_qs = exp_qs.filter(category=cat)
-
+    if cat: exp_qs = exp_qs.filter(category=cat)
     vendor_q = request.GET.get("vendor") or ""
-    if vendor_q:
-        exp_qs = exp_qs.filter(vendor__icontains=vendor_q)
-
+    if vendor_q: exp_qs = exp_qs.filter(vendor__icontains=vendor_q)
     expenses = list(exp_qs)
     filtered_total = exp_qs.aggregate(total=Sum("amount"))["total"] or Decimal("0")
-
-    # Totale speso su tutte le spese del progetto
     total_spent = project.expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0")
-
-    # Avanzamento (speso vs budget)
     budget = project.budget or Decimal("0")
     progress_percent = Decimal("0")
     if budget > 0:
         progress_percent = (total_spent * Decimal("100")) / budget
-        if progress_percent > 100:
-            progress_percent = Decimal("100")
+        if progress_percent > 100: progress_percent = Decimal("100")
 
     # ---------------------------
-    # C) Limiti
+    # C) Limiti (Logica Invariata)
     # ---------------------------
     by_cat = project.expenses.values("category").annotate(total=Sum("amount"))
     sums_by_cat = {row["category"]: row["total"] or Decimal("0") for row in by_cat}
-
     limits_ctx = []
     for lim in project.limits.all().order_by("category", "base", "id"):
-        if lim.base == "TOTAL_SPENT":
-            base_total = total_spent
-        else:  # "TOTAL_BUDGET"
-            base_total = budget
-
+        base_total = total_spent if lim.base == "TOTAL_SPENT" else budget
         allowed_total = (lim.percentage / Decimal("100")) * base_total
         spent_in_cat = sums_by_cat.get(lim.category, Decimal("0"))
         remaining = allowed_total - spent_in_cat
-
         pct_used = Decimal("0")
         if allowed_total > 0:
             pct_used = (spent_in_cat * Decimal("100")) / allowed_total
-            if pct_used > 100:
-                pct_used = Decimal("100")
-
+            if pct_used > 100: pct_used = Decimal("100")
         limits_ctx.append({
-            "limit_id": lim.id,
-            "category": lim.category,
+            "limit_id": lim.id, "category": lim.category,
             "category_label": dict(Expense.CATEGORY_CHOICES).get(lim.category, lim.category),
-            "base": lim.base,
-            "base_label": {
-                "TOTAL_SPENT": "Percentuale sul totale speso",
-                "TOTAL_BUDGET": "Percentuale sul budget totale"
-            }.get(lim.base, lim.base),
-            "percentage": lim.percentage,
-            "allowed_total": allowed_total,
-            "spent_in_category": spent_in_cat,
-            "remaining": remaining,
-            "pct_used": pct_used,
-            "note": getattr(lim, "note", None),
+            "base": lim.base, "base_label": {"TOTAL_SPENT": "Percentuale sul totale speso",
+                                             "TOTAL_BUDGET": "Percentuale sul budget totale"}.get(lim.base, lim.base),
+            "percentage": lim.percentage, "allowed_total": allowed_total, "spent_in_cat": spent_in_cat,
+            "remaining": remaining, "pct_used": pct_used, "note": getattr(lim, "note", None),
         })
 
     # ---------------------------
@@ -307,40 +281,35 @@ def project_detail(request, pk: int):
     # ---------------------------
     milestones = project.milestones.all().order_by('due_date')
 
-    # Calcolo per Timeline Visiva
     project_start = project.start_date
     project_end = project.end_date
 
     today_pos_percent = None
 
+    # Calcolo solo se ho date valide
     if project_start and project_end and project_end > project_start:
-        # total_days è un intero
-        total_days = (project_end - project_start).days
+
+        # Durata totale del progetto in giorni (float per calcoli precisi)
+        total_days = float((project_end - project_start).days)
 
         if total_days > 0:
             # 1. Posizione del marker OGGI
             days_passed_today = (today - project_start).days
-
-            # CORREZIONE: Forza la divisione in virgola mobile per la precisione
-            # today_pos_percent non è a None
-            today_pos_percent = min(100, max(0, (float(days_passed_today) / total_days) * 100))
+            today_pos_percent = min(100, max(0, (days_passed_today / total_days) * 100))
 
             # 2. Calcolo posizione milestone
             for ms in milestones:
                 if ms.due_date:
                     ms_days_from_start = (ms.due_date - project_start).days
-                    # CORREZIONE: Forza la divisione in virgola mobile per la precisione
-                    ms.pos_percent = min(100, max(0, (float(ms_days_from_start) / total_days) * 100))
+                    ms.pos_percent = min(100, max(0, (ms_days_from_start / total_days) * 100))
                 else:
                     ms.pos_percent = None
         else:
-            # Caso progetto dura 0 giorni (durata uguale a 0, i marker sono a 0%)
+            # Caso progetto dura 0 giorni
             today_pos_percent = 0
             for ms in milestones:
                 ms.pos_percent = 0
-
     else:
-        # Se mancano le date, nessuna posizione
         today_pos_percent = None
         for ms in milestones:
             ms.pos_percent = None
@@ -348,32 +317,22 @@ def project_detail(request, pk: int):
             # Calcoli Avanzamento Milestone
     total_milestones = milestones.count()
     completed_milestones = milestones.filter(status='COMPLETED').count()
-
     milestone_progress_percent = Decimal("0")
     if total_milestones > 0:
         milestone_progress_percent = (completed_milestones * Decimal("100")) / total_milestones
 
     context = {
-        "project": project,
-        "expenses": expenses,
-        "filtered_total": filtered_total,
-        "total_spent": total_spent,
-        "progress_percent": progress_percent,
-        "category_choices": Expense.CATEGORY_CHOICES,
+        "project": project, "expenses": expenses, "filtered_total": filtered_total, "total_spent": total_spent,
+        "progress_percent": progress_percent, "category_choices": Expense.CATEGORY_CHOICES,
         "base_choices": [("TOTAL_SPENT", "Percentuale sul totale speso"),
                          ("TOTAL_BUDGET", "Percentuale sul budget totale")],
-        "add_expense": request.GET.get("add") == "expense",
-        "add_limit": request.GET.get("add") == "limit",
-        "add_milestone": request.GET.get("add") == "milestone",
-        "limits_ctx": limits_ctx,
-
-        "milestones": milestones,
-        "milestone_progress_percent": milestone_progress_percent,
-
-        "project_start": project_start,
-        "project_end": project_end,
-        "today_pos_percent": today_pos_percent,
+        "add_expense": request.GET.get("add") == "expense", "add_limit": request.GET.get("add") == "limit",
+        "add_milestone": request.GET.get("add") == "milestone", "limits_ctx": limits_ctx,
+        "milestones": milestones, "milestone_progress_percent": milestone_progress_percent,
+        "project_start": project_start, "project_end": project_end, "today_pos_percent": today_pos_percent,
         "today": today.isoformat(),
+        "completed_milestones": completed_milestones,  # aggiunto per template
+        "total_milestones": total_milestones,  # aggiunto per template
     }
     return render(request, "projects/detail.html", context)
 
