@@ -330,9 +330,9 @@
                 {% if L.note %}<div class="small muted">Nota: {{ L.note }}</div>{% endif %}
               </div>
               <div class="small muted">
-                Consentito: <b>€ {{ L.allowed_total|floatformat:0|intcomma }}</b> ·
-                Speso: <b>€ {{ L.spent_in_category|floatformat:0|intcomma }}</b> ·
-                Residuo: <b>€ {{ L.remaining|floatformat:0|intcomma }}</b>
+                Consentito: <b>€ {{ L.allowed_total|default:"0"|floatformat:0|intcomma }}</b> ·
+                Speso: <b>€ {{ L.spent_in_category|default:"0"|floatformat:0|intcomma }}</b> ·
+                Residuo: <b>€ {{ L.remaining|default:"0"|floatformat:0|intcomma }}</b>
               </div>
             </div>
 
