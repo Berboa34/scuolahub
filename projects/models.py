@@ -53,7 +53,7 @@ class Expense(models.Model):
         ("DOTAZIONI DIGITALI", "Dotazioni digitali"),
         ("ARREDI", "Arredi"),
         ("INTERVENTI EDILIZI", "Interventi edilizi"),
-        ("PROGETTAZIONE E TECNICO-OPERATIVE", "Progettazione e tecnico-operative"),
+        ("TECNICO-OPERATIVE", "Tecnico-operative"),
     ]
     project   = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="expenses")
     date      = models.DateField(default=timezone.now)
