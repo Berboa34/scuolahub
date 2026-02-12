@@ -5,7 +5,7 @@ Questa repository contiene il codice sorgente di **ScuolaHub**, un sistema integ
 Il progetto è stato sviluppato come parte della tesi di Laurea in Ingegneria Gestionale presso il Politecnico di Torino, in collaborazione con la Fondazione per la Scuola della Compagnia di San Paolo.
 
 ## Caratteristiche Tecniche
-- Backend/Frontend: [Django/Python/HTML]
+- Backend/Frontend: Django (Python) / HTML5, CSS3, JavaScript.
 - Architettura: Modellazione basata su BPMN e diagrammi delle classi.
 - Ambiente di Esecuzione: Il prototipo è configurato per il deployment su piattaforma cloud (Render).
 
